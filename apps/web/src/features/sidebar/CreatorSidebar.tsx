@@ -1,3 +1,4 @@
+import { CaretLeft } from "@phosphor-icons/react/CaretLeft";
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { List } from "@phosphor-icons/react/List";
 import { Sparkle } from "@phosphor-icons/react/Sparkle";
@@ -27,6 +28,7 @@ export const CreatorSidebar = ({
   onOpenAgent: () => void;
 }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
 
   const closeMobileSidebar = () => setIsMobileOpen(false);
   const openAgentFromSidebar = () => {
@@ -50,8 +52,26 @@ export const CreatorSidebar = ({
         </button>
       </div>
 
-      <aside className="sticky top-0 hidden h-screen w-[300px] shrink-0 border-r border-neutral-200 bg-neutral-100 md:flex" data-testid="creator-sidebar-desktop">
+      <aside
+        className={cn(
+          "group/sidebar-shell sticky top-0 z-40 hidden h-screen shrink-0 border-r border-neutral-200 bg-neutral-100 transition-[width] duration-300 ease-in-out md:flex",
+          isDesktopCollapsed ? "w-[72px]" : "w-[300px]"
+        )}
+        data-collapsed={isDesktopCollapsed}
+        data-testid="creator-sidebar-desktop"
+      >
+        <button
+          type="button"
+          className="pointer-events-none absolute -right-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-700 opacity-0 shadow-sm transition hover:bg-neutral-100 group-hover/sidebar-shell:pointer-events-auto group-hover/sidebar-shell:opacity-100 group-focus-within/sidebar-shell:pointer-events-auto group-focus-within/sidebar-shell:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+          aria-expanded={!isDesktopCollapsed}
+          aria-label={isDesktopCollapsed ? "展开侧边栏" : "收起侧边栏"}
+          title={isDesktopCollapsed ? "展开侧边栏" : "收起侧边栏"}
+          onClick={() => setIsDesktopCollapsed((collapsed) => !collapsed)}
+        >
+          <CaretLeft className={cn("h-4 w-4 transition-transform duration-300", isDesktopCollapsed && "rotate-180")} weight={phosphorIconWeight} />
+        </button>
         <SidebarContent
+          collapsed={isDesktopCollapsed}
           selectedCreatorId={selectedCreatorId}
           onSelectCreator={onSelectCreator}
           diagnosis={diagnosis}
@@ -116,6 +136,7 @@ export const CreatorSidebar = ({
 
 const SidebarContent = ({
   className,
+  collapsed = false,
   showBrand = true,
   selectedCreatorId,
   onSelectCreator,
@@ -125,6 +146,7 @@ const SidebarContent = ({
   onNavigate
 }: {
   className?: string;
+  collapsed?: boolean;
   showBrand?: boolean;
   selectedCreatorId: string;
   onSelectCreator: (creatorId: string) => void;
@@ -133,36 +155,36 @@ const SidebarContent = ({
   onOpenAgent: () => void;
   onNavigate?: () => void;
 }) => (
-  <div className={cn("flex h-full w-full flex-col overflow-hidden px-4 py-4", className)}>
-    {showBrand ? <SidebarBrand /> : null}
+  <div className={cn("flex h-full w-full flex-col overflow-hidden py-4", collapsed ? "px-2" : "px-4", className)}>
+    {showBrand ? <SidebarBrand collapsed={collapsed} /> : null}
 
     <ScrollArea.Root className={cn("min-h-0 flex-1", showBrand ? "mt-7" : "mt-0")}>
-      <ScrollArea.Viewport className="h-full pr-1">
-        <CreatorAccountSelect selectedCreatorId={selectedCreatorId} onSelectCreator={onSelectCreator} />
+      <ScrollArea.Viewport className={cn("h-full", collapsed ? "pr-0" : "pr-1")}>
+        {collapsed ? null : <CreatorAccountSelect selectedCreatorId={selectedCreatorId} onSelectCreator={onSelectCreator} />}
 
-        <div className="mt-6">
-          <SidebarNav onOpenAgent={onOpenAgent} onNavigate={onNavigate} />
+        <div className={collapsed ? "mt-0" : "mt-6"}>
+          <SidebarNav collapsed={collapsed} onOpenAgent={onOpenAgent} onNavigate={onNavigate} />
         </div>
 
-        <SidebarDivider />
+        {collapsed ? null : <SidebarDivider />}
 
-        <CreatorMiniCard diagnosis={diagnosis} />
+        {collapsed ? null : <CreatorMiniCard diagnosis={diagnosis} />}
       </ScrollArea.Viewport>
       <ScrollArea.Scrollbar className="flex w-2.5 touch-none select-none bg-transparent p-0.5" orientation="vertical">
         <ScrollArea.Thumb className="relative flex-1 rounded-full bg-neutral-300" />
       </ScrollArea.Scrollbar>
     </ScrollArea.Root>
 
-    <SidebarFooter diagnosis={diagnosis} isLoadingDiagnosis={isLoadingDiagnosis} />
+    <SidebarFooter collapsed={collapsed} diagnosis={diagnosis} isLoadingDiagnosis={isLoadingDiagnosis} />
   </div>
 );
 
-const SidebarBrand = ({ className }: { className?: string }) => (
-  <div className={cn("relative z-20 flex items-center gap-2 px-4 py-1 text-sm text-neutral-950", className)}>
+const SidebarBrand = ({ className, collapsed = false }: { className?: string; collapsed?: boolean }) => (
+  <div className={cn("relative z-20 flex items-center gap-2 py-1 text-sm text-neutral-950", collapsed ? "justify-center px-0" : "px-4", className)}>
     <div className="flex h-7 w-8 shrink-0 items-center justify-center rounded-bl-sm rounded-br-lg rounded-tl-lg rounded-tr-sm bg-black text-white">
       <Sparkle className="h-3.5 w-3.5" weight={phosphorIconWeight} />
     </div>
-    <div className="min-w-0">
+    <div className={cn("min-w-0", collapsed && "hidden")}>
       <p className="truncate font-medium leading-5 text-neutral-950">Creator AI</p>
       <p className="truncate text-xs leading-4 text-neutral-500">抖音创作者中心 Demo</p>
     </div>
@@ -235,13 +257,27 @@ const CreatorMiniCard = ({ diagnosis }: { diagnosis: DiagnosisResponse }) => (
   </div>
 );
 
-const SidebarFooter = ({ diagnosis, isLoadingDiagnosis }: { diagnosis: DiagnosisResponse; isLoadingDiagnosis: boolean }) => (
-  <div className="mt-4 border-t border-neutral-200 pt-4">
-    <div className="group/sidebar flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-neutral-200/80">
+const SidebarFooter = ({
+  collapsed = false,
+  diagnosis,
+  isLoadingDiagnosis
+}: {
+  collapsed?: boolean;
+  diagnosis: DiagnosisResponse;
+  isLoadingDiagnosis: boolean;
+}) => (
+  <div className={cn("mt-4 border-t border-neutral-200 pt-4", collapsed && "flex justify-center")}>
+    <div
+      className={cn(
+        "group/sidebar flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-neutral-200/80",
+        collapsed && "h-11 justify-center px-0"
+      )}
+      title={collapsed ? diagnosis.creator.displayName : undefined}
+    >
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-xs font-semibold text-white">
         {diagnosis.creator.displayName.slice(0, 1)}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className={cn("min-w-0 flex-1", collapsed && "hidden")}>
         <p className="truncate text-sm font-medium text-neutral-800 transition duration-150 group-hover/sidebar:translate-x-1">
           {diagnosis.creator.displayName}
         </p>
@@ -253,21 +289,23 @@ const SidebarFooter = ({ diagnosis, isLoadingDiagnosis }: { diagnosis: Diagnosis
   </div>
 );
 
-const SidebarNav = ({ onOpenAgent, onNavigate }: { onOpenAgent: () => void; onNavigate?: () => void }) => (
+const SidebarNav = ({ collapsed = false, onOpenAgent, onNavigate }: { collapsed?: boolean; onOpenAgent: () => void; onNavigate?: () => void }) => (
   <nav className="flex flex-col gap-1">
     {sidebarNavItems.map((item) => (
-      <SidebarLinkItem key={item.label} label={item.label} active={item.active} icon={item.icon} onClick={onNavigate} />
+      <SidebarLinkItem key={item.label} collapsed={collapsed} label={item.label} active={item.active} icon={item.icon} onClick={onNavigate} />
     ))}
-    <SidebarLinkItem label="AI Agent" icon={agentNavIcon} onClick={onOpenAgent} />
+    <SidebarLinkItem collapsed={collapsed} label="AI Agent" icon={agentNavIcon} onClick={onOpenAgent} />
   </nav>
 );
 
 const SidebarLinkItem = ({
+  collapsed = false,
   label,
   icon,
   active,
   onClick
 }: {
+  collapsed?: boolean;
   label: string;
   icon: ReactNode;
   active?: boolean;
@@ -279,7 +317,11 @@ const SidebarLinkItem = ({
     <button
       type="button"
       aria-current={active ? "page" : undefined}
-      className="group/sidebar relative w-full px-4 py-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+      className={cn(
+        "group/sidebar relative w-full py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
+        collapsed ? "px-0 text-center" : "px-4 text-left"
+      )}
+      title={collapsed ? label : undefined}
       onClick={onClick}
       onFocus={() => setIsIntent(true)}
       onBlur={() => setIsIntent(false)}
@@ -295,13 +337,14 @@ const SidebarLinkItem = ({
           active || isIntent ? "opacity-100" : "opacity-0 group-focus/sidebar:opacity-100 group-hover/sidebar:opacity-100"
         )}
       />
-      <span className="relative z-20 flex items-center justify-start gap-2 py-2">
+      <span className={cn("relative z-20 flex items-center gap-2 py-2", collapsed ? "justify-center" : "justify-start")}>
         <span className="shrink-0 text-neutral-700 transition-colors duration-150">{icon}</span>
         <span
           className={cn(
             "inline-block whitespace-pre text-sm font-medium transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
             isIntent && "translate-x-1",
-            "text-neutral-700"
+            "text-neutral-700",
+            collapsed && "sr-only"
           )}
         >
           {label}
