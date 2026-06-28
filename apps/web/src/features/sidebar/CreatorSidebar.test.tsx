@@ -110,12 +110,14 @@ describe("CreatorSidebar", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(notchShell).toHaveClass("bg-neutral-950/95");
-    expect(within(accountNotch).getByText("示例")).toBeInTheDocument();
-    expect(within(accountNotch).getByText("数据")).toBeInTheDocument();
+    const sampleLabel = within(accountNotch).getByText("示例");
+    const sampleValue = within(accountNotch).getByText("数据");
+
+    expect(sampleLabel).toHaveClass("font-semibold", "text-neutral-100");
+    expect(sampleValue).toHaveClass("font-semibold", "text-neutral-100");
     expect(within(accountNotch).getByText("账号")).toBeInTheDocument();
-    expect(
-      within(accountNotch).getByText(creatorOptions[0]!.name),
-    ).toBeInTheDocument();
+    expect(within(accountNotch).getByText("短剧")).toBeInTheDocument();
+    expect(within(accountNotch).queryByText(creatorOptions[0]!.name)).not.toBeInTheDocument();
     expect(within(accountNotch).getByTestId("notch-divider")).toBeInTheDocument();
     expect(
       within(accountNotch).getByTestId("notch-static-sample"),
@@ -153,6 +155,7 @@ describe("CreatorSidebar", () => {
     await waitFor(() =>
       expect(screen.queryByRole("listbox", { name: "账号" })).not.toBeInTheDocument(),
     );
+    expect(within(sidebar).getByTestId("notch-trigger-row")).toBeInTheDocument();
   });
 
   it("keeps the sample segment static while the account segment opens", async () => {
@@ -226,6 +229,7 @@ describe("CreatorSidebar", () => {
     await waitFor(() =>
       expect(screen.queryByRole("listbox", { name: "账号" })).not.toBeInTheDocument(),
     );
+    expect(within(sidebar).getByTestId("notch-trigger-row")).toBeInTheDocument();
 
     fireEvent.click(within(sidebar).getByTestId("notch-trigger-account"));
     expect(await screen.findByRole("listbox", { name: "账号" })).toBeInTheDocument();
@@ -234,6 +238,7 @@ describe("CreatorSidebar", () => {
     await waitFor(() =>
       expect(screen.queryByRole("listbox", { name: "账号" })).not.toBeInTheDocument(),
     );
+    expect(within(sidebar).getByTestId("notch-trigger-row")).toBeInTheDocument();
   });
 
   it("renders the footer avatar with a stable boring avatar seed", () => {

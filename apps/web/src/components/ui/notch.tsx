@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from "react";
-import { AnimatePresence, motion, useIsPresent } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 
 import { cn } from "@creator/ui";
 
@@ -16,6 +16,8 @@ export type NotchItem = {
   options: NotchOption[];
   defaultValue?: string;
   value?: string;
+  triggerValue?: React.ReactNode;
+  triggerValueClassName?: string;
   showValue?: boolean;
   ariaLabel?: string;
   disabled?: boolean;
@@ -41,6 +43,7 @@ export interface NotchProps {
   rootClassName?: string;
   itemClassName?: string;
   panelClassName?: string;
+  optionsListClassName?: string;
 }
 
 const SHELL_SPRING = { type: "spring" as const, stiffness: 380, damping: 34 };
@@ -81,23 +84,21 @@ const NotchOptionsPanel = ({
   accentColor,
   activeId,
   item,
+  optionsListClassName,
   onSelect,
   panelClassName,
 }: {
   accentColor: string;
   activeId?: string;
   item: NotchItem;
+  optionsListClassName?: string;
   onSelect: (option: NotchOption) => void;
   panelClassName?: string;
-}) => {
-  const isPresent = useIsPresent();
-
-  return (
+}) => (
     <motion.div
       key={item.id}
-      role={isPresent ? "listbox" : undefined}
-      aria-hidden={isPresent ? undefined : "true"}
-      aria-label={isPresent ? labelToString(item.label, item.id) : undefined}
+      role="listbox"
+      aria-label={labelToString(item.label, item.id)}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -105,7 +106,7 @@ const NotchOptionsPanel = ({
       className={cn("w-fit", panelClassName)}
     >
       <motion.div
-        className="flex flex-col gap-1.5 p-2"
+        className={cn("flex flex-col gap-1.5 p-2", optionsListClassName)}
         variants={LIST_VARIANTS}
         initial="hidden"
         animate="visible"
@@ -116,8 +117,8 @@ const NotchOptionsPanel = ({
           return (
             <motion.button
               key={option.id}
-              role={isPresent ? "option" : undefined}
-              aria-selected={isPresent ? active : undefined}
+              role="option"
+              aria-selected={active}
               type="button"
               variants={OPTION_VARIANTS}
               onClick={() => onSelect(option)}
@@ -155,8 +156,7 @@ const NotchOptionsPanel = ({
         })}
       </motion.div>
     </motion.div>
-  );
-};
+);
 
 export const Notch = ({
   items,
@@ -173,6 +173,7 @@ export const Notch = ({
   rootClassName,
   itemClassName,
   panelClassName,
+  optionsListClassName,
 }: NotchProps) => {
   const shellRef = useRef<HTMLDivElement>(null);
   const shellLayoutId = useId();
@@ -261,6 +262,7 @@ export const Notch = ({
       accentColor={accentColor}
       activeId={getSelectedId(openItem)}
       item={openItem}
+      optionsListClassName={optionsListClassName}
       onSelect={(option) => handleSelect(openItem, option)}
       panelClassName={panelClassName}
     />
@@ -277,6 +279,7 @@ export const Notch = ({
       {items.map((item, index) => {
         const selected = getSelectedOption(item);
         const isLast = index === items.length - 1;
+        const triggerValue = item.triggerValue ?? selected?.label;
         const itemContent = (
           <>
             {item.icon ? (
@@ -284,9 +287,17 @@ export const Notch = ({
                 {item.icon}
               </span>
             ) : null}
-            <span className="text-neutral-100">{item.label}</span>
-            {(item.showValue ?? showSelectedValue) && selected ? (
-              <span className="text-neutral-400">{selected.label}</span>
+            <span className="font-semibold text-neutral-100">
+              {item.label}
+            </span>
+            {(item.showValue ?? showSelectedValue) && triggerValue ? (
+              <span
+                className={cn(
+                  item.triggerValueClassName ?? "text-neutral-400",
+                )}
+              >
+                {triggerValue}
+              </span>
             ) : null}
           </>
         );

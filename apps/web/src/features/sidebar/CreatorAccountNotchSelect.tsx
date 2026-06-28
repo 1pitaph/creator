@@ -13,6 +13,25 @@ const getSelectedCreator = (selectedCreatorId: string) =>
     creatorType: "personal_daily_diagnosis" as const,
   };
 
+const creatorTypeShortLabels = {
+  short_drama_strategy: "短剧",
+  personal_daily_diagnosis: "日常",
+  growth_review: "职场",
+  plateau_repair: "健身",
+  series_operation: "城市",
+} as const;
+
+const getCreatorTypeShortLabel = ({
+  creatorType,
+  domain,
+}: {
+  creatorType: string;
+  domain: string;
+}) =>
+  creatorTypeShortLabels[
+    creatorType as keyof typeof creatorTypeShortLabels
+  ] ?? domain.split(/[/／]/)[0]?.slice(0, 2) ?? "账号";
+
 export const CreatorAccountNotchSelect = ({
   selectedCreatorId,
   onSelectCreator,
@@ -55,6 +74,8 @@ export const CreatorAccountNotchSelect = ({
           ariaLabel: "示例数据",
           disabled: true,
           options: [{ id: "demo", label: "数据" }],
+          triggerValue: "数据",
+          triggerValueClassName: "font-semibold text-neutral-100",
           value: "demo",
         },
         {
@@ -63,6 +84,7 @@ export const CreatorAccountNotchSelect = ({
           ariaLabel: `切换创作者账号：${selectedCreator.name}`,
           options: accountOptions,
           value: selectedCreator.id,
+          triggerValue: getCreatorTypeShortLabel(selectedCreator),
           onChange: (creatorId) => onSelectCreator(creatorId),
         },
       ];
@@ -84,7 +106,7 @@ export const CreatorAccountNotchSelect = ({
         closeOnSelect
         accentColor="#0ea5e9"
         rootClassName="z-[65] px-0"
-        panelClassName="max-h-[min(17rem,calc(100vh-8rem))] overflow-y-auto"
+        optionsListClassName="max-h-[min(17rem,calc(100vh-8rem))] overflow-y-auto"
       />
     </div>
   );
