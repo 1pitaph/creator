@@ -34,7 +34,7 @@ export const DashboardModuleCard = ({
   children: ReactNode;
 }) => (
   <GlowingPanel className={className}>
-    <Card className={cn("relative z-10 overflow-visible rounded-[19px] border-0 bg-white shadow-none", fill && "flex h-full flex-col")}>
+    <Card className={cn("relative z-10 overflow-visible !rounded-[inherit] border-0 bg-white shadow-none", fill && "flex h-full flex-col")}>
       {showDragHandle ? <DashboardCardDragHandle label={dragHandleLabel ?? `拖动卡片：${title}`} onPointerDown={onDragHandlePointerDown} /> : null}
       <AskAgentToolbar target={askTarget} onAsk={onAsk} />
       <CardHeader className={cn("relative z-10 border-b border-zinc-100/80 !py-5 !pr-28", showDragHandle ? "!pl-14" : "!pl-6")}>
