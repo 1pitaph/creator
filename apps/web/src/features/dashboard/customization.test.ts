@@ -15,6 +15,7 @@ import {
   parseDashboardPreferences,
   pickNewestDashboardPreferences,
   packDashboardMasonryLayout,
+  reconcileDashboardGridLayout,
   reconcileDashboardPreferences
 } from "./customization";
 import type { DashboardCardDefinition } from "./customization";
@@ -135,6 +136,18 @@ describe("dashboard customization", () => {
     expectLayoutToBeVerticallyCompact(layout);
   });
 
+  it("preserves saved card positions while packing missing cards", () => {
+    const cards = ["a", "b", "c"].map(buildMasonryTestCard);
+    const layout = reconcileDashboardGridLayout(cards, "lg", 8, {}, [
+      { i: "a", x: 2, y: 5, w: 2, h: 5 },
+      { i: "b", x: 0, y: 0, w: 2, h: 5 }
+    ]);
+
+    expect(layout.find((item) => item.i === "a")).toMatchObject({ x: 2, y: 5, w: 2, h: 5 });
+    expect(layout.find((item) => item.i === "b")).toMatchObject({ x: 0, y: 0, w: 2, h: 5 });
+    expect(layout.find((item) => item.i === "c")).toMatchObject({ x: 4, y: 0, w: 3, h: 5 });
+  });
+
   it("promotes AI module charts into standalone dashboard cards", () => {
     const { cards, diagnosis } = buildFixture();
     const chartModules = diagnosis.modules.filter((module) => module.chart);
@@ -177,7 +190,7 @@ describe("dashboard customization", () => {
     expect(parseDashboardPreferences({ version: 0 })).toBeNull();
   });
 
-  it("migrates legacy cached card sizes while preserving saved grid dimensions and compacting placement", () => {
+  it("migrates legacy cached card sizes while preserving saved grid dimensions and placement", () => {
     const { actions, cards } = buildFixture();
     const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
     const parsed = parseDashboardPreferences({
@@ -202,8 +215,8 @@ describe("dashboard customization", () => {
 
     const reconciled = reconcileDashboardPreferences(parsed ?? preferences, defaultCreatorId, cards, actions, "2026-06-29T00:00:00.000Z");
 
-    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({ x: 0, y: 0, h: 9, w: 7, minH: 6, minW: 3 });
-    expect(reconciled.visual.layouts.lg.find((item) => item.i === "insights")).toMatchObject({ x: 7, y: 0, h: 11, w: 4, minH: 6, minW: 3 });
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({ x: 1, y: 2, h: 9, w: 7, minH: 6, minW: 3 });
+    expect(reconciled.visual.layouts.lg.map((item) => item.i)).toEqual(cards.map((card) => card.id));
   });
 
   it("keeps independent width and height presets as metadata without resetting saved layouts", () => {
@@ -234,7 +247,7 @@ describe("dashboard customization", () => {
     });
   });
 
-  it("clamps invalid saved grid dimensions before compacting placement", () => {
+  it("clamps invalid saved grid dimensions before preserving placement", () => {
     const { actions, cards } = buildFixture();
     const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
     const reconciled = reconcileDashboardPreferences(
@@ -255,7 +268,7 @@ describe("dashboard customization", () => {
 
     expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({
       x: 0,
-      y: 0,
+      y: 4,
       w: 12,
       h: 16,
       minW: 3,

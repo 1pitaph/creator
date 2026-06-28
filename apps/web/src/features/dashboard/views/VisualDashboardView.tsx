@@ -23,7 +23,7 @@ import {
   getDashboardMasonryColumnCount,
   normalizeDashboardGridItem,
   normalizeDashboardCardDimensions,
-  packDashboardMasonryLayout,
+  reconcileDashboardGridLayout,
   type DashboardActionCard,
   type DashboardCardDefinition
 } from "../customization";
@@ -145,7 +145,7 @@ const createStoredLayoutForBreakpoint = (
     return card ? [normalizeStoredGridItem(item, breakpoint, card, cols)] : [];
   });
   const currentHiddenLayout = current.visual.layouts[breakpoint].filter((item) => !visibleIds.has(item.i));
-  const packedVisibleLayout = packDashboardMasonryLayout(
+  const storedVisibleLayout = reconcileDashboardGridLayout(
     cards,
     breakpoint,
     cols,
@@ -153,7 +153,7 @@ const createStoredLayoutForBreakpoint = (
     [...nextVisibleLayout, ...currentVisibleLayout]
   );
 
-  return [...packedVisibleLayout, ...currentHiddenLayout];
+  return [...storedVisibleLayout, ...currentHiddenLayout];
 };
 
 const createStoredLayoutsForBreakpoint = (
@@ -215,7 +215,7 @@ const resizeDashboardGridItem = ({
     h: clamp(h, constraints.minH, constraints.maxH)
   };
 
-  return packDashboardMasonryLayout(cards, breakpoint, cols, cardPreferences, nextLayout);
+  return reconcileDashboardGridLayout(cards, breakpoint, cols, cardPreferences, nextLayout);
 };
 
 export const VisualDashboardView = ({
@@ -248,7 +248,7 @@ export const VisualDashboardView = ({
   const visibleCards = cards.filter((card) => preferences.cards[card.id]?.visible !== false);
   const visibleIds = new Set(visibleCards.map((card) => card.id));
   const visibleSourceLayout = preferences.visual.layouts[breakpoint].filter((item) => visibleIds.has(item.i));
-  const activeLayout = packDashboardMasonryLayout(visibleCards, breakpoint, activeCols, preferences.cards, visibleSourceLayout);
+  const activeLayout = reconcileDashboardGridLayout(visibleCards, breakpoint, activeCols, preferences.cards, visibleSourceLayout);
   const activeLayoutById = new Map(activeLayout.map((item) => [item.i, item]));
   const layouts = toResponsiveLayouts(
     {

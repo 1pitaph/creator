@@ -11,12 +11,16 @@ export const Badge = ({
 }: HTMLAttributes<HTMLSpanElement> & { tone?: BadgeTone }) => (
   <span
     className={cn(
-      "inline-flex min-h-6 items-center rounded border px-2 py-0 text-xs font-medium leading-none",
+      "inline-flex min-h-6 items-center rounded-full border px-2 py-0 text-xs font-medium leading-none",
       tone === "neutral" && "border-zinc-200 bg-white text-zinc-600",
-      tone === "green" && "border-emerald-200/80 bg-emerald-50/50 text-emerald-700",
-      tone === "amber" && "border-amber-200/80 bg-amber-50/50 text-amber-700",
-      tone === "red" && "border-rose-200/80 bg-rose-50/50 text-rose-700",
-      tone === "blue" && "border-slate-200 bg-slate-50/70 text-slate-700",
+      tone === "green" &&
+        "border-dashed border-emerald-300/80 bg-emerald-50/60 bg-[repeating-linear-gradient(135deg,rgba(16,185,129,0.12)_0,rgba(16,185,129,0.12)_1px,transparent_1px,transparent_5px)] text-zinc-600",
+      tone === "amber" &&
+        "border-dashed border-amber-300/80 bg-amber-50/60 bg-[repeating-linear-gradient(135deg,rgba(245,158,11,0.14)_0,rgba(245,158,11,0.14)_1px,transparent_1px,transparent_5px)] text-zinc-600",
+      tone === "red" &&
+        "border-dashed border-rose-300/80 bg-rose-50/60 bg-[repeating-linear-gradient(135deg,rgba(244,63,94,0.12)_0,rgba(244,63,94,0.12)_1px,transparent_1px,transparent_5px)] text-zinc-600",
+      tone === "blue" &&
+        "border-dashed border-slate-300/80 bg-slate-50/60 bg-[repeating-linear-gradient(135deg,rgba(100,116,139,0.12)_0,rgba(100,116,139,0.12)_1px,transparent_1px,transparent_5px)] text-zinc-600",
       className
     )}
     {...props}

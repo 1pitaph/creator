@@ -16,7 +16,7 @@ import {
   isModuleChartCardId,
   normalizeDashboardGridItem,
   normalizeDashboardCardDimensions,
-  packDashboardMasonryLayout,
+  reconcileDashboardGridLayout,
   type DashboardCardDefinition
 } from "../customization";
 
@@ -80,12 +80,10 @@ export const TableDashboardView = ({
   const updateCardGridDimension = (card: DashboardCardDefinition, axis: "w" | "h", value: number) => {
     updatePreferences((current) => {
       const currentLayout = current.visual.layouts[breakpoint] ?? [];
-      const dimensions = normalizeDashboardCardDimensions(current.cards[card.id], card.defaultSize);
-      const fallbackItem = createDashboardGridItem(card, breakpoint, 0, 0, dimensions, activeCols);
       const preservedModuleChartLayout = currentLayout.filter((item) => isModuleChartCardId(item.i) && !cardById.has(item.i));
       const currentKnownLayout = currentLayout.filter((item) => cardById.has(item.i));
-      const hasExistingItem = currentKnownLayout.some((item) => item.i === card.id);
-      const nextLayout = (hasExistingItem ? currentKnownLayout : [...currentKnownLayout, fallbackItem]).flatMap((item) => {
+      const baseLayout = reconcileDashboardGridLayout(cards, breakpoint, activeCols, current.cards, currentKnownLayout);
+      const nextLayout = baseLayout.flatMap((item) => {
         const itemCard = cardById.get(item.i);
 
         if (!itemCard) {
@@ -108,11 +106,11 @@ export const TableDashboardView = ({
             : normalizedItem
         ];
       });
-      const compactedLayout = packDashboardMasonryLayout(cards, breakpoint, activeCols, current.cards, nextLayout);
-      const compactedLayoutIds = new Set(compactedLayout.map((item) => item.i));
+      const reconciledLayout = reconcileDashboardGridLayout(cards, breakpoint, activeCols, current.cards, nextLayout);
+      const reconciledLayoutIds = new Set(reconciledLayout.map((item) => item.i));
       const nextBreakpointLayout = [
-        ...compactedLayout,
-        ...preservedModuleChartLayout.filter((item) => !compactedLayoutIds.has(item.i))
+        ...reconciledLayout,
+        ...preservedModuleChartLayout.filter((item) => !reconciledLayoutIds.has(item.i))
       ];
 
       return {

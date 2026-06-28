@@ -2,6 +2,7 @@ appId: com.creator.ai.desktop
 productName: Douyin Creator AI
 artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
 asar: true
+icon: build/icon.png
 directories:
   output: release
 files:
@@ -12,16 +13,19 @@ extraResources:
     to: web
 mac:
   category: public.app-category.business
+  icon: build/icon.icns
   identity: null
   target:
     - dmg
     - zip
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch:
         - x64
 linux:
+  icon: build/icon.png
   target:
     - AppImage
 publish:

@@ -498,6 +498,18 @@ const findDashboardMasonryPosition = (item: DashboardGridItem, columnHeights: nu
   };
 };
 
+const getDashboardColumnHeights = (layout: DashboardGridItem[], cols: number) => {
+  const columnHeights = Array.from({ length: cols }, () => 0);
+
+  layout.forEach((item) => {
+    for (let column = item.x; column < Math.min(item.x + item.w, cols); column += 1) {
+      columnHeights[column] = Math.max(columnHeights[column] ?? 0, item.y + item.h);
+    }
+  });
+
+  return columnHeights;
+};
+
 export const packDashboardMasonryLayout = (
   cards: DashboardCardDefinition[],
   breakpoint: DashboardBreakpoint,
@@ -541,6 +553,60 @@ export const packDashboardMasonryLayout = (
   return packedItems;
 };
 
+export const reconcileDashboardGridLayout = (
+  cards: DashboardCardDefinition[],
+  breakpoint: DashboardBreakpoint,
+  cols = dashboardColumnCounts[breakpoint],
+  cardPreferences: DashboardPreferencesV1["cards"] = {},
+  sourceLayout?: DashboardGridItem[]
+) => {
+  if (!sourceLayout?.length) {
+    return packDashboardMasonryLayout(cards, breakpoint, cols, cardPreferences);
+  }
+
+  const columnCount = normalizeDashboardColumnCount(cols, dashboardColumnCounts[breakpoint]);
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const sourceItemById = new Map<string, DashboardGridItem>();
+  const preservedItems: DashboardGridItem[] = [];
+  const preservedIds = new Set<string>();
+
+  sourceLayout.forEach((item) => {
+    const card = cardById.get(item.i);
+
+    if (!card || preservedIds.has(card.id)) {
+      return;
+    }
+
+    const normalizedItem = normalizeDashboardGridItem(item, breakpoint, card, columnCount);
+    sourceItemById.set(card.id, normalizedItem);
+    preservedItems.push(normalizedItem);
+    preservedIds.add(card.id);
+  });
+
+  const columnHeights = getDashboardColumnHeights(preservedItems, columnCount);
+  const missingItems = cards.flatMap((card) => {
+    if (sourceItemById.has(card.id)) {
+      return [];
+    }
+
+    const dimensions = normalizeDashboardCardDimensions(cardPreferences[card.id], card.defaultSize);
+    const item = createDashboardGridItem(card, breakpoint, 0, 0, dimensions, columnCount);
+    const position = findDashboardMasonryPosition(item, columnHeights, columnCount);
+    const packedItem = {
+      ...item,
+      ...position
+    };
+
+    for (let column = packedItem.x; column < Math.min(packedItem.x + packedItem.w, columnCount); column += 1) {
+      columnHeights[column] = packedItem.y + packedItem.h;
+    }
+
+    return [packedItem];
+  });
+
+  return [...preservedItems, ...missingItems];
+};
+
 export const createDashboardLayout = (
   cards: DashboardCardDefinition[],
   breakpoint: DashboardBreakpoint,
@@ -559,7 +625,7 @@ export const createDashboardLayouts = (
 
       return [
         breakpoint,
-        packDashboardMasonryLayout(cards, breakpoint, dashboardColumnCounts[breakpoint], cardPreferences, sourceLayout)
+        reconcileDashboardGridLayout(cards, breakpoint, dashboardColumnCounts[breakpoint], cardPreferences, sourceLayout)
       ];
     })
   ) as DashboardPreferencesV1["visual"]["layouts"];

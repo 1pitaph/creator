@@ -1,0 +1,74 @@
+name: Desktop Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            os: macos-latest
+            builderTarget: --mac
+          - platform: windows
+            os: windows-latest
+            builderTarget: --win
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck API
+        run: pnpm --filter @creator/api typecheck
+
+      - name: Typecheck desktop
+        run: pnpm --filter @creator/desktop typecheck
+
+      - name: Build web
+        run: pnpm --filter @creator/web build
+
+      - name: Build desktop
+        run: pnpm --filter @creator/desktop build
+
+      - name: Package desktop
+        run: pnpm --filter @creator/desktop exec electron-builder ${{ matrix.builderTarget }} --publish never
+
+      - name: Upload desktop artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}-${{ github.sha }}
+          path: apps/desktop/release/**/*
+          if-no-files-found: error
+          retention-days: 14

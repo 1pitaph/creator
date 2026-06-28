@@ -103,14 +103,14 @@ vi.mock("react-grid-layout", async () => {
           onClick={() =>
             onDragStop?.(
               [
-                { i: "insights", x: 0, y: 0, w: 4, h: 8 },
-                { i: "summary", x: 4, y: 0, w: 8, h: 11 },
+                { i: "summary", x: 4, y: 0, w: 8, h: 7 },
+                { i: "insights", x: 0, y: 0, w: 4, h: 8 }
               ],
               null,
               null,
               null,
               new Event("mouseup"),
-              null,
+              null
             )
           }
         >
@@ -585,26 +585,26 @@ describe("DashboardPage", () => {
     });
   });
 
-  it("ignores passive Visual layout reports and saves completed drags", async () => {
+  it("ignores passive Visual layout reports and saves completed drags without repacking", async () => {
     renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: "mock layout change" }));
 
-    expect(readStoredPreferences()?.visual.layouts.lg?.[0]).toMatchObject({
+    expect(readStoredLayoutItem("summary")).toMatchObject({
       i: "summary",
       x: 0,
-      y: 0,
+      y: 0
     });
 
     fireEvent.click(screen.getByRole("button", { name: "mock drag stop" }));
 
     await waitFor(() => {
-      expect(readStoredPreferences()?.visual.layouts.lg?.[0]).toMatchObject({
-        i: "insights",
-        x: 0,
+      expect(readStoredLayoutItem("summary")).toMatchObject({
+        i: "summary",
+        x: 4,
         y: 0,
-        w: 4,
-        h: 8,
+        w: 8,
+        h: 7
       });
     });
   });
@@ -680,7 +680,7 @@ describe("DashboardPage", () => {
           ...defaultPreferences.visual.layouts,
           lg: defaultPreferences.visual.layouts.lg.filter((item) => item.i !== "summary"),
         },
-      },
+      }
     };
     const updatePreferences = vi.fn((updater: (current: DashboardPreferencesV1) => DashboardPreferencesV1) => {
       preferences = updater(preferences);
@@ -695,7 +695,7 @@ describe("DashboardPage", () => {
         preferences={preferences}
         updatePreferences={updatePreferences}
         viewModel={viewModel}
-      />,
+      />
     );
 
     expect(preferences.visual.layouts.lg.some((item) => item.i === "summary")).toBe(false);
@@ -730,7 +730,67 @@ describe("DashboardPage", () => {
       maxW: 12,
       minH: 6,
       minW: 3,
+      w: 7
+    });
+  });
+
+  it("resizes saved moved cards without changing their grid position", async () => {
+    const diagnosis = localDiagnosis(defaultCreatorId, "focused");
+    const viewModel = buildDashboardViewModel(diagnosis);
+    const cards = buildDashboardCards(diagnosis, viewModel);
+    const actions = buildDashboardActionCards(diagnosis);
+    const defaultPreferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2099-01-01T00:00:00.000Z");
+    let preferences: DashboardPreferencesV1 = {
+      ...defaultPreferences,
+      visual: {
+        layouts: {
+          ...defaultPreferences.visual.layouts,
+          lg: defaultPreferences.visual.layouts.lg.map((item) =>
+            item.i === "summary" ? { ...item, x: 4, y: 3 } : item
+          )
+        }
+      }
+    };
+    const updatePreferences = vi.fn((updater: (current: DashboardPreferencesV1) => DashboardPreferencesV1) => {
+      preferences = updater(preferences);
+    });
+
+    render(
+      <VisualDashboardView
+        actions={actions}
+        cards={cards}
+        diagnosis={diagnosis}
+        onAsk={vi.fn()}
+        preferences={preferences}
+        updatePreferences={updatePreferences}
+        viewModel={viewModel}
+      />
+    );
+
+    const rightResizeHandle = screen.getByTestId("visual-resize-handle-summary-e");
+
+    fireEvent.pointerDown(rightResizeHandle, {
+      button: 0,
+      clientX: 220,
+      clientY: 0,
+      pointerId: 1
+    });
+    fireEvent.pointerMove(rightResizeHandle, {
+      clientX: 100,
+      clientY: 0,
+      pointerId: 1
+    });
+    fireEvent.pointerUp(rightResizeHandle, {
+      clientX: 100,
+      clientY: 0,
+      pointerId: 1
+    });
+
+    expect(preferences.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({
+      x: 4,
+      y: 3,
       w: 7,
+      h: 7
     });
   });
 
