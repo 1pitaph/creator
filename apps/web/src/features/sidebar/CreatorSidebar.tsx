@@ -1,9 +1,7 @@
 import { CaretLeft } from "@phosphor-icons/react/CaretLeft";
-import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { List } from "@phosphor-icons/react/List";
 import { X } from "@phosphor-icons/react/X";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
-import * as Select from "@radix-ui/react-select";
 import Avatar from "boring-avatars";
 import { type ReactNode, useState } from "react";
 
@@ -11,7 +9,7 @@ import type { DiagnosisResponse } from "@creator/data-contracts";
 import { Badge, cn } from "@creator/ui";
 
 import { lifecycleLabels, phosphorIconWeight } from "../../constants";
-import { creatorOptions } from "../creator-diagnosis/creatorOptions";
+import { CreatorAccountNotchSelect } from "./CreatorAccountNotchSelect";
 import { sidebarNavItems } from "./navItems";
 
 const douyinLogoPath =
@@ -184,14 +182,7 @@ const SidebarContent = ({
       <ScrollArea.Viewport
         className={cn("h-full", collapsed ? "pr-0" : "pr-1")}
       >
-        {collapsed ? null : (
-          <CreatorAccountSelect
-            selectedCreatorId={selectedCreatorId}
-            onSelectCreator={onSelectCreator}
-          />
-        )}
-
-        <div className={collapsed ? "mt-0" : "mt-6"}>
+        <div>
           <SidebarNav collapsed={collapsed} onNavigate={onNavigate} />
         </div>
 
@@ -206,6 +197,14 @@ const SidebarContent = ({
         <ScrollArea.Thumb className="relative flex-1 rounded-full bg-neutral-300" />
       </ScrollArea.Scrollbar>
     </ScrollArea.Root>
+
+    <div className={cn("mt-4", collapsed && "mt-3")}>
+      <CreatorAccountNotchSelect
+        collapsed={collapsed}
+        selectedCreatorId={selectedCreatorId}
+        onSelectCreator={onSelectCreator}
+      />
+    </div>
 
     <SidebarFooter
       collapsed={collapsed}
@@ -256,48 +255,6 @@ const DouyinLogoMark = () => (
   </svg>
 );
 
-const CreatorAccountSelect = ({
-  selectedCreatorId,
-  onSelectCreator,
-}: {
-  selectedCreatorId: string;
-  onSelectCreator: (creatorId: string) => void;
-}) => (
-  <div className="px-1">
-    <p className="mb-2 px-3 text-xs font-semibold text-neutral-500">
-      创作者账号
-    </p>
-    <Select.Root value={selectedCreatorId} onValueChange={onSelectCreator}>
-      <Select.Trigger className="flex h-11 w-full items-center justify-between rounded-lg border border-neutral-200 bg-white/80 px-3 text-sm font-medium text-neutral-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] outline-none transition hover:bg-white focus:ring-2 focus:ring-neutral-300">
-        <Select.Value />
-        <Select.Icon>
-          <CaretDown
-            className="h-4 w-4 text-neutral-500"
-            weight={phosphorIconWeight}
-          />
-        </Select.Icon>
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Content className="z-[90] overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl">
-          <Select.Viewport className="p-1">
-            {creatorOptions.map((creator) => (
-              <Select.Item
-                key={creator.id}
-                value={creator.id}
-                className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm outline-none data-[highlighted]:bg-neutral-100 data-[state=checked]:font-semibold"
-              >
-                <Select.ItemText>
-                  {creator.name} · {creator.domain}
-                </Select.ItemText>
-              </Select.Item>
-            ))}
-          </Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>
-  </div>
-);
-
 const SidebarDivider = () => (
   <div className="my-4 px-4">
     <div className="h-px w-full bg-neutral-200" />
@@ -341,6 +298,7 @@ const SidebarFooter = ({
   isLoadingDiagnosis: boolean;
 }) => (
   <div
+    data-testid="sidebar-footer"
     className={cn(
       "mt-4 border-t border-neutral-200 pt-4",
       collapsed && "flex justify-center",

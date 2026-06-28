@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -77,6 +83,181 @@ describe("CreatorSidebar", () => {
     expect(
       within(sidebar).getByRole("button", { name: "诊断总览" }),
     ).toBeInTheDocument();
+  });
+
+  it("renders the creator account notch above the footer", () => {
+    render(
+      <CreatorSidebar
+        selectedCreatorId={defaultCreatorId}
+        onSelectCreator={vi.fn()}
+        diagnosis={localDiagnosis(defaultCreatorId)}
+        isLoadingDiagnosis={false}
+      />,
+    );
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const navigation = within(sidebar).getByRole("navigation");
+    const accountNotch = within(sidebar).getByTestId("creator-account-notch");
+    const footer = within(sidebar).getByTestId("sidebar-footer");
+
+    expect(
+      navigation.compareDocumentPosition(accountNotch) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      accountNotch.compareDocumentPosition(footer) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("opens the desktop creator notch and selects another creator", async () => {
+    const handleSelectCreator = vi.fn();
+    const secondCreator =
+      creatorOptions.find((creator) => creator.id !== defaultCreatorId) ??
+      creatorOptions[0]!;
+
+    render(
+      <CreatorSidebar
+        selectedCreatorId={defaultCreatorId}
+        onSelectCreator={handleSelectCreator}
+        diagnosis={localDiagnosis(defaultCreatorId)}
+        isLoadingDiagnosis={false}
+      />,
+    );
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const trigger = within(sidebar).getByTestId(
+      "creator-account-notch-trigger",
+    );
+
+    fireEvent.click(trigger);
+
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const listbox = await screen.findByRole("listbox", {
+      name: "选择创作者账号",
+    });
+    fireEvent.click(within(listbox).getByRole("option", {
+      name: new RegExp(secondCreator.name),
+    }));
+
+    expect(handleSelectCreator).toHaveBeenCalledWith(secondCreator.id);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("listbox", { name: "选择创作者账号" }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("closes the mobile sidebar after selecting from the bottom notch", async () => {
+    const handleSelectCreator = vi.fn();
+    const secondCreator =
+      creatorOptions.find((creator) => creator.id !== defaultCreatorId) ??
+      creatorOptions[0]!;
+
+    render(
+      <CreatorSidebar
+        selectedCreatorId={defaultCreatorId}
+        onSelectCreator={handleSelectCreator}
+        diagnosis={localDiagnosis(defaultCreatorId)}
+        isLoadingDiagnosis={false}
+      />,
+    );
+
+    const mobileTrigger = screen.getByTestId("mobile-sidebar-trigger");
+    fireEvent.click(mobileTrigger);
+    expect(mobileTrigger).toHaveAttribute("aria-expanded", "true");
+
+    const mobileSidebar = screen.getByTestId("creator-sidebar-mobile");
+    const accountTrigger = within(mobileSidebar).getByTestId(
+      "creator-account-notch-trigger",
+    );
+
+    fireEvent.click(accountTrigger);
+    const listbox = await screen.findByRole("listbox", {
+      name: "选择创作者账号",
+    });
+    fireEvent.click(within(listbox).getByRole("option", {
+      name: new RegExp(secondCreator.name),
+    }));
+
+    expect(handleSelectCreator).toHaveBeenCalledWith(secondCreator.id);
+    expect(mobileTrigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps a compact creator switcher accessible when collapsed", async () => {
+    render(
+      <CreatorSidebar
+        selectedCreatorId={defaultCreatorId}
+        onSelectCreator={vi.fn()}
+        diagnosis={localDiagnosis(defaultCreatorId)}
+        isLoadingDiagnosis={false}
+      />,
+    );
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    fireEvent.click(
+      within(sidebar).getByRole("button", { name: "收起侧边栏" }),
+    );
+
+    const compactTrigger = within(sidebar).getByRole("button", {
+      name: `切换创作者账号：${creatorOptions[0]!.name}`,
+    });
+    fireEvent.click(compactTrigger);
+
+    expect(
+      await screen.findByRole("listbox", { name: "选择创作者账号" }),
+    ).toBeInTheDocument();
+  });
+
+  it("supports keyboard navigation and Escape in the creator notch", async () => {
+    const handleSelectCreator = vi.fn();
+    const secondCreator =
+      creatorOptions.find((creator) => creator.id !== defaultCreatorId) ??
+      creatorOptions[0]!;
+
+    render(
+      <CreatorSidebar
+        selectedCreatorId={defaultCreatorId}
+        onSelectCreator={handleSelectCreator}
+        diagnosis={localDiagnosis(defaultCreatorId)}
+        isLoadingDiagnosis={false}
+      />,
+    );
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const trigger = within(sidebar).getByTestId(
+      "creator-account-notch-trigger",
+    );
+
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: "Enter" });
+
+    let listbox = await screen.findByRole("listbox", {
+      name: "选择创作者账号",
+    });
+    fireEvent.keyDown(listbox, { key: "Escape" });
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("listbox", { name: "选择创作者账号" }),
+      ).not.toBeInTheDocument(),
+    );
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    listbox = await screen.findByRole("listbox", {
+      name: "选择创作者账号",
+    });
+    fireEvent.keyDown(listbox, { key: "ArrowDown" });
+    expect(listbox).toHaveAttribute(
+      "aria-activedescendant",
+      expect.stringMatching(/-1$/),
+    );
+    fireEvent.keyDown(listbox, { key: "Enter" });
+
+    expect(handleSelectCreator).toHaveBeenCalledWith(secondCreator.id);
   });
 
   it("renders the footer avatar with a stable boring avatar seed", () => {
