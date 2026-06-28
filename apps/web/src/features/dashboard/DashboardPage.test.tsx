@@ -10,15 +10,26 @@ import { DashboardPage } from "./DashboardPage";
 vi.mock("react-grid-layout", () => ({
   ResponsiveGridLayout: ({
     children,
+    dragConfig,
     onLayoutChange,
   }: {
     children: ReactNode;
+    dragConfig?: {
+      enabled?: boolean;
+      handle?: string;
+      cancel?: string;
+    };
     onLayoutChange?: (
       layout: unknown[],
       layouts: Record<string, unknown[]>,
     ) => void;
   }) => (
-    <div data-testid="visual-grid">
+    <div
+      data-testid="visual-grid"
+      data-drag-enabled={String(dragConfig?.enabled)}
+      data-drag-handle={dragConfig?.handle ?? ""}
+      data-drag-cancel={dragConfig?.cancel ?? ""}
+    >
       <button
         type="button"
         onClick={() =>
@@ -115,9 +126,11 @@ describe("DashboardPage", () => {
     renderDashboard();
 
     expect(screen.getByTestId("visual-grid")).toBeInTheDocument();
+    expect(screen.queryByLabelText("拖动卡片：AI 诊断摘要")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Board" }));
     expect(screen.getByText("今天")).toBeInTheDocument();
+    expect(screen.queryByLabelText("拖动卡片：AI 诊断摘要")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Table" }));
     expect(screen.getByText("名称")).toBeInTheDocument();
@@ -146,6 +159,42 @@ describe("DashboardPage", () => {
 
     await waitFor(() => {
       expect(readStoredPreferences()?.visual.layouts.lg[0]).toMatchObject({
+        i: "summary",
+        x: 1,
+      });
+    });
+  });
+
+  it("uses the six-dot handle as the only Visual drag start target", () => {
+    renderDashboard();
+
+    expect(screen.getByTestId("visual-grid")).toHaveAttribute(
+      "data-drag-enabled",
+      "false",
+    );
+    expect(screen.queryByLabelText("拖动卡片：AI 诊断摘要")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "编辑" }));
+
+    const grid = screen.getByTestId("visual-grid");
+    const handle = screen.getByLabelText("拖动卡片：AI 诊断摘要");
+
+    expect(grid).toHaveAttribute("data-drag-enabled", "true");
+    expect(grid).toHaveAttribute(
+      "data-drag-handle",
+      ".dashboard-card-drag-handle",
+    );
+    expect(handle.matches(grid.dataset.dragHandle ?? "")).toBe(true);
+    expect(handle.matches(grid.dataset.dragCancel ?? "")).toBe(false);
+  });
+
+  it("ignores Visual layout changes outside edit mode", async () => {
+    renderDashboard();
+
+    fireEvent.click(screen.getByRole("button", { name: "mock layout change" }));
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.visual.layouts.lg[0]).not.toMatchObject({
         i: "summary",
         x: 1,
       });

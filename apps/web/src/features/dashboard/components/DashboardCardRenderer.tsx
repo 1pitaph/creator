@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { PointerEventHandler, ReactNode } from "react";
 
 import { ChartSlot } from "@creator/charts";
 import type { DiagnosisResponse } from "@creator/data-contracts";
@@ -20,6 +20,8 @@ export const DashboardCardRenderer = ({
   diagnosis,
   fill = false,
   onAsk,
+  onDragHandlePointerDown,
+  showDragHandle = false,
   size,
   viewModel
 }: {
@@ -28,6 +30,8 @@ export const DashboardCardRenderer = ({
   diagnosis: DiagnosisResponse;
   fill?: boolean;
   onAsk: (target: AskTarget) => void;
+  onDragHandlePointerDown?: PointerEventHandler<HTMLButtonElement>;
+  showDragHandle?: boolean;
   size: DashboardCardDefinition["defaultSize"];
   viewModel: DashboardViewModel;
 }) => (
@@ -37,6 +41,9 @@ export const DashboardCardRenderer = ({
     askTarget={card.askTarget}
     onAsk={onAsk}
     fill={fill}
+    showDragHandle={showDragHandle}
+    dragHandleLabel={`拖动卡片：${card.title}`}
+    onDragHandlePointerDown={onDragHandlePointerDown}
     className={fill ? "h-full" : undefined}
     contentClassName={fill ? "overflow-hidden" : undefined}
   >
