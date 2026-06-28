@@ -1,9 +1,10 @@
-import type { AgentMessage, AiModuleMetadata, ChartIntent, CreatorMetrics, DiagnosisResponse, InsightAction, TopContent } from "@creator/data-contracts";
+import type { AgentMessage, AgentRun, AiModuleMetadata, ChartIntent, CreatorMetrics, DiagnosisResponse, InsightAction, TopContent } from "@creator/data-contracts";
 
 export type UiMessage = AgentMessage & {
   id: string;
   mode?: "mock" | "llm" | "local";
   usedModules?: string[];
+  agentRun?: AgentRun;
 };
 
 export type AskTarget = {

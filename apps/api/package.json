@@ -12,6 +12,7 @@
   "dependencies": {
     "@creator/agent-core": "workspace:*",
     "@creator/ai-modules": "workspace:*",
+    "@creator/data-agent": "workspace:*",
     "@creator/data-contracts": "workspace:*",
     "@creator/mock-data": "workspace:*",
     "@fastify/cors": "^11.1.0",

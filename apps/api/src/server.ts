@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
-import { createMockAgentReply, buildChatPayload } from "@creator/agent-core";
+import { buildChatPayload } from "@creator/agent-core";
 import { createDiagnosis } from "@creator/ai-modules";
+import { createStructuredAgentRun } from "@creator/data-agent";
 import { ChatRequestSchema, type AgentMessage } from "@creator/data-contracts";
 import { getMockCreator, mockCreators } from "@creator/mock-data";
 import { config } from "dotenv";
@@ -111,10 +112,18 @@ app.post("/api/chat", async (request, reply) => {
   const payload = buildChatPayload(context, parsed.data.messages as AgentMessage[]);
   const llmReply = await callLlm(payload);
 
+  const agentRun = createStructuredAgentRun({
+    diagnosis,
+    messages: parsed.data.messages as AgentMessage[],
+    activeModules: parsed.data.activeModules,
+    llmAnswer: llmReply
+  });
+
   return {
-    reply: llmReply ?? createMockAgentReply(context, parsed.data.messages as AgentMessage[]),
-    usedModules: context.modules.map((module) => module.id),
-    mode: llmReply ? "llm" : "mock"
+    reply: agentRun.answer,
+    usedModules: agentRun.usedModules,
+    mode: llmReply ? "llm" : "mock",
+    agentRun
   };
 });
 

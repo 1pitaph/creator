@@ -14,9 +14,9 @@
     "analyze": "vite build --mode analyze"
   },
   "dependencies": {
-    "@creator/agent-core": "workspace:*",
     "@creator/ai-modules": "workspace:*",
     "@creator/charts": "workspace:*",
+    "@creator/data-agent": "workspace:*",
     "@creator/data-contracts": "workspace:*",
     "@creator/mock-data": "workspace:*",
     "@creator/ui": "workspace:*",

@@ -85,7 +85,8 @@ describe("useAgentChat", () => {
     });
 
     await waitFor(() => expect(result.current.messages.at(-1)?.mode).toBe("local"));
-    expect(result.current.messages.at(-1)?.content).toContain("这次判断调用了");
+    expect(result.current.messages.at(-1)?.content).toContain("本次调用模块");
+    expect(result.current.messages.at(-1)?.agentRun?.toolCalls.length).toBeGreaterThan(0);
   });
 
   it("does not append stale replies after creator changes", async () => {

@@ -138,6 +138,85 @@ export const AgentMessageSchema = z.object({
   content: z.string()
 });
 
+export const AgentEvidenceSourceTypeSchema = z.enum([
+  "creator-profile",
+  "metric-summary",
+  "metric-history",
+  "top-content",
+  "ai-module",
+  "insight",
+  "agent-tool",
+  "llm"
+]);
+
+export const AgentConfidenceSchema = z.enum(["high", "medium", "low"]);
+export const AgentRunModeSchema = z.enum(["deterministic", "llm-assisted"]);
+export const AgentToolCallStatusSchema = z.enum(["pending", "running", "success", "error", "skipped"]);
+export const AgentActionStatusSchema = z.enum(["suggested", "accepted", "in_progress", "done", "dismissed"]);
+export const AgentActionTimeframeSchema = z.enum(["today", "tomorrow", "this_week", "next_review"]);
+
+export const AgentEvidenceRefSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  sourceType: AgentEvidenceSourceTypeSchema,
+  sourceId: z.string().optional(),
+  moduleId: z.string().optional(),
+  metricKey: z.string().optional(),
+  excerpt: z.string()
+});
+
+export const AgentFactSchema = z.object({
+  id: z.string(),
+  statement: z.string(),
+  confidence: AgentConfidenceSchema,
+  evidenceIds: z.array(z.string())
+});
+
+export const AgentAssumptionSchema = z.object({
+  id: z.string(),
+  statement: z.string(),
+  confidence: AgentConfidenceSchema,
+  evidenceIds: z.array(z.string()),
+  risk: z.string().optional()
+});
+
+export const AgentActionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  detail: z.string(),
+  effort: z.enum(["low", "medium", "high"]),
+  timeframe: AgentActionTimeframeSchema,
+  status: AgentActionStatusSchema,
+  evidenceIds: z.array(z.string()),
+  metricToWatch: z.string().optional()
+});
+
+export const AgentToolCallSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: AgentToolCallStatusSchema,
+  inputSummary: z.string(),
+  outputSummary: z.string().optional(),
+  evidenceIds: z.array(z.string()).default([]),
+  error: z.string().optional(),
+  startedAt: z.string().optional(),
+  finishedAt: z.string().optional()
+});
+
+export const AgentRunSchema = z.object({
+  id: z.string(),
+  mode: AgentRunModeSchema,
+  answer: z.string(),
+  usedModules: z.array(z.string()),
+  toolCalls: z.array(AgentToolCallSchema),
+  evidence: z.array(AgentEvidenceRefSchema),
+  facts: z.array(AgentFactSchema),
+  assumptions: z.array(AgentAssumptionSchema),
+  actions: z.array(AgentActionSchema),
+  followUpQuestions: z.array(z.string()),
+  createdAt: z.string()
+});
+
 export const ChatRequestSchema = z.object({
   creatorId: z.string(),
   messages: z.array(AgentMessageSchema),
@@ -147,7 +226,8 @@ export const ChatRequestSchema = z.object({
 export const ChatResponseSchema = z.object({
   reply: z.string(),
   usedModules: z.array(z.string()),
-  mode: z.enum(["mock", "llm"])
+  mode: z.enum(["mock", "llm"]),
+  agentRun: AgentRunSchema.optional()
 });
 
 export type CreatorLifecycle = z.infer<typeof CreatorLifecycleSchema>;
@@ -168,6 +248,18 @@ export type InsightAction = z.infer<typeof InsightActionSchema>;
 export type Insight = z.infer<typeof InsightSchema>;
 export type DiagnosisResponse = z.infer<typeof DiagnosisResponseSchema>;
 export type AgentMessage = z.infer<typeof AgentMessageSchema>;
+export type AgentEvidenceSourceType = z.infer<typeof AgentEvidenceSourceTypeSchema>;
+export type AgentConfidence = z.infer<typeof AgentConfidenceSchema>;
+export type AgentRunMode = z.infer<typeof AgentRunModeSchema>;
+export type AgentToolCallStatus = z.infer<typeof AgentToolCallStatusSchema>;
+export type AgentActionStatus = z.infer<typeof AgentActionStatusSchema>;
+export type AgentActionTimeframe = z.infer<typeof AgentActionTimeframeSchema>;
+export type AgentEvidenceRef = z.infer<typeof AgentEvidenceRefSchema>;
+export type AgentFact = z.infer<typeof AgentFactSchema>;
+export type AgentAssumption = z.infer<typeof AgentAssumptionSchema>;
+export type AgentAction = z.infer<typeof AgentActionSchema>;
+export type AgentToolCall = z.infer<typeof AgentToolCallSchema>;
+export type AgentRun = z.infer<typeof AgentRunSchema>;
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;
 

@@ -1,6 +1,6 @@
-import { createMockAgentReply, type AgentContext } from "@creator/agent-core";
-import type { DiagnosisResponse } from "@creator/data-contracts";
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createStructuredAgentRun } from "@creator/data-agent";
+import type { AgentRun, DiagnosisResponse } from "@creator/data-contracts";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import type { AskTarget, UiMessage } from "../../types";
 import { fetchAgentReply, type ChatFetcher } from "./api";
@@ -58,16 +58,6 @@ export const useAgentChat = ({
   const isChattingRef = useRef(false);
   const hasMountedDiagnosisRef = useRef(false);
 
-  const agentContext: AgentContext = useMemo(
-    () => ({
-      creator: diagnosis.creator,
-      metrics: diagnosis.metrics,
-      modules: diagnosis.modules,
-      insights: diagnosis.insights
-    }),
-    [diagnosis]
-  );
-
   const updateMessages = useCallback((updater: (current: UiMessage[]) => UiMessage[]) => {
     setMessages((current) => {
       const nextMessages = updater(current);
@@ -91,7 +81,15 @@ export const useAgentChat = ({
   );
 
   const addStreamingAssistantMessage = useCallback(
-    async (reply: string, usedModules: string[], mode: UiMessage["mode"], requestId: number, signal: AbortSignal, requestCreatorId: string) => {
+    async (
+      reply: string,
+      usedModules: string[],
+      mode: UiMessage["mode"],
+      requestId: number,
+      signal: AbortSignal,
+      requestCreatorId: string,
+      agentRun?: AgentRun
+    ) => {
       if (!isActiveRequest(requestId, signal, requestCreatorId)) {
         return;
       }
@@ -104,12 +102,13 @@ export const useAgentChat = ({
           role: "assistant",
           content: "",
           usedModules,
-          mode
+          mode,
+          agentRun
         }
       ]);
 
       if (streamDelayMs <= 0) {
-        updateMessages((current) => current.map((message) => (message.id === id ? { ...message, content: reply } : message)));
+        updateMessages((current) => current.map((message) => (message.id === id ? { ...message, content: reply, agentRun } : message)));
         return;
       }
 
@@ -119,12 +118,12 @@ export const useAgentChat = ({
         }
 
         const content = reply.slice(0, index);
-        updateMessages((current) => current.map((message) => (message.id === id ? { ...message, content } : message)));
+        updateMessages((current) => current.map((message) => (message.id === id ? { ...message, content, agentRun } : message)));
         await wait(streamDelayMs);
       }
 
       if (isActiveRequest(requestId, signal, requestCreatorId)) {
-        updateMessages((current) => current.map((message) => (message.id === id ? { ...message, content: reply } : message)));
+        updateMessages((current) => current.map((message) => (message.id === id ? { ...message, content: reply, agentRun } : message)));
       }
     },
     [isActiveRequest, streamDelayMs, updateMessages]
@@ -171,19 +170,18 @@ export const useAgentChat = ({
           return;
         }
 
-        await addStreamingAssistantMessage(payload.reply, payload.usedModules, payload.mode, requestId, controller.signal, requestCreatorId);
+        await addStreamingAssistantMessage(payload.reply, payload.usedModules, payload.mode, requestId, controller.signal, requestCreatorId, payload.agentRun);
       } catch (error: unknown) {
         if (isAbortError(error) || !isActiveRequest(requestId, controller.signal, requestCreatorId)) {
           return;
         }
 
-        const fallbackContext = {
-          ...agentContext,
-          modules: agentContext.modules.filter((module) => moduleIds.length === 0 || moduleIds.includes(module.id)),
-          insights: agentContext.insights.filter((insight) => moduleIds.length === 0 || moduleIds.includes(insight.moduleId))
-        };
-        const reply = createMockAgentReply(fallbackContext, nextMessages);
-        await addStreamingAssistantMessage(reply, moduleIds.length > 0 ? moduleIds : activeModuleIds, "local", requestId, controller.signal, requestCreatorId);
+        const agentRun = createStructuredAgentRun({
+          diagnosis,
+          messages: nextMessages,
+          activeModules: moduleIds
+        });
+        await addStreamingAssistantMessage(agentRun.answer, agentRun.usedModules, "local", requestId, controller.signal, requestCreatorId, agentRun);
       } finally {
         if (isActiveRequest(requestId, controller.signal, requestCreatorId)) {
           setIsChatting(false);
@@ -191,7 +189,7 @@ export const useAgentChat = ({
         }
       }
     },
-    [activeModuleIds, addStreamingAssistantMessage, agentContext, creatorId, fetcher, isActiveRequest, replaceMessages]
+    [activeModuleIds, addStreamingAssistantMessage, creatorId, diagnosis, fetcher, isActiveRequest, replaceMessages]
   );
 
   const askTarget = useCallback(

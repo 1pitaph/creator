@@ -1,4 +1,4 @@
-import type { AgentMessage } from "@creator/data-contracts";
+import type { AgentMessage, AgentRun } from "@creator/data-contracts";
 
 export type ChatRequestPayload = {
   activeModules: string[];
@@ -10,6 +10,7 @@ export type ChatReplyPayload = {
   reply: string;
   usedModules: string[];
   mode: "mock" | "llm";
+  agentRun?: AgentRun;
 };
 
 export type ChatFetcher = (payload: ChatRequestPayload, signal?: AbortSignal) => Promise<ChatReplyPayload>;
