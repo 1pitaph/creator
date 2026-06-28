@@ -1,7 +1,7 @@
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
-import { useCallback, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 
 import {
   moveElement,
@@ -9,6 +9,7 @@ import {
   useContainerWidth,
   verticalCompactor,
   type Layout,
+  type ResizeHandleAxis,
   type ResponsiveLayouts
 } from "react-grid-layout";
 
@@ -32,6 +33,25 @@ const breakpoints: Record<DashboardBreakpoint, number> = {
 
 const visualGridMargin: [number, number] = [16, 16];
 const visualGridRowHeight = 36;
+const visualResizeHandles = ["e", "s"] as const satisfies readonly ResizeHandleAxis[];
+type DashboardResizeAxis = (typeof visualResizeHandles)[number];
+
+const isDashboardResizeAxis = (axis: string | null | undefined): axis is DashboardResizeAxis => axis === "e" || axis === "s";
+
+const renderDashboardResizeHandle = (axis: ResizeHandleAxis, ref: Ref<HTMLElement>) => {
+  if (!isDashboardResizeAxis(axis)) {
+    return null;
+  }
+
+  return (
+    <span
+      ref={ref}
+      aria-hidden="true"
+      className={`react-resizable-handle react-resizable-handle-${axis} dashboard-card-resize-edge dashboard-card-resize-edge--${axis}`}
+      data-dashboard-resize-axis={axis}
+    />
+  );
+};
 
 const getBreakpointForWidth = (width: number): DashboardBreakpoint => {
   if (width >= breakpoints.lg) {
@@ -295,6 +315,12 @@ export const VisualDashboardView = ({
         return;
       }
 
+      const resizeAxis = resizeHandle.dataset.dashboardResizeAxis;
+
+      if (!isDashboardResizeAxis(resizeAxis)) {
+        return;
+      }
+
       const cardElement = resizeHandle.closest<HTMLElement>("[data-dashboard-card-id]");
       const cardId = cardElement?.dataset.dashboardCardId;
 
@@ -331,8 +357,14 @@ export const VisualDashboardView = ({
 
         pointerEvent.preventDefault();
 
-        const nextW = clamp(startItem.w + Math.round((pointerEvent.clientX - startClientX) / columnStep), startItem.minW ?? 1, Math.min(startItem.maxW ?? cols, cols - startItem.x));
-        const nextH = clamp(startItem.h + Math.round((pointerEvent.clientY - startClientY) / rowStep), startItem.minH ?? 1, startItem.maxH ?? Number.POSITIVE_INFINITY);
+        const nextW =
+          resizeAxis === "e"
+            ? clamp(startItem.w + Math.round((pointerEvent.clientX - startClientX) / columnStep), startItem.minW ?? 1, Math.min(startItem.maxW ?? cols, cols - startItem.x))
+            : startItem.w;
+        const nextH =
+          resizeAxis === "s"
+            ? clamp(startItem.h + Math.round((pointerEvent.clientY - startClientY) / rowStep), startItem.minH ?? 1, startItem.maxH ?? Number.POSITIVE_INFINITY)
+            : startItem.h;
 
         if (nextW === lastW && nextH === lastH) {
           return;
@@ -400,7 +432,8 @@ export const VisualDashboardView = ({
           }}
           resizeConfig={{
             enabled: true,
-            handles: ["se"]
+            handleComponent: renderDashboardResizeHandle,
+            handles: visualResizeHandles
           }}
           onLayoutChange={(_, nextLayouts) => {
             if (!hasStoredLayoutChanges(preferences.visual.layouts, nextLayouts, visibleIds)) {

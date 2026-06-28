@@ -7,70 +7,110 @@ import { localDiagnosis } from "../creator-diagnosis/api";
 import { buildDashboardViewModel } from "./model";
 import { DashboardPage } from "./DashboardPage";
 
-vi.mock("react-grid-layout", () => ({
-  ResponsiveGridLayout: ({
-    children,
-    dragConfig,
-    onLayoutChange,
-    resizeConfig,
-  }: {
-    children: ReactNode;
-    dragConfig?: {
-      enabled?: boolean;
-      handle?: string;
-      cancel?: string;
-    };
-    onLayoutChange?: (
-      layout: unknown[],
-      layouts: Record<string, unknown[]>,
-    ) => void;
-    resizeConfig?: {
-      enabled?: boolean;
-      handles?: string[];
-    };
-  }) => (
-    <div
-      data-testid="visual-grid"
-      data-drag-enabled={String(dragConfig?.enabled)}
-      data-drag-handle={dragConfig?.handle ?? ""}
-      data-drag-cancel={dragConfig?.cancel ?? ""}
-      data-resize-enabled={String(resizeConfig?.enabled)}
-      data-resize-handles={(resizeConfig?.handles ?? []).join(",")}
-    >
-      <button
-        type="button"
-        onClick={() =>
-          onLayoutChange?.([], {
-            lg: [{ i: "summary", x: 1, y: 2, w: 3, h: 4 }],
-            md: [],
-            sm: [],
-            xs: [],
-          })
-        }
+vi.mock("react-grid-layout", async () => {
+  const React = await import("react");
+  const renderResizeHandles = (cardId: string, handles: readonly string[]) =>
+    handles.map((axis) =>
+      React.createElement("span", {
+        key: axis,
+        className: `react-resizable-handle react-resizable-handle-${axis} dashboard-card-resize-edge dashboard-card-resize-edge--${axis}`,
+        "data-dashboard-resize-axis": axis,
+        "data-testid": `visual-resize-handle-${cardId}-${axis}`,
+      }),
+    );
+
+  return {
+    ResponsiveGridLayout: ({
+      children,
+      dragConfig,
+      onLayoutChange,
+      resizeConfig,
+    }: {
+      children: ReactNode;
+      dragConfig?: {
+        enabled?: boolean;
+        handle?: string;
+        cancel?: string;
+      };
+      onLayoutChange?: (
+        layout: unknown[],
+        layouts: Record<string, unknown[]>,
+      ) => void;
+      resizeConfig?: {
+        enabled?: boolean;
+        handleComponent?: unknown;
+        handles?: readonly string[];
+      };
+    }) => (
+      <div
+        data-testid="visual-grid"
+        data-drag-enabled={String(dragConfig?.enabled)}
+        data-drag-handle={dragConfig?.handle ?? ""}
+        data-drag-cancel={dragConfig?.cancel ?? ""}
+        data-resize-enabled={String(resizeConfig?.enabled)}
+        data-resize-handles={(resizeConfig?.handles ?? []).join(",")}
       >
-        mock layout change
-      </button>
-      {children}
-    </div>
-  ),
-  moveElement: (
-    layout: Array<{ i: string; x: number; y: number }>,
-    item: { i: string; x: number; y: number },
-    x: number,
-    y: number,
-  ) =>
-    layout.map((layoutItem) =>
-      layoutItem.i === item.i ? { ...layoutItem, x, y } : layoutItem,
+        <button
+          type="button"
+          onClick={() =>
+            onLayoutChange?.([], {
+              lg: [{ i: "summary", x: 1, y: 2, w: 3, h: 4 }],
+              md: [],
+              sm: [],
+              xs: [],
+            })
+          }
+        >
+          mock layout change
+        </button>
+        {React.Children.map(children, (child) => {
+          if (
+            !React.isValidElement<{
+              children?: ReactNode;
+              "data-dashboard-card-id"?: string;
+            }>(child)
+          ) {
+            return child;
+          }
+
+          const cardId = child.props["data-dashboard-card-id"];
+
+          if (!cardId) {
+            return child;
+          }
+
+          return React.cloneElement(
+            child,
+            undefined,
+            React.createElement(
+              React.Fragment,
+              null,
+              child.props.children,
+              ...renderResizeHandles(cardId, resizeConfig?.handles ?? []),
+            ),
+          );
+        })}
+      </div>
     ),
-  verticalCompactor: {
-    compact: (layout: unknown[]) => layout,
-  },
-  useContainerWidth: () => ({
-    containerRef: { current: null },
-    mounted: true,
-    width: 1200,
-  }),
-}));
+    moveElement: (
+      layout: Array<{ i: string; x: number; y: number }>,
+      item: { i: string; x: number; y: number },
+      x: number,
+      y: number,
+    ) =>
+      layout.map((layoutItem) =>
+        layoutItem.i === item.i ? { ...layoutItem, x, y } : layoutItem,
+      ),
+    verticalCompactor: {
+      compact: (layout: unknown[]) => layout,
+    },
+    useContainerWidth: () => ({
+      containerRef: { current: null },
+      mounted: true,
+      width: 1200,
+    }),
+  };
+});
 
 const renderDashboard = () => {
   const diagnosis = localDiagnosis(defaultCreatorId);
@@ -98,10 +138,13 @@ const readStoredPreferences = () => {
   );
   return raw
     ? (JSON.parse(raw) as {
-        visual: { layouts: { lg: Array<{ i: string; x: number }> } };
+        visual: { layouts: { lg: Array<{ h: number; i: string; w: number; x: number }> } };
       })
     : null;
 };
+
+const readStoredLayoutItem = (cardId: string) =>
+  readStoredPreferences()?.visual.layouts.lg.find((item) => item.i === cardId);
 
 const installLocalStorageMock = () => {
   const store = new Map<string, string>();
@@ -114,6 +157,21 @@ const installLocalStorageMock = () => {
       removeItem: (key: string) => store.delete(key),
       setItem: (key: string, value: string) => store.set(key, value),
     },
+  });
+};
+
+const installPointerCaptureMocks = () => {
+  Object.defineProperty(HTMLElement.prototype, "setPointerCapture", {
+    configurable: true,
+    value: vi.fn(),
+  });
+  Object.defineProperty(HTMLElement.prototype, "hasPointerCapture", {
+    configurable: true,
+    value: vi.fn(() => true),
+  });
+  Object.defineProperty(HTMLElement.prototype, "releasePointerCapture", {
+    configurable: true,
+    value: vi.fn(),
   });
 };
 
@@ -134,6 +192,7 @@ const setButtonMetrics = (
 describe("DashboardPage", () => {
   beforeEach(() => {
     installLocalStorageMock();
+    installPointerCaptureMocks();
     window.localStorage.clear();
     vi.stubGlobal(
       "fetch",
@@ -171,6 +230,12 @@ describe("DashboardPage", () => {
     expect(
       screen.getByLabelText("拖动卡片：AI 诊断摘要"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("visual-resize-handle-summary-e"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("visual-resize-handle-summary-s"),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Board" }));
@@ -178,12 +243,18 @@ describe("DashboardPage", () => {
     expect(
       screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("visual-resize-handle-summary-e"),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Table" }));
     expect(screen.getByText("名称")).toBeInTheDocument();
     expect(screen.getByText("AI 诊断摘要")).toBeInTheDocument();
     expect(
       screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("visual-resize-handle-summary-s"),
     ).not.toBeInTheDocument();
   });
 
@@ -250,17 +321,26 @@ describe("DashboardPage", () => {
 
     const grid = screen.getByTestId("visual-grid");
     const handle = screen.getByLabelText("拖动卡片：AI 诊断摘要");
+    const rightResizeHandle = screen.getByTestId("visual-resize-handle-summary-e");
+    const bottomResizeHandle = screen.getByTestId("visual-resize-handle-summary-s");
     const askButton = screen.getByLabelText("询问 AI Agent：AI 诊断摘要");
+    const resizeHandles = grid.dataset.resizeHandles?.split(",") ?? [];
 
     expect(grid).toHaveAttribute("data-drag-enabled", "true");
     expect(grid).toHaveAttribute("data-resize-enabled", "true");
-    expect(grid).toHaveAttribute("data-resize-handles", "se");
+    expect(resizeHandles).toEqual(expect.arrayContaining(["e", "s"]));
+    expect(resizeHandles).not.toContain("se");
+    expect(screen.queryByTestId("visual-resize-handle-summary-se")).not.toBeInTheDocument();
     expect(grid).toHaveAttribute(
       "data-drag-handle",
       ".dashboard-card-drag-handle",
     );
     expect(handle.matches(grid.dataset.dragHandle ?? "")).toBe(true);
     expect(handle.matches(grid.dataset.dragCancel ?? "")).toBe(false);
+    expect(rightResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
+    expect(rightResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
+    expect(bottomResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
+    expect(bottomResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
     expect(askButton.matches(grid.dataset.dragHandle ?? "")).toBe(false);
     expect(askButton.matches(grid.dataset.dragCancel ?? "")).toBe(true);
 
@@ -269,6 +349,76 @@ describe("DashboardPage", () => {
     expect(onAskAgent).toHaveBeenCalledWith(
       expect.objectContaining({ title: "AI 诊断摘要" }),
     );
+  });
+
+  it("resizes Visual cards from the right edge on the width axis only", async () => {
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(readStoredLayoutItem("summary")).toMatchObject({ h: 7, w: 6 });
+    });
+
+    const initial = readStoredLayoutItem("summary");
+    const rightResizeHandle = screen.getByTestId("visual-resize-handle-summary-e");
+
+    fireEvent.pointerDown(rightResizeHandle, {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(rightResizeHandle, {
+      clientX: 120,
+      clientY: 240,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(rightResizeHandle, {
+      clientX: 120,
+      clientY: 240,
+      pointerId: 1,
+    });
+
+    await waitFor(() => {
+      expect(readStoredLayoutItem("summary")).toMatchObject({
+        h: initial?.h,
+        w: (initial?.w ?? 0) + 1,
+      });
+    });
+  });
+
+  it("resizes Visual cards from the bottom edge on the height axis only", async () => {
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(readStoredLayoutItem("summary")).toMatchObject({ h: 7, w: 6 });
+    });
+
+    const initial = readStoredLayoutItem("summary");
+    const bottomResizeHandle = screen.getByTestId("visual-resize-handle-summary-s");
+
+    fireEvent.pointerDown(bottomResizeHandle, {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(bottomResizeHandle, {
+      clientX: 240,
+      clientY: 110,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(bottomResizeHandle, {
+      clientX: 240,
+      clientY: 110,
+      pointerId: 1,
+    });
+
+    await waitFor(() => {
+      expect(readStoredLayoutItem("summary")).toMatchObject({
+        h: (initial?.h ?? 0) + 2,
+        w: initial?.w,
+      });
+    });
   });
 
   it("keeps Board drag behavior behind the Board edit mode", () => {

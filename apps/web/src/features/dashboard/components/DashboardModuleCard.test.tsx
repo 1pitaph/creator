@@ -63,7 +63,7 @@ describe("DashboardModuleCard", () => {
     expect(handle).toHaveClass("z-30");
     expect(handle).toHaveClass("h-[34px]");
     expect(handle).toHaveClass("w-[34px]");
-    expect(handle).toHaveClass("bg-zinc-100/100");
+    expect(handle).toHaveClass("bg-[#ececf0]");
     expect(handle).toHaveClass("text-zinc-500");
     expect(handle).toHaveClass("shadow-[0_4px_12px_rgba(24,24,27,0.12)]");
     expect(handle).toHaveClass("hover:bg-zinc-200/100");
