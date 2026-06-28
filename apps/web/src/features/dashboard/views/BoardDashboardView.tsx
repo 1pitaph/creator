@@ -4,8 +4,9 @@ import { closestCorners, DndContext, KeyboardSensor, PointerSensor, useDroppable
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { DashboardBoardColumn, DashboardPreferencesV1 } from "@creator/data-contracts";
-import { Badge, cn } from "@creator/ui";
+import { cn } from "@creator/ui";
 
+import { ActionEffortTag, BoardColumnCountTag } from "../components/DashboardTags";
 import { dashboardBoardColumns, type DashboardActionCard } from "../customization";
 
 const boardColumnLabels: Record<DashboardBoardColumn, string> = {
@@ -13,13 +14,6 @@ const boardColumnLabels: Record<DashboardBoardColumn, string> = {
   next: "下一步",
   this_week: "本周",
   done: "已完成"
-};
-
-const boardColumnTones: Record<DashboardBoardColumn, "blue" | "amber" | "green" | "neutral"> = {
-  today: "blue",
-  next: "amber",
-  this_week: "neutral",
-  done: "green"
 };
 
 const findColumnForId = (columns: DashboardPreferencesV1["board"]["columns"], id: string) => {
@@ -172,7 +166,7 @@ const BoardColumnHeader = ({ column, count }: { column: DashboardBoardColumn; co
   <div className="mb-3 flex items-center justify-between gap-3">
     <div className="flex items-center gap-2">
       <h2 className="text-sm font-semibold text-zinc-950">{boardColumnLabels[column]}</h2>
-      <Badge tone={boardColumnTones[column]}>{count}</Badge>
+      <BoardColumnCountTag column={column} count={count} />
     </div>
   </div>
 );
@@ -210,7 +204,7 @@ const BoardActionCardContent = ({ action, editing }: { action: DashboardActionCa
         <p className="text-sm font-semibold text-zinc-950">{action.label}</p>
         <p className="mt-1 text-xs font-medium text-zinc-500">{action.insightTitle}</p>
       </div>
-      <Badge tone={action.effort === "low" ? "green" : action.effort === "medium" ? "amber" : "red"}>{action.effort}</Badge>
+      <ActionEffortTag effort={action.effort} />
     </div>
     <p className="mt-2 text-xs leading-5 text-zinc-600">{action.detail}</p>
   </article>

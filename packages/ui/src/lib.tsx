@@ -1,4 +1,5 @@
 export * from "./badge";
+export * from "./tag-list";
 export * from "./button";
 export * from "./card";
 export * from "./magnetic-button";

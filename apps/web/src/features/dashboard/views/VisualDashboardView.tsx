@@ -5,7 +5,6 @@ import { useCallback, type PointerEvent as ReactPointerEvent } from "react";
 import {
   ResponsiveGridLayout,
   useContainerWidth,
-  verticalCompactor,
   type Layout,
   type ResponsiveLayouts
 } from "react-grid-layout";
@@ -21,8 +20,10 @@ import {
   getDashboardBreakpointForWidth,
   getDashboardCardContentSizeForGridItem,
   getDashboardCardGridConstraints,
+  getDashboardMasonryColumnCount,
   normalizeDashboardGridItem,
   normalizeDashboardCardDimensions,
+  packDashboardMasonryLayout,
   type DashboardActionCard,
   type DashboardCardDefinition
 } from "../customization";
@@ -35,19 +36,23 @@ type DashboardResizeAxis = (typeof visualResizeHandles)[number];
 
 const isDashboardResizeAxis = (axis: string | null | undefined): axis is DashboardResizeAxis => axis === "e" || axis === "s";
 
-const DashboardResizeHandles = ({ cardId }: { cardId: string }) => (
-  <>
-    {visualResizeHandles.map((axis) => (
-      <span
-        key={axis}
-        aria-hidden="true"
-        className={`react-resizable-handle react-resizable-handle-${axis} dashboard-card-resize-edge dashboard-card-resize-edge--${axis}`}
-        data-dashboard-resize-axis={axis}
-        data-testid={`visual-resize-handle-${cardId}-${axis}`}
-      />
-    ))}
-  </>
-);
+const DashboardResizeHandles = ({ allowHorizontalResize, cardId }: { allowHorizontalResize: boolean; cardId: string }) => {
+  const handles = allowHorizontalResize ? visualResizeHandles : (["s"] as const);
+
+  return (
+    <>
+      {handles.map((axis) => (
+	        <span
+	          key={axis}
+	          aria-hidden="true"
+	          className={`react-resizable-handle react-resizable-handle-${axis} dashboard-card-resize-handle dashboard-card-resize-edge dashboard-card-resize-edge--${axis}`}
+	          data-dashboard-resize-axis={axis}
+	          data-testid={`visual-resize-handle-${cardId}-${axis}`}
+	        />
+      ))}
+    </>
+  );
+};
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -107,17 +112,19 @@ const hasStoredLayoutChanges = (
 const normalizeStoredGridItem = (
   item: DashboardGridItem,
   breakpoint: DashboardBreakpoint,
-  card: DashboardCardDefinition
+  card: DashboardCardDefinition,
+  cols: number
 ): DashboardGridItem => {
-  return normalizeDashboardGridItem(item, breakpoint, card);
+  return normalizeDashboardGridItem(item, breakpoint, card, cols);
 };
 
 const createStoredLayoutForBreakpoint = (
-  currentLayouts: DashboardPreferencesV1["visual"]["layouts"],
+  current: DashboardPreferencesV1,
   breakpoint: DashboardBreakpoint,
   nextLayout: Layout,
   visibleIds: Set<string>,
-  cards: DashboardCardDefinition[]
+  cards: DashboardCardDefinition[],
+  cols: number
 ): DashboardGridItem[] => {
   const cardById = new Map(cards.map((card) => [card.id, card]));
   const nextVisibleLayout = toStoredGridItems(nextLayout).flatMap((item) => {
@@ -126,63 +133,56 @@ const createStoredLayoutForBreakpoint = (
     }
 
     const card = cardById.get(item.i);
-    return card ? [normalizeStoredGridItem(item, breakpoint, card)] : [];
+    return card ? [normalizeStoredGridItem(item, breakpoint, card, cols)] : [];
   });
   const nextVisibleIds = new Set(nextVisibleLayout.map((item) => item.i));
-  const currentVisibleLayout = currentLayouts[breakpoint].flatMap((item) => {
+  const currentVisibleLayout = current.visual.layouts[breakpoint].flatMap((item) => {
     if (!visibleIds.has(item.i) || nextVisibleIds.has(item.i)) {
       return [];
     }
 
     const card = cardById.get(item.i);
-    return card ? [normalizeStoredGridItem(item, breakpoint, card)] : [];
+    return card ? [normalizeStoredGridItem(item, breakpoint, card, cols)] : [];
   });
-  const currentHiddenLayout = currentLayouts[breakpoint].filter((item) => !visibleIds.has(item.i));
+  const currentHiddenLayout = current.visual.layouts[breakpoint].filter((item) => !visibleIds.has(item.i));
+  const packedVisibleLayout = packDashboardMasonryLayout(
+    cards,
+    breakpoint,
+    cols,
+    current.cards,
+    [...nextVisibleLayout, ...currentVisibleLayout]
+  );
 
-  return [...nextVisibleLayout, ...currentVisibleLayout, ...currentHiddenLayout];
+  return [...packedVisibleLayout, ...currentHiddenLayout];
 };
 
 const createStoredLayoutsForBreakpoint = (
-  currentLayouts: DashboardPreferencesV1["visual"]["layouts"],
+  current: DashboardPreferencesV1,
   breakpoint: DashboardBreakpoint,
   nextLayout: Layout,
   visibleIds: Set<string>,
-  cards: DashboardCardDefinition[]
+  cards: DashboardCardDefinition[],
+  cols: number
 ): DashboardPreferencesV1["visual"]["layouts"] => ({
-  ...currentLayouts,
-  [breakpoint]: createStoredLayoutForBreakpoint(currentLayouts, breakpoint, nextLayout, visibleIds, cards)
+  ...current.visual.layouts,
+  [breakpoint]: createStoredLayoutForBreakpoint(current, breakpoint, nextLayout, visibleIds, cards, cols)
 });
-
-const compactDashboardGridItems = (
-  layout: DashboardGridItem[],
-  breakpoint: DashboardBreakpoint,
-  cards: DashboardCardDefinition[]
-) => {
-  const cardById = new Map(cards.map((card) => [card.id, card]));
-  const normalizedLayout = layout.flatMap((item) => {
-    const card = cardById.get(item.i);
-
-    return card ? [normalizeDashboardGridItem(item, breakpoint, card)] : [];
-  });
-
-  return toStoredGridItems(verticalCompactor.compact(normalizedLayout as Layout, dashboardColumnCounts[breakpoint]) as Layout).flatMap((item) => {
-    const card = cardById.get(item.i);
-
-    return card ? [normalizeDashboardGridItem(item, breakpoint, card)] : [];
-  });
-};
 
 const resizeDashboardGridItem = ({
   breakpoint,
   cardId,
+  cardPreferences,
   cards,
+  cols,
   h,
   layout,
   w
 }: {
   breakpoint: DashboardBreakpoint;
   cardId: string;
+  cardPreferences: DashboardPreferencesV1["cards"];
   cards: DashboardCardDefinition[];
+  cols: number;
   h: number;
   layout: DashboardGridItem[];
   w: number;
@@ -207,16 +207,15 @@ const resizeDashboardGridItem = ({
     return layout;
   }
 
-  const item = normalizeDashboardGridItem(currentItem, breakpoint, card);
-  const constraints = getDashboardCardGridConstraints(card, breakpoint);
-  const maxWidthAtX = Math.max(constraints.minW, Math.min(constraints.maxW, dashboardColumnCounts[breakpoint] - item.x));
+  const item = normalizeDashboardGridItem(currentItem, breakpoint, card, cols);
+  const constraints = getDashboardCardGridConstraints(card, breakpoint, cols);
   nextLayout[itemIndex] = {
     ...item,
-    w: clamp(w, constraints.minW, maxWidthAtX),
+    w: clamp(w, constraints.minW, constraints.maxW),
     h: clamp(h, constraints.minH, constraints.maxH)
   };
 
-  return compactDashboardGridItems(nextLayout, breakpoint, cards);
+  return packDashboardMasonryLayout(cards, breakpoint, cols, cardPreferences, nextLayout);
 };
 
 export const VisualDashboardView = ({
@@ -238,16 +237,46 @@ export const VisualDashboardView = ({
 }) => {
   const { containerRef, mounted, width } = useContainerWidth({ measureBeforeMount: true, initialWidth: 0 });
   const measuredWidth = Math.round(width);
+  const layoutWidth = Math.floor(width);
   const gridReady = mounted && measuredWidth > 0;
+  const breakpoint = getDashboardBreakpointForWidth(layoutWidth);
+  const activeCols = getDashboardMasonryColumnCount(layoutWidth);
+  const responsiveColumnCounts = {
+    ...dashboardColumnCounts,
+    [breakpoint]: activeCols
+  };
   const visibleCards = cards.filter((card) => preferences.cards[card.id]?.visible !== false);
   const visibleIds = new Set(visibleCards.map((card) => card.id));
-  const layouts = toResponsiveLayouts(preferences, visibleIds);
-  const breakpoint = getDashboardBreakpointForWidth(measuredWidth);
+  const visibleSourceLayout = preferences.visual.layouts[breakpoint].filter((item) => visibleIds.has(item.i));
+  const activeLayout = packDashboardMasonryLayout(visibleCards, breakpoint, activeCols, preferences.cards, visibleSourceLayout);
+  const activeLayoutById = new Map(activeLayout.map((item) => [item.i, item]));
+  const layouts = toResponsiveLayouts(
+    {
+      ...preferences,
+      visual: {
+        layouts: {
+          ...preferences.visual.layouts,
+          [breakpoint]: activeLayout
+        }
+      }
+    },
+    visibleIds
+  );
+  const allowHorizontalResize = activeCols > dashboardColumnCounts.xs;
 
   const commitLayoutForBreakpoint = useCallback(
     (nextLayout: Layout) => {
       updatePreferences((current) => {
-        const nextLayouts = createStoredLayoutsForBreakpoint(current.visual.layouts, breakpoint, nextLayout, visibleIds, cards);
+        const currentVisibleCards = cards.filter((card) => current.cards[card.id]?.visible !== false);
+        const currentVisibleIds = new Set(currentVisibleCards.map((card) => card.id));
+        const nextLayouts = createStoredLayoutsForBreakpoint(
+          current,
+          breakpoint,
+          nextLayout,
+          currentVisibleIds,
+          currentVisibleCards,
+          activeCols
+        );
 
         if (!hasStoredLayoutChanges(current.visual.layouts, nextLayouts)) {
           return current;
@@ -261,7 +290,7 @@ export const VisualDashboardView = ({
         };
       });
     },
-    [breakpoint, cards, updatePreferences, visibleIds]
+    [activeCols, breakpoint, cards, updatePreferences]
   );
 
   const handleResizeHandlePointerDown = useCallback(
@@ -282,6 +311,10 @@ export const VisualDashboardView = ({
         return;
       }
 
+      if (resizeAxis === "e" && !allowHorizontalResize) {
+        return;
+      }
+
       const cardElement = resizeHandle.closest<HTMLElement>("[data-dashboard-card-id]");
       const cardId = cardElement?.dataset.dashboardCardId;
 
@@ -289,8 +322,8 @@ export const VisualDashboardView = ({
         return;
       }
 
-      const currentLayout = preferences.visual.layouts[breakpoint];
-      const startItem = currentLayout.find((item) => item.i === cardId);
+	      const currentLayout = preferences.visual.layouts[breakpoint];
+	      const startItem = activeLayoutById.get(cardId) ?? currentLayout.find((item) => item.i === cardId);
 
       if (!startItem) {
         return;
@@ -300,7 +333,7 @@ export const VisualDashboardView = ({
       event.stopPropagation();
 
       const pointerId = event.pointerId;
-      const cols = dashboardColumnCounts[breakpoint];
+      const cols = activeCols;
       const colWidth = (measuredWidth - visualGridMargin[0] * (cols - 1)) / cols;
       const columnStep = colWidth + visualGridMargin[0];
       const rowStep = visualGridRowHeight + visualGridMargin[1];
@@ -335,16 +368,23 @@ export const VisualDashboardView = ({
         lastH = nextH;
 
         updatePreferences((current) => {
-          const currentVisibleLayout = current.visual.layouts[breakpoint].filter((item) => visibleIds.has(item.i));
-          const currentHiddenLayout = current.visual.layouts[breakpoint].filter((item) => !visibleIds.has(item.i));
-          const nextLayout = resizeDashboardGridItem({
-            breakpoint,
-            cardId,
-            cards,
-            h: nextH,
-            layout: currentVisibleLayout,
-            w: nextW
-          });
+          const currentVisibleCards = cards.filter((card) => current.cards[card.id]?.visible !== false);
+          const currentVisibleIds = new Set(currentVisibleCards.map((card) => card.id));
+	          const currentVisibleLayout = current.visual.layouts[breakpoint].filter((item) => currentVisibleIds.has(item.i));
+	          const currentHiddenLayout = current.visual.layouts[breakpoint].filter((item) => !currentVisibleIds.has(item.i));
+	          const resizeSourceLayout = currentVisibleLayout.some((item) => item.i === cardId)
+	            ? currentVisibleLayout
+	            : [...currentVisibleLayout, startItem];
+	          const nextLayout = resizeDashboardGridItem({
+	            breakpoint,
+	            cardId,
+	            cardPreferences: current.cards,
+	            cards: currentVisibleCards,
+	            cols: activeCols,
+	            h: nextH,
+	            layout: resizeSourceLayout,
+	            w: nextW
+	          });
           const nextLayouts = {
             ...current.visual.layouts,
             [breakpoint]: [...nextLayout, ...currentHiddenLayout]
@@ -381,16 +421,22 @@ export const VisualDashboardView = ({
       resizeHandle.addEventListener("pointerup", stopResizing);
       resizeHandle.addEventListener("pointercancel", stopResizing);
     },
-    [breakpoint, cards, measuredWidth, preferences.visual.layouts, updatePreferences, visibleIds]
-  );
+	    [activeCols, activeLayoutById, allowHorizontalResize, breakpoint, cards, measuredWidth, preferences.visual.layouts, updatePreferences]
+	  );
 
   return (
-    <div ref={containerRef} className="dashboard-visual-grid-shell" onPointerDownCapture={handleResizeHandlePointerDown}>
+    <div
+      ref={containerRef}
+      className="dashboard-visual-grid-shell"
+      data-dashboard-breakpoint={breakpoint}
+      data-dashboard-cols={activeCols}
+      onPointerDownCapture={handleResizeHandlePointerDown}
+    >
       {gridReady ? (
         <ResponsiveGridLayout<DashboardBreakpoint>
           width={measuredWidth}
           breakpoints={dashboardBreakpointWidths}
-          cols={dashboardColumnCounts}
+          cols={responsiveColumnCounts}
           layouts={layouts}
           rowHeight={visualGridRowHeight}
           margin={visualGridMargin}
@@ -409,12 +455,12 @@ export const VisualDashboardView = ({
           onDragStop={(nextLayout) => commitLayoutForBreakpoint(nextLayout)}
         >
           {visibleCards.map((card) => {
-            const layoutItem = preferences.visual.layouts[breakpoint].find((item) => item.i === card.id);
+            const layoutItem = activeLayoutById.get(card.id);
             const fallbackDimensions = normalizeDashboardCardDimensions(preferences.cards[card.id], card.defaultSize);
             const normalizedLayoutItem = layoutItem
-              ? normalizeDashboardGridItem(layoutItem, breakpoint, card)
-              : createDashboardGridItem(card, breakpoint, 0, 0, fallbackDimensions);
-            const contentSize = getDashboardCardContentSizeForGridItem(normalizedLayoutItem);
+              ? normalizeDashboardGridItem(layoutItem, breakpoint, card, activeCols)
+              : createDashboardGridItem(card, breakpoint, 0, 0, fallbackDimensions, activeCols);
+            const contentSize = getDashboardCardContentSizeForGridItem(normalizedLayoutItem, activeCols, card);
 
             return (
               <div key={card.id} className="min-h-0" data-dashboard-card-id={card.id}>
@@ -428,7 +474,7 @@ export const VisualDashboardView = ({
                   size={contentSize}
                   viewModel={viewModel}
                 />
-                <DashboardResizeHandles cardId={card.id} />
+                <DashboardResizeHandles allowHorizontalResize={allowHorizontalResize} cardId={card.id} />
               </div>
             );
           })}

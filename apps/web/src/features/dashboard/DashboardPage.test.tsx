@@ -5,6 +5,7 @@ import type { ModuleLoadMode } from "@creator/data-contracts";
 
 import { defaultCreatorId } from "../creator-diagnosis/creatorOptions";
 import { localDiagnosis } from "../creator-diagnosis/api";
+import { buildDashboardActionCards, buildDashboardCards, buildDefaultDashboardPreferences } from "./customization";
 import { buildDashboardViewModel } from "./model";
 import { DashboardPage } from "./DashboardPage";
 
@@ -19,18 +20,25 @@ vi.mock("react-grid-layout", async () => {
   return {
     ResponsiveGridLayout: ({
       children,
+      containerPadding,
+      cols,
       dragConfig,
+      margin,
       onDragStop,
       onLayoutChange,
+      rowHeight,
       resizeConfig,
       width,
     }: {
       children: ReactNode;
+      containerPadding?: readonly [number, number];
+      cols?: Record<string, number>;
       dragConfig?: {
         enabled?: boolean;
         handle?: string;
         cancel?: string;
       };
+      margin?: readonly [number, number];
       onLayoutChange?: (
         layout: unknown[],
         layouts: Record<string, unknown[]>,
@@ -48,6 +56,7 @@ vi.mock("react-grid-layout", async () => {
         handleComponent?: unknown;
         handles?: readonly string[];
       };
+      rowHeight?: number;
       width?: number;
     }) => (
       <div
@@ -55,7 +64,11 @@ vi.mock("react-grid-layout", async () => {
         data-drag-enabled={String(dragConfig?.enabled)}
         data-drag-handle={dragConfig?.handle ?? ""}
         data-drag-cancel={dragConfig?.cancel ?? ""}
+        data-container-padding={(containerPadding ?? []).join(",")}
+        data-grid-cols={JSON.stringify(cols ?? {})}
         data-grid-width={String(width ?? "")}
+        data-grid-margin={(margin ?? []).join(",")}
+        data-row-height={String(rowHeight ?? "")}
         data-resize-enabled={String(resizeConfig?.enabled)}
         data-resize-handles={(resizeConfig?.handles ?? []).join(",")}
       >
@@ -135,9 +148,6 @@ vi.mock("react-grid-layout", async () => {
       layout.map((layoutItem) =>
         layoutItem.i === item.i ? { ...layoutItem, x, y } : layoutItem,
       ),
-    verticalCompactor: {
-      compact: (layout: unknown[]) => layout,
-    },
     useContainerWidth: () => ({
       containerRef: { current: null },
       mounted: containerWidthMock.mounted,
@@ -194,13 +204,26 @@ const readStoredPreferences = () => {
   return raw
     ? (JSON.parse(raw) as {
         cards: Record<string, { height: string; visible: boolean; width: string }>;
-        visual: { layouts: { lg: Array<{ h: number; i: string; maxH?: number; maxW?: number; minH?: number; minW?: number; w: number; x: number; y: number }> } };
+        visual: { layouts: Record<string, Array<{ h: number; i: string; maxH?: number; maxW?: number; minH?: number; minW?: number; w: number; x: number; y: number }>> };
       })
     : null;
 };
 
-const readStoredLayoutItem = (cardId: string) =>
-  readStoredPreferences()?.visual.layouts.lg.find((item) => item.i === cardId);
+const readStoredLayoutItem = (cardId: string, breakpoint = "lg") =>
+  readStoredPreferences()?.visual.layouts[breakpoint]?.find((item) => item.i === cardId);
+
+const getFirstModuleChartCard = (diagnosis: ReturnType<typeof localDiagnosis>) => {
+  const module = diagnosis.modules.find((item) => item.chart);
+
+  if (!module?.chart) {
+    throw new Error("Expected at least one module chart");
+  }
+
+  return {
+    cardId: `module-chart:${module.id}`,
+    module,
+  };
+};
 
 const installLocalStorageMock = () => {
   const store = new Map<string, string>();
@@ -336,10 +359,40 @@ describe("DashboardPage", () => {
 
     renderDashboard();
 
-    expect(screen.getByTestId("visual-grid")).toHaveAttribute(
-      "data-grid-width",
-      "1200",
-    );
+    const grid = screen.getByTestId("visual-grid");
+
+    expect(grid).toHaveAttribute("data-grid-width", "1200");
+    expect(grid.parentElement).toHaveAttribute("data-dashboard-breakpoint", "md");
+    expect(grid.parentElement).toHaveAttribute("data-dashboard-cols", "8");
+    expect(JSON.parse(grid.dataset.gridCols ?? "{}")).toMatchObject({ md: 8 });
+    expect(grid).toHaveAttribute("data-row-height", "36");
+    expect(grid).toHaveAttribute("data-grid-margin", "16,16");
+    expect(grid).toHaveAttribute("data-container-padding", "0,0");
+  });
+
+  it("uses twelve Visual masonry columns at the 1200px threshold", () => {
+    containerWidthMock.width = 1200;
+
+    renderDashboard();
+
+    const grid = screen.getByTestId("visual-grid");
+
+    expect(grid.parentElement).toHaveAttribute("data-dashboard-breakpoint", "lg");
+    expect(grid.parentElement).toHaveAttribute("data-dashboard-cols", "12");
+    expect(JSON.parse(grid.dataset.gridCols ?? "{}")).toMatchObject({ lg: 12 });
+  });
+
+  it("hides horizontal Visual resize handles on the two-column mobile grid", () => {
+    containerWidthMock.width = 375;
+
+    renderDashboard();
+
+    const grid = screen.getByTestId("visual-grid");
+
+    expect(grid.parentElement).toHaveAttribute("data-dashboard-breakpoint", "xs");
+    expect(grid.parentElement).toHaveAttribute("data-dashboard-cols", "2");
+    expect(screen.queryByTestId("visual-resize-handle-summary-e")).not.toBeInTheDocument();
+    expect(screen.getByTestId("visual-resize-handle-summary-s")).toBeInTheDocument();
   });
 
   it("moves the module mode indicator to the selected pill", async () => {
@@ -394,6 +447,26 @@ describe("DashboardPage", () => {
     });
   });
 
+  it("shows module chart cards in Table and hides them from Visual", async () => {
+    const { diagnosis, rerenderPanel } = renderDashboard({ panel: "table" });
+    const { cardId, module } = getFirstModuleChartCard(diagnosis);
+
+    expect(screen.getAllByText("模块图表").length).toBeGreaterThan(0);
+    expect(screen.queryByText("已加载 AI 模块")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(`隐藏 ${module.chart!.title}`));
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards[cardId]?.visible).toBe(false);
+    });
+
+    rerenderPanel("overview");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: module.chart!.title })).not.toBeInTheDocument();
+    });
+  });
+
   it("uses current-breakpoint Table width and height grid steppers", async () => {
     renderDashboard({ panel: "table" });
 
@@ -404,7 +477,7 @@ describe("DashboardPage", () => {
     const summaryHeightInput = screen.getByLabelText("设置「AI 诊断摘要」高度行数");
 
     expect(summaryWidthInput).toHaveValue(8);
-    expect(summaryHeightInput).toHaveValue(11);
+    expect(summaryHeightInput).toHaveValue(7);
 
     fireEvent.change(summaryWidthInput, {
       target: { value: "7" },
@@ -416,7 +489,7 @@ describe("DashboardPage", () => {
         height: "large",
       });
       expect(readStoredLayoutItem("summary")).toMatchObject({
-        h: 11,
+        h: 7,
         maxH: 16,
         maxW: 12,
         minH: 6,
@@ -445,12 +518,78 @@ describe("DashboardPage", () => {
     });
   });
 
+  it("clamps Table width controls to the active dynamic column count", async () => {
+    containerWidthMock.width = 899.8;
+
+    renderDashboard({ panel: "table" });
+
+    const summaryWidthInput = screen.getByLabelText("设置「AI 诊断摘要」宽度列数");
+
+    expect(summaryWidthInput).toHaveValue(4);
+    expect(summaryWidthInput).toHaveAttribute("max", "4");
+
+    fireEvent.change(summaryWidthInput, {
+      target: { value: "8" },
+    });
+
+    await waitFor(() => {
+      expect(readStoredLayoutItem("summary", "sm")).toMatchObject({
+        maxW: 4,
+        minW: 3,
+        w: 4,
+      });
+    });
+  });
+
+  it("keeps missing module chart layouts when editing Table dimensions", async () => {
+    const focusedDiagnosis = localDiagnosis(defaultCreatorId, "focused");
+    const focusedViewModel = buildDashboardViewModel(focusedDiagnosis);
+    const focusedCards = buildDashboardCards(focusedDiagnosis, focusedViewModel);
+    const focusedCardIds = new Set(focusedCards.map((card) => card.id));
+    const completeDiagnosis = localDiagnosis(defaultCreatorId, "complete");
+    const completeViewModel = buildDashboardViewModel(completeDiagnosis);
+    const completeCards = buildDashboardCards(completeDiagnosis, completeViewModel);
+    const completeActions = buildDashboardActionCards(completeDiagnosis);
+    const missingModuleChartCard = completeCards.find((card) => card.kind === "module-chart" && !focusedCardIds.has(card.id));
+
+    expect(missingModuleChartCard).toBeDefined();
+
+    const completePreferences = buildDefaultDashboardPreferences(defaultCreatorId, completeCards, completeActions, "2099-01-01T00:00:00.000Z");
+    const missingLayout = {
+      ...completePreferences.visual.layouts.lg.find((item) => item.i === missingModuleChartCard?.id)!,
+      x: 8,
+      y: 88,
+    };
+    window.localStorage.setItem(
+      `creator-dashboard-preferences:${defaultCreatorId}:v1`,
+      JSON.stringify({
+        ...completePreferences,
+        visual: {
+          layouts: {
+            ...completePreferences.visual.layouts,
+            lg: [...completePreferences.visual.layouts.lg.filter((item) => item.i !== missingModuleChartCard?.id), missingLayout],
+          },
+        },
+      }),
+    );
+
+    renderDashboard({ panel: "table", moduleLoadMode: "focused" });
+
+    fireEvent.change(screen.getByLabelText("设置「AI 诊断摘要」宽度列数"), {
+      target: { value: "7" },
+    });
+
+    await waitFor(() => {
+      expect(readStoredLayoutItem(missingModuleChartCard!.id)).toEqual(missingLayout);
+    });
+  });
+
   it("ignores passive Visual layout reports and saves completed drags", async () => {
     renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: "mock layout change" }));
 
-    expect(readStoredPreferences()?.visual.layouts.lg[0]).toMatchObject({
+    expect(readStoredPreferences()?.visual.layouts.lg?.[0]).toMatchObject({
       i: "summary",
       x: 0,
       y: 0,
@@ -459,7 +598,7 @@ describe("DashboardPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "mock drag stop" }));
 
     await waitFor(() => {
-      expect(readStoredPreferences()?.visual.layouts.lg[0]).toMatchObject({
+      expect(readStoredPreferences()?.visual.layouts.lg?.[0]).toMatchObject({
         i: "insights",
         x: 0,
         y: 0,
@@ -507,7 +646,7 @@ describe("DashboardPage", () => {
 
     await waitFor(() => {
       expect(readStoredLayoutItem("summary")).toMatchObject({
-        h: 11,
+        h: 7,
         maxH: 16,
         maxW: 12,
         minH: 6,
@@ -552,7 +691,7 @@ describe("DashboardPage", () => {
         height: "large",
       });
       expect(readStoredLayoutItem("summary")).toMatchObject({
-        h: 11,
+        h: 7,
         maxH: 16,
         maxW: 12,
         minH: 6,
@@ -584,7 +723,7 @@ describe("DashboardPage", () => {
         height: "large",
       });
       expect(readStoredLayoutItem("summary")).toMatchObject({
-        h: 11,
+        h: 7,
         maxH: 16,
         maxW: 12,
         minH: 6,
@@ -667,6 +806,54 @@ describe("DashboardPage", () => {
         minH: 5,
         minW: 2,
         w: 3,
+      });
+    });
+  });
+
+  it("saves module chart card resizing from the Visual grid", async () => {
+    const { diagnosis } = renderDashboard();
+    const { cardId } = getFirstModuleChartCard(diagnosis);
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards[cardId]).toMatchObject({
+        width: "medium",
+        height: "medium",
+      });
+      expect(readStoredLayoutItem(cardId)).toMatchObject({
+        h: 8,
+        maxH: 16,
+        minH: 6,
+        minW: 3,
+        w: 4,
+      });
+    });
+
+    const bottomResizeHandle = screen.getByTestId(`visual-resize-handle-${cardId}-s`);
+
+    fireEvent.pointerDown(bottomResizeHandle, {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(bottomResizeHandle, {
+      clientX: 0,
+      clientY: 60,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(bottomResizeHandle, {
+      clientX: 0,
+      clientY: 60,
+      pointerId: 1,
+    });
+
+    await waitFor(() => {
+      expect(readStoredLayoutItem(cardId)).toMatchObject({
+        h: 9,
+        maxH: 16,
+        minH: 6,
+        minW: 3,
+        w: 4,
       });
     });
   });

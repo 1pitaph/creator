@@ -22,10 +22,11 @@ import type {
   AgentApprovalRequest,
   AiModuleMetadata,
 } from "@creator/data-contracts";
-import { Badge, Button, CardHeader, CardTitle, cn } from "@creator/ui";
+import { Button, CardHeader, CardTitle, cn } from "@creator/ui";
 
 import { phosphorIconWeight } from "../../constants";
 import type { AskTarget, UiMessage } from "../../types";
+import { EvidenceTagList } from "./AgentTags";
 import { ChatBubble } from "./ChatBubble";
 import { presetQuestions } from "./presetQuestions";
 
@@ -153,13 +154,7 @@ export const AgentDrawer = ({
                       </p>
                     ) : null}
                     {focus.evidence && focus.evidence.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {focus.evidence.slice(0, 3).map((item) => (
-                          <Badge key={item} tone="neutral">
-                            {item}
-                          </Badge>
-                        ))}
-                      </div>
+                      <EvidenceTagList className="mt-2" evidence={focus.evidence} />
                     ) : null}
                   </div>
                 </div>

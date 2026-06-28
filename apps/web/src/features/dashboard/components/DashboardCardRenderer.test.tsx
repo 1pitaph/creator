@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModuleLoadMode } from "@creator/data-contracts";
 
 import { localDiagnosis } from "../../creator-diagnosis/api";
@@ -11,6 +11,16 @@ import {
 } from "../customization";
 import { buildDashboardViewModel } from "../model";
 import { DashboardCardRenderer } from "./DashboardCardRenderer";
+
+const chartSlotMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@creator/charts", () => ({
+  ChartSlot: (props: { compact?: boolean; height?: number | string; intent: { title: string } }) => {
+    chartSlotMock(props);
+
+    return <div data-compact={String(props.compact ?? false)} data-height={String(props.height ?? "")} data-testid="chart-slot" data-title={props.intent.title} />;
+  }
+}));
 
 const renderInsightsCard = (moduleLoadMode: ModuleLoadMode = "focused") => {
   const diagnosis = localDiagnosis(defaultCreatorId, moduleLoadMode);
@@ -62,6 +72,10 @@ const createInsightsCard = (moduleLoadMode: ModuleLoadMode = "focused") => {
     />
   );
 };
+
+beforeEach(() => {
+  chartSlotMock.mockClear();
+});
 
 describe("DashboardCardRenderer insights pagination", () => {
   it("shows one insight page at a time with accessible boundaries", () => {
@@ -159,5 +173,40 @@ describe("DashboardCardRenderer insights pagination", () => {
         `第 ${diagnosis.insights.length} / ${diagnosis.insights.length} 条`,
       );
     });
+  });
+});
+
+describe("DashboardCardRenderer module chart cards", () => {
+  it("renders a standalone module chart once and asks about that module", () => {
+    const diagnosis = localDiagnosis(defaultCreatorId, "focused");
+    const viewModel = buildDashboardViewModel(diagnosis);
+    const module = diagnosis.modules.find((item) => item.chart);
+    const card = buildDashboardCards(diagnosis, viewModel).find((item) => item.id === `module-chart:${module?.id}`);
+    const onAsk = vi.fn();
+
+    expect(module).toBeDefined();
+    expect(card).toBeDefined();
+
+    render(
+      <DashboardCardRenderer
+        actions={buildDashboardActionCards(diagnosis)}
+        card={card!}
+        diagnosis={diagnosis}
+        fill
+        onAsk={onAsk}
+        size={card!.defaultSize}
+        viewModel={viewModel}
+      />
+    );
+
+    expect(screen.getByRole("heading", { name: module!.chart!.title })).toBeInTheDocument();
+    expect(screen.getByTestId("chart-slot")).toHaveAttribute("data-title", module!.chart!.title);
+    expect(screen.getByTestId("chart-slot")).toHaveAttribute("data-height", "min(100%, 360px)");
+    expect(chartSlotMock).toHaveBeenCalledTimes(1);
+    expect(chartSlotMock).toHaveBeenCalledWith(expect.objectContaining({ intent: module!.chart, compact: false }));
+
+    fireEvent.click(screen.getByLabelText(`询问 AI Agent：${module!.name} · ${module!.chart!.title}`));
+
+    expect(onAsk).toHaveBeenCalledWith(expect.objectContaining({ moduleId: module!.id, title: `${module!.name} · ${module!.chart!.title}` }));
   });
 });

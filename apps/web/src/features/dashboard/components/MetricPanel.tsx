@@ -4,9 +4,10 @@ import { ChartSlot } from "@creator/charts";
 import type { CreatorMetrics } from "@creator/data-contracts";
 import { cn } from "@creator/ui";
 
-import { phosphorIconWeight, toneClass } from "../../../constants";
+import { phosphorIconWeight } from "../../../constants";
 import type { AskTarget, MetricDefinition } from "../../../types";
 import { DashboardModuleCard } from "./DashboardModuleCard";
+import { MetricToneTag } from "./DashboardTags";
 
 export const MetricPanel = ({
   metric,
@@ -26,7 +27,7 @@ export const MetricPanel = ({
   >
     <div className="flex h-full flex-col justify-between">
       <div className="flex items-center justify-between gap-3">
-        <span className={cn("rounded-md px-2 py-1 text-xs font-medium", toneClass[metric.tone].soft)}>{metric.trendLabel}</span>
+        <MetricToneTag label={metric.trendLabel} tone={metric.tone} />
         <TrendUp
           className={cn(
             "h-4 w-4",

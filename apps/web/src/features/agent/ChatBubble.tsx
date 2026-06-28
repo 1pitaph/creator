@@ -1,14 +1,13 @@
 import { memo } from "react";
 
 import type {
-  AgentAction,
   AgentRun,
-  AgentToolCall,
   AiModuleMetadata,
 } from "@creator/data-contracts";
-import { Badge, cn } from "@creator/ui";
+import { cn } from "@creator/ui";
 
 import type { UiMessage } from "../../types";
+import { ActionTimeframeTag, AgentRunModeTag, MessageContextTags, ToolCallTagList } from "./AgentTags";
 
 export const ChatBubble = memo(function ChatBubble({
   message,
@@ -45,49 +44,12 @@ export const ChatBubble = memo(function ChatBubble({
           <AgentRunPanel run={message.agentRun} />
         ) : null}
         {isAssistant && usedModuleNames && usedModuleNames.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {message.mode ? (
-              <Badge tone={message.mode === "llm" ? "green" : "neutral"}>
-                {message.mode}
-              </Badge>
-            ) : null}
-            {usedModuleNames.slice(0, 3).map((name) => (
-              <Badge key={name} tone="blue">
-                {name}
-              </Badge>
-            ))}
-          </div>
+          <MessageContextTags mode={message.mode} moduleNames={usedModuleNames} />
         ) : null}
       </div>
     </div>
   );
 });
-
-const toolStatusTone: Record<
-  AgentToolCall["status"],
-  "neutral" | "green" | "amber" | "red" | "blue"
-> = {
-  pending: "neutral",
-  running: "blue",
-  success: "green",
-  error: "red",
-  skipped: "neutral",
-};
-
-const toolStatusLabel: Record<AgentToolCall["status"], string> = {
-  pending: "等待",
-  running: "运行中",
-  success: "完成",
-  error: "失败",
-  skipped: "跳过",
-};
-
-const actionTimeframeLabel: Record<AgentAction["timeframe"], string> = {
-  today: "今天",
-  tomorrow: "明天",
-  this_week: "本周",
-  next_review: "下次复盘",
-};
 
 const confidenceLabel: Record<AgentRun["facts"][number]["confidence"], string> =
   {
@@ -110,9 +72,7 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="font-semibold text-zinc-700">数据事实</p>
-        <Badge tone={run.mode === "llm-assisted" ? "green" : "neutral"}>
-          {run.mode === "llm-assisted" ? "LLM 辅助" : "确定性工具"}
-        </Badge>
+        <AgentRunModeTag mode={run.mode} />
       </div>
       <div className="space-y-1.5">
         {run.facts.slice(0, 3).map((fact) => (
@@ -161,9 +121,7 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
             >
               <div className="flex flex-wrap items-center gap-1.5">
                 <p className="font-semibold text-sky-950">{action.label}</p>
-                <Badge tone="blue">
-                  {actionTimeframeLabel[action.timeframe]}
-                </Badge>
+                <ActionTimeframeTag timeframe={action.timeframe} />
               </div>
               <p className="mt-1 text-sky-900">{action.detail}</p>
               {action.metricToWatch ? (
@@ -179,17 +137,7 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
 
     <div>
       <p className="mb-2 font-semibold text-zinc-700">工具调用</p>
-      <div className="flex flex-wrap gap-1.5">
-        {run.toolCalls.map((tool) => (
-          <Badge
-            key={tool.id}
-            tone={toolStatusTone[tool.status]}
-            title={tool.error ?? tool.outputSummary}
-          >
-            {tool.name} · {toolStatusLabel[tool.status]}
-          </Badge>
-        ))}
-      </div>
+      <ToolCallTagList toolCalls={run.toolCalls} />
     </div>
   </div>
 );

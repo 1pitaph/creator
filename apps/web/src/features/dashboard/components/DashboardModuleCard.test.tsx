@@ -19,8 +19,17 @@ describe("DashboardModuleCard", () => {
     );
 
     const askButton = screen.getByLabelText("询问 AI Agent：AI 诊断摘要");
+    const heading = screen.getByRole("heading", { name: "AI 诊断摘要" });
+    const header = heading.parentElement;
+    const description = screen.getByText("摘要");
+    const content = screen.getByText("内容").parentElement;
 
     expect(askButton).toHaveClass("h-[34px]");
+    expect(header).toHaveClass("!py-4", "!pl-5", "!pr-16");
+    expect(header).not.toHaveClass("!py-5", "!pl-6", "!pr-28");
+    expect(description).toHaveClass("line-clamp-1");
+    expect(content).toHaveClass("!px-5", "!py-4");
+    expect(content).not.toHaveClass("!px-6", "!py-5");
 
     fireEvent.click(askButton);
 
@@ -79,7 +88,8 @@ describe("DashboardModuleCard", () => {
     const heading = screen.getByRole("heading", { name: "AI 诊断摘要" });
     const header = heading.parentElement;
 
-    expect(header).toHaveClass("!pl-6");
+    expect(header).toHaveClass("!pl-5");
+    expect(header).not.toHaveClass("!pl-6");
     expect(header).not.toHaveClass("!pl-14");
 
     fireEvent.pointerDown(handle);
@@ -89,5 +99,32 @@ describe("DashboardModuleCard", () => {
     fireEvent.click(screen.getByLabelText("询问 AI Agent：AI 诊断摘要"));
 
     expect(onAsk).toHaveBeenCalledWith(target);
+  });
+
+  it("keeps small card spacing compact and hides descriptions", () => {
+    render(
+      <DashboardModuleCard title="播放量" description="7 日播放量" askTarget={target} onAsk={vi.fn()} size="small">
+        <p>内容</p>
+      </DashboardModuleCard>
+    );
+
+    const heading = screen.getByRole("heading", { name: "播放量" });
+    const header = heading.parentElement;
+    const content = screen.getByText("内容").parentElement;
+
+    expect(header).toHaveClass("!py-3", "!pl-4", "!pr-16");
+    expect(heading).toHaveClass("truncate", "text-[13px]");
+    expect(screen.queryByText("7 日播放量")).not.toBeInTheDocument();
+    expect(content).toHaveClass("!px-4", "!py-3");
+  });
+
+  it("allows large card descriptions to use two compact lines", () => {
+    render(
+      <DashboardModuleCard title="AI 诊断摘要" description="基于创作者画像、近 7 日数据和动态模块生成的优先级判断。" askTarget={target} onAsk={vi.fn()} size="large">
+        <p>内容</p>
+      </DashboardModuleCard>
+    );
+
+    expect(screen.getByText("基于创作者画像、近 7 日数据和动态模块生成的优先级判断。")).toHaveClass("line-clamp-2");
   });
 });

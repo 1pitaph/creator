@@ -67,6 +67,30 @@ describe("CreatorSidebar", () => {
     ).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("renders the desktop boundary strip without the old right shadow", () => {
+    renderSidebar();
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const boundaryStrip = within(sidebar).getByTestId("sidebar-boundary-strip");
+
+    expect(sidebar.className).not.toContain(
+      "shadow-[6px_0_18px_rgba(15,23,42,0.04)]",
+    );
+    expect(sidebar).not.toHaveClass("border-r");
+    expect(boundaryStrip).toHaveAttribute("aria-hidden", "true");
+    expect(boundaryStrip).toHaveClass(
+      "pointer-events-none",
+      "absolute",
+      "inset-y-0",
+      "right-0",
+      "w-4",
+      "border-l",
+      "border-r",
+    );
+    expect(boundaryStrip.className).toContain("repeating-linear-gradient");
+    expect(boundaryStrip.className).toContain("transparent_5px");
+  });
+
   it("keeps sidebar navigation accessible when collapsed", () => {
     renderSidebar();
 
@@ -75,6 +99,12 @@ describe("CreatorSidebar", () => {
       within(sidebar).getByRole("button", { name: "收起侧边栏" }),
     );
 
+    expect(within(sidebar).getByTestId("sidebar-content")).toHaveClass(
+      "px-2",
+    );
+    expect(within(sidebar).getByTestId("sidebar-boundary-strip")).toHaveClass(
+      "-right-4",
+    );
     expect(
       within(sidebar).getByRole("button", { name: "诊断总览" }),
     ).toBeInTheDocument();

@@ -1,8 +1,8 @@
 import type { DiagnosisResponse } from "@creator/data-contracts";
-import { Badge } from "@creator/ui";
 
-import { creatorTypeLabels, goalLabels, lifecycleLabels, severityTone } from "../../../constants";
+import { goalLabels } from "../../../constants";
 import type { AskTarget, DashboardViewModel } from "../../../types";
+import { CreatorSummaryTags } from "../components/DashboardTags";
 import { DashboardModuleCard } from "../components/DashboardModuleCard";
 import { ModuleTile } from "../components/ModuleTile";
 
@@ -45,14 +45,7 @@ export const OverviewSection = ({
           </div>
 
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Badge tone="blue">{diagnosis.creator.domain}</Badge>
-              <Badge tone="green">{creatorTypeLabels[diagnosis.creator.creatorType]}</Badge>
-              <Badge tone="neutral">{lifecycleLabels[diagnosis.creator.lifecycle]}</Badge>
-              <Badge tone={topInsight?.severity ? severityTone[topInsight.severity] : "neutral"}>
-                {topInsight?.severity === "warning" ? "需要关注" : "可放大"}
-              </Badge>
-            </div>
+            <CreatorSummaryTags creator={diagnosis.creator} severity={topInsight?.severity} />
             <div>
               <h2 className="text-xl font-semibold text-zinc-950">{topInsight?.title ?? "保持稳定实验节奏"}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">
@@ -84,7 +77,7 @@ export const OverviewSection = ({
       >
         <div className="space-y-3">
           {diagnosis.modules.map((module) => (
-            <ModuleTile key={module.id} module={module} metrics={viewModel.metrics} onAsk={onAsk} />
+            <ModuleTile key={module.id} module={module} onAsk={onAsk} />
           ))}
         </div>
       </DashboardModuleCard>

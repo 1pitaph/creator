@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { DashboardGridItem } from "@creator/data-contracts";
 
 import { defaultCreatorId } from "../creator-diagnosis/creatorOptions";
 import { localDiagnosis } from "../creator-diagnosis/api";
@@ -7,10 +8,16 @@ import {
   buildDashboardActionCards,
   buildDashboardCards,
   buildDefaultDashboardPreferences,
+  createModuleChartCardId,
+  dashboardBreakpoints,
+  getDashboardCardContentSizeForGridItem,
+  getDashboardMasonryColumnCount,
   parseDashboardPreferences,
   pickNewestDashboardPreferences,
+  packDashboardMasonryLayout,
   reconcileDashboardPreferences
 } from "./customization";
+import type { DashboardCardDefinition } from "./customization";
 
 const buildFixture = () => {
   const diagnosis = localDiagnosis(defaultCreatorId);
@@ -21,11 +28,52 @@ const buildFixture = () => {
   return { actions, cards, diagnosis, viewModel };
 };
 
+const dashboardGridItemsOverlap = (left: DashboardGridItem, right: DashboardGridItem) =>
+  left.i !== right.i &&
+  left.x < right.x + right.w &&
+  left.x + left.w > right.x &&
+  left.y < right.y + right.h &&
+  left.y + left.h > right.y;
+
+const expectLayoutToBeVerticallyCompact = (layout: DashboardGridItem[]) => {
+  layout.forEach((item) => {
+    expect(layout.some((other) => dashboardGridItemsOverlap(item, other)), `${item.i} overlaps another dashboard card`).toBe(false);
+
+    if (item.y > 0) {
+      expect(
+        layout.some((other) => dashboardGridItemsOverlap({ ...item, y: item.y - 1 }, other)),
+        `${item.i} can move upward from y=${item.y}`
+      ).toBe(true);
+    }
+  });
+};
+
+const buildMasonryTestCard = (id: string, priority: number): DashboardCardDefinition => ({
+  id,
+  kind: "metric",
+  title: id,
+  description: id,
+  priority,
+  defaultSize: "small",
+  askTarget: {
+    title: id,
+    prompt: id
+  }
+});
+
 describe("dashboard customization", () => {
+  it("maps measured widths to dynamic masonry column counts", () => {
+    expect(getDashboardMasonryColumnCount(375)).toBe(2);
+    expect(getDashboardMasonryColumnCount(640)).toBe(4);
+    expect(getDashboardMasonryColumnCount(900)).toBe(8);
+    expect(getDashboardMasonryColumnCount(1200)).toBe(12);
+  });
+
   it("builds stable default preferences", () => {
     const { actions, cards } = buildFixture();
     const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
 
+    expect(cards.some((card) => card.id === "modules")).toBe(false);
     expect(preferences.selectedView).toBe("visual");
     expect(Object.keys(preferences.cards)).toEqual(cards.map((card) => card.id));
     expect(preferences.cards.summary).toMatchObject({ width: "large", height: "large" });
@@ -33,11 +81,18 @@ describe("dashboard customization", () => {
     expect(preferences.cards["trend-comparison"]).toMatchObject({ width: "large", height: "large" });
     expect(preferences.visual.layouts.lg.map((item) => item.i)).toEqual(cards.map((card) => card.id));
     expect(preferences.visual.layouts.lg.slice(0, 2)).toMatchObject([
-      { i: "summary", x: 0, y: 0, w: 8, h: 11, minW: 3, minH: 6, maxW: 12, maxH: 16 },
+      { i: "summary", x: 0, y: 0, w: 8, h: 7, minW: 3, minH: 6, maxW: 12, maxH: 16 },
       { i: "insights", x: 8, y: 0, w: 4, h: 8, minW: 3, minH: 6, maxW: 12, maxH: 16 }
     ]);
+    expect(
+      getDashboardCardContentSizeForGridItem(
+        preferences.visual.layouts.lg.find((item) => item.i === "summary")!,
+        12,
+        cards.find((card) => card.id === "summary")
+      )
+    ).toBe("large");
     expect(preferences.visual.layouts.md.find((item) => item.i === "metric:views7d")).toMatchObject({
-      w: 3,
+      w: 2,
       h: 5,
       minW: 2,
       minH: 5,
@@ -45,14 +100,64 @@ describe("dashboard customization", () => {
       maxH: 16
     });
     expect(preferences.visual.layouts.sm.find((item) => item.i === "insights")).toMatchObject({
-      w: 3,
+      w: 4,
       h: 7,
       minW: 3,
       minH: 6,
       maxW: 4,
       maxH: 16
     });
+    expect(preferences.visual.layouts.lg.find((item) => item.i === "metric:views7d")).toMatchObject({
+      x: 0,
+      y: 7,
+      w: 3,
+      h: 5
+    });
+    dashboardBreakpoints.forEach((breakpoint) => {
+      expect(preferences.visual.layouts[breakpoint].map((item) => item.i)).toEqual(cards.map((card) => card.id));
+    });
+    Object.values(preferences.visual.layouts).forEach(expectLayoutToBeVerticallyCompact);
     expect(preferences.board.columns.today.length).toBeGreaterThan(0);
+  });
+
+  it("packs new cards into the shortest available column group", () => {
+    const cards = ["a", "b", "c", "d", "e"].map(buildMasonryTestCard);
+    const layout = packDashboardMasonryLayout(cards, "lg", 8, {}, [
+      { i: "a", x: 0, y: 0, w: 2, h: 12 },
+      { i: "b", x: 0, y: 20, w: 2, h: 5 },
+      { i: "c", x: 0, y: 40, w: 2, h: 9 },
+      { i: "d", x: 0, y: 60, w: 2, h: 5 },
+      { i: "e", x: 0, y: 80, w: 2, h: 5 }
+    ]);
+
+    expect(layout.map((item) => item.i)).toEqual(["a", "b", "c", "d", "e"]);
+    expect(layout.find((item) => item.i === "e")).toMatchObject({ x: 2, y: 5, w: 2, h: 5 });
+    expectLayoutToBeVerticallyCompact(layout);
+  });
+
+  it("promotes AI module charts into standalone dashboard cards", () => {
+    const { cards, diagnosis } = buildFixture();
+    const chartModules = diagnosis.modules.filter((module) => module.chart);
+    const moduleChartCards = cards.filter((card) => card.kind === "module-chart");
+    const firstModule = chartModules[0];
+    const firstCard = firstModule ? moduleChartCards.find((card) => card.id === createModuleChartCardId(firstModule.id)) : undefined;
+
+    expect(chartModules.length).toBeGreaterThan(0);
+    expect(moduleChartCards.map((card) => card.id)).toEqual(chartModules.map((module) => createModuleChartCardId(module.id)));
+    expect(firstCard).toMatchObject({
+      chartIntent: firstModule?.chart,
+      defaultSize: "medium",
+      description: firstModule?.chart?.description ?? firstModule?.description,
+      module: firstModule,
+      priority: 20,
+      title: firstModule?.chart?.title
+    });
+    expect(firstCard?.askTarget).toMatchObject({
+      evidence: firstModule?.tags,
+      moduleId: firstModule?.id,
+      summary: firstModule?.chart?.description ?? firstModule?.description,
+      title: `${firstModule?.name} · ${firstModule?.chart?.title}`
+    });
   });
 
   it("picks the newest saved preferences by updatedAt", () => {
@@ -72,7 +177,7 @@ describe("dashboard customization", () => {
     expect(parseDashboardPreferences({ version: 0 })).toBeNull();
   });
 
-  it("migrates legacy cached card sizes while preserving saved grid dimensions", () => {
+  it("migrates legacy cached card sizes while preserving saved grid dimensions and compacting placement", () => {
     const { actions, cards } = buildFixture();
     const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
     const parsed = parseDashboardPreferences({
@@ -97,8 +202,8 @@ describe("dashboard customization", () => {
 
     const reconciled = reconcileDashboardPreferences(parsed ?? preferences, defaultCreatorId, cards, actions, "2026-06-29T00:00:00.000Z");
 
-    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({ x: 1, y: 2, h: 9, w: 7, minH: 6, minW: 3 });
-    expect(reconciled.visual.layouts.lg.find((item) => item.i === "insights")).toMatchObject({ h: 11, w: 4, minH: 6, minW: 3 });
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({ x: 0, y: 0, h: 9, w: 7, minH: 6, minW: 3 });
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "insights")).toMatchObject({ x: 7, y: 0, h: 11, w: 4, minH: 6, minW: 3 });
   });
 
   it("keeps independent width and height presets as metadata without resetting saved layouts", () => {
@@ -120,7 +225,7 @@ describe("dashboard customization", () => {
 
     expect(reconciled.cards.summary).toMatchObject({ width: "small", height: "large" });
     expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({
-      h: 11,
+      h: 7,
       maxH: 16,
       maxW: 12,
       minH: 6,
@@ -129,7 +234,7 @@ describe("dashboard customization", () => {
     });
   });
 
-  it("clamps invalid saved grid dimensions without resetting valid layout placement", () => {
+  it("clamps invalid saved grid dimensions before compacting placement", () => {
     const { actions, cards } = buildFixture();
     const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
     const reconciled = reconcileDashboardPreferences(
@@ -150,7 +255,7 @@ describe("dashboard customization", () => {
 
     expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({
       x: 0,
-      y: 4,
+      y: 0,
       w: 12,
       h: 16,
       minW: 3,
@@ -189,5 +294,52 @@ describe("dashboard customization", () => {
     expect(reconciled.visual.layouts.lg.some((item) => item.i === "unknown")).toBe(false);
     expect(reconciled.visual.layouts.lg.map((item) => item.i)).toContain(cards.at(-1)?.id);
     expect([...Object.values(reconciled.board.columns).flat()].sort()).toEqual([...actions.map((action) => action.id)].sort());
+  });
+
+  it("preserves missing module chart preferences while removing other unknown cards", () => {
+    const focusedDiagnosis = localDiagnosis(defaultCreatorId, "focused");
+    const focusedViewModel = buildDashboardViewModel(focusedDiagnosis);
+    const focusedCards = buildDashboardCards(focusedDiagnosis, focusedViewModel);
+    const focusedActions = buildDashboardActionCards(focusedDiagnosis);
+    const completeDiagnosis = localDiagnosis(defaultCreatorId, "complete");
+    const completeViewModel = buildDashboardViewModel(completeDiagnosis);
+    const completeCards = buildDashboardCards(completeDiagnosis, completeViewModel);
+    const completeActions = buildDashboardActionCards(completeDiagnosis);
+    const focusedCardIds = new Set(focusedCards.map((card) => card.id));
+    const missingModuleChartCard = completeCards.find((card) => card.kind === "module-chart" && !focusedCardIds.has(card.id));
+
+    expect(missingModuleChartCard).toBeDefined();
+
+    const preferences = buildDefaultDashboardPreferences(defaultCreatorId, completeCards, completeActions, "2026-06-28T00:00:00.000Z");
+    const savedMissingLayout = {
+      ...preferences.visual.layouts.lg.find((item) => item.i === missingModuleChartCard?.id)!,
+      x: 9,
+      y: 42
+    };
+    const withMissingModuleChart = {
+      ...preferences,
+      cards: {
+        ...preferences.cards,
+        [missingModuleChartCard!.id]: { visible: false, width: "large" as const, height: "medium" as const },
+        unknown: { visible: true, width: "small" as const, height: "small" as const }
+      },
+      visual: {
+        layouts: {
+          ...preferences.visual.layouts,
+          lg: [
+            ...preferences.visual.layouts.lg.filter((item) => item.i !== missingModuleChartCard?.id),
+            savedMissingLayout,
+            { i: "unknown", x: 0, y: 99, w: 1, h: 1 }
+          ]
+        }
+      }
+    };
+
+    const reconciled = reconcileDashboardPreferences(withMissingModuleChart, defaultCreatorId, focusedCards, focusedActions, "2026-06-29T00:00:00.000Z");
+
+    expect(reconciled.cards[missingModuleChartCard!.id]).toMatchObject({ visible: false, width: "large", height: "medium" });
+    expect(reconciled.cards.unknown).toBeUndefined();
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === missingModuleChartCard?.id)).toEqual(savedMissingLayout);
+    expect(reconciled.visual.layouts.lg.some((item) => item.i === "unknown")).toBe(false);
   });
 });

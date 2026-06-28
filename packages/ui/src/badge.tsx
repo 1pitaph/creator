@@ -2,11 +2,13 @@ import type { HTMLAttributes } from "react";
 
 import { cn } from "./utils/cn";
 
+export type BadgeTone = "neutral" | "green" | "amber" | "red" | "blue";
+
 export const Badge = ({
   className,
   tone = "neutral",
   ...props
-}: HTMLAttributes<HTMLSpanElement> & { tone?: "neutral" | "green" | "amber" | "red" | "blue" }) => (
+}: HTMLAttributes<HTMLSpanElement> & { tone?: BadgeTone }) => (
   <span
     className={cn(
       "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium",

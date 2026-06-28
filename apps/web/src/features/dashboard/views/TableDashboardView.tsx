@@ -1,44 +1,24 @@
 import { Eye } from "@phosphor-icons/react/Eye";
 import { EyeSlash } from "@phosphor-icons/react/EyeSlash";
-import { useContainerWidth, verticalCompactor, type Layout } from "react-grid-layout";
+import { useContainerWidth } from "react-grid-layout";
 
-import type { DashboardGridItem, DashboardPreferencesV1 } from "@creator/data-contracts";
-import { Badge, Button } from "@creator/ui";
+import type { DashboardPreferencesV1 } from "@creator/data-contracts";
+import { Button } from "@creator/ui";
 
 import { phosphorIconWeight } from "../../../constants";
+import { DashboardCardKindTag, dashboardCardKindLabels } from "../components/DashboardTags";
 import {
   createDashboardGridItem,
   dashboardColumnCounts,
   getDashboardBreakpointForWidth,
   getDashboardCardGridConstraints,
+  getDashboardMasonryColumnCount,
+  isModuleChartCardId,
   normalizeDashboardGridItem,
   normalizeDashboardCardDimensions,
-  type DashboardCardDefinition,
-  type DashboardCardKind
+  packDashboardMasonryLayout,
+  type DashboardCardDefinition
 } from "../customization";
-
-const kindLabels: Record<DashboardCardKind, string> = {
-  summary: "摘要",
-  metric: "指标",
-  trend: "趋势",
-  insights: "洞察",
-  "top-content": "内容",
-  modules: "模块",
-  actions: "行动"
-};
-
-const toStoredGridItems = (layout: Layout): DashboardGridItem[] =>
-  layout.map((item) => ({
-    i: item.i,
-    x: item.x,
-    y: item.y,
-    w: item.w,
-    h: item.h,
-    minW: item.minW,
-    minH: item.minH,
-    maxW: item.maxW,
-    maxH: item.maxH
-  }));
 
 export const TableDashboardView = ({
   cards,
@@ -51,13 +31,15 @@ export const TableDashboardView = ({
 }) => {
   const { containerRef, mounted, width } = useContainerWidth({ measureBeforeMount: true, initialWidth: 0 });
   const measuredWidth = Math.round(width);
-  const breakpoint = mounted && measuredWidth > 0 ? getDashboardBreakpointForWidth(measuredWidth) : "lg";
+  const layoutWidth = Math.floor(width);
+  const breakpoint = mounted && measuredWidth > 0 ? getDashboardBreakpointForWidth(layoutWidth) : "lg";
+  const activeCols = mounted && measuredWidth > 0 ? getDashboardMasonryColumnCount(layoutWidth) : dashboardColumnCounts.lg;
   const cardById = new Map(cards.map((card) => [card.id, card]));
   const getCardLayoutItem = (card: DashboardCardDefinition, layout = preferences.visual.layouts[breakpoint]) => {
     const dimensions = normalizeDashboardCardDimensions(preferences.cards[card.id], card.defaultSize);
-    const item = layout.find((layoutItem) => layoutItem.i === card.id) ?? createDashboardGridItem(card, breakpoint, 0, 0, dimensions);
+    const item = layout.find((layoutItem) => layoutItem.i === card.id) ?? createDashboardGridItem(card, breakpoint, 0, 0, dimensions, activeCols);
 
-    return normalizeDashboardGridItem(item, breakpoint, card);
+    return normalizeDashboardGridItem(item, breakpoint, card, activeCols);
   };
   const sortedCards = [...cards].sort((a, b) => {
     const direction = preferences.table.sort.direction === "asc" ? 1 : -1;
@@ -68,7 +50,7 @@ export const TableDashboardView = ({
       case "title":
         return a.title.localeCompare(b.title, "zh-CN") * direction;
       case "type":
-        return kindLabels[a.kind].localeCompare(kindLabels[b.kind], "zh-CN") * direction;
+        return dashboardCardKindLabels[a.kind].localeCompare(dashboardCardKindLabels[b.kind], "zh-CN") * direction;
       case "width":
         return (aLayout.w - bLayout.w) * direction;
       case "height":
@@ -99,16 +81,18 @@ export const TableDashboardView = ({
     updatePreferences((current) => {
       const currentLayout = current.visual.layouts[breakpoint] ?? [];
       const dimensions = normalizeDashboardCardDimensions(current.cards[card.id], card.defaultSize);
-      const fallbackItem = createDashboardGridItem(card, breakpoint, 0, 0, dimensions);
-      const hasExistingItem = currentLayout.some((item) => item.i === card.id);
-      const nextLayout = (hasExistingItem ? currentLayout : [...currentLayout, fallbackItem]).flatMap((item) => {
+      const fallbackItem = createDashboardGridItem(card, breakpoint, 0, 0, dimensions, activeCols);
+      const preservedModuleChartLayout = currentLayout.filter((item) => isModuleChartCardId(item.i) && !cardById.has(item.i));
+      const currentKnownLayout = currentLayout.filter((item) => cardById.has(item.i));
+      const hasExistingItem = currentKnownLayout.some((item) => item.i === card.id);
+      const nextLayout = (hasExistingItem ? currentKnownLayout : [...currentKnownLayout, fallbackItem]).flatMap((item) => {
         const itemCard = cardById.get(item.i);
 
         if (!itemCard) {
           return [];
         }
 
-        const normalizedItem = normalizeDashboardGridItem(item, breakpoint, itemCard);
+        const normalizedItem = normalizeDashboardGridItem(item, breakpoint, itemCard, activeCols);
 
         return [
           item.i === card.id
@@ -118,23 +102,25 @@ export const TableDashboardView = ({
                   [axis]: value
                 },
                 breakpoint,
-                itemCard
+                itemCard,
+                activeCols
               )
             : normalizedItem
         ];
       });
-      const compactedLayout = toStoredGridItems(verticalCompactor.compact(nextLayout as Layout, dashboardColumnCounts[breakpoint]) as Layout).flatMap((item) => {
-        const itemCard = cardById.get(item.i);
-
-        return itemCard ? [normalizeDashboardGridItem(item, breakpoint, itemCard)] : [];
-      });
+      const compactedLayout = packDashboardMasonryLayout(cards, breakpoint, activeCols, current.cards, nextLayout);
+      const compactedLayoutIds = new Set(compactedLayout.map((item) => item.i));
+      const nextBreakpointLayout = [
+        ...compactedLayout,
+        ...preservedModuleChartLayout.filter((item) => !compactedLayoutIds.has(item.i))
+      ];
 
       return {
         ...current,
         visual: {
           layouts: {
             ...current.visual.layouts,
-            [breakpoint]: compactedLayout
+            [breakpoint]: nextBreakpointLayout
           }
         }
       };
@@ -159,7 +145,7 @@ export const TableDashboardView = ({
             {sortedCards.map((card) => {
               const preference = preferences.cards[card.id] ?? { visible: true, width: card.defaultSize, height: card.defaultSize };
               const layoutItem = getCardLayoutItem(card);
-              const constraints = getDashboardCardGridConstraints(card, breakpoint);
+              const constraints = getDashboardCardGridConstraints(card, breakpoint, activeCols);
 
               return (
                 <tr key={card.id} className="align-top">
@@ -168,7 +154,7 @@ export const TableDashboardView = ({
                     <p className="mt-1 max-w-xl text-xs leading-5 text-zinc-500">{card.description}</p>
                   </td>
                   <td className="px-4 py-4">
-                    <Badge tone="neutral">{kindLabels[card.kind]}</Badge>
+                    <DashboardCardKindTag kind={card.kind} />
                   </td>
                   <td className="px-4 py-4">
                     <input

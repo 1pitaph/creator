@@ -2,15 +2,16 @@ import { useEffect, useState, type PointerEventHandler, type ReactNode } from "r
 
 import { ChartSlot } from "@creator/charts";
 import type { DiagnosisResponse } from "@creator/data-contracts";
-import { Badge, Button, cn } from "@creator/ui";
+import { Button, cn } from "@creator/ui";
 import { CaretLeft } from "@phosphor-icons/react/CaretLeft";
 import { CaretRight } from "@phosphor-icons/react/CaretRight";
 import { TrendUp } from "@phosphor-icons/react/TrendUp";
 
-import { creatorTypeLabels, goalLabels, lifecycleLabels, phosphorIconWeight, severityTone, toneClass } from "../../../constants";
+import { goalLabels, phosphorIconWeight } from "../../../constants";
 import type { AskTarget, DashboardViewModel } from "../../../types";
 import { chartHeightBySize, type DashboardActionCard, type DashboardCardDefinition } from "../customization";
 import { DashboardModuleCard } from "./DashboardModuleCard";
+import { ActionEffortTag, CreatorSummaryTags, MetricToneTag } from "./DashboardTags";
 import { InsightRow } from "./InsightRow";
 import { ModuleTile } from "./ModuleTile";
 import { TopContentTile } from "./TopContentTile";
@@ -78,12 +79,14 @@ const CardBody = ({
       return card.metric ? <MetricCardBody metric={card.metric} metrics={viewModel.metrics} size={size} /> : null;
     case "trend":
       return <TrendCardBody fill={fill} size={size} viewModel={viewModel} />;
+    case "module-chart":
+      return card.chartIntent ? <ModuleChartCardBody chartIntent={card.chartIntent} fill={fill} size={size} viewModel={viewModel} /> : null;
     case "insights":
       return <PaginatedInsightsBody fill={fill} insights={diagnosis.insights} moduleById={viewModel.moduleById} onAsk={onAsk} />;
     case "top-content":
       return <Scrollable fill={fill}>{diagnosis.metrics.topContents.map((content) => <TopContentTile key={content.id} content={content} onAsk={onAsk} />)}</Scrollable>;
     case "modules":
-      return <Scrollable fill={fill}>{diagnosis.modules.map((module) => <ModuleTile key={module.id} module={module} metrics={viewModel.metrics} onAsk={onAsk} />)}</Scrollable>;
+      return <Scrollable fill={fill}>{diagnosis.modules.map((module) => <ModuleTile key={module.id} module={module} onAsk={onAsk} />)}</Scrollable>;
     case "actions":
       return <Scrollable fill={fill}>{actions.map((action) => <ActionPreviewCard key={action.id} action={action} />)}</Scrollable>;
   }
@@ -175,10 +178,7 @@ const SummaryCardBody = ({
   if (size === "small") {
     return (
       <div className="flex h-full min-h-[116px] flex-col justify-between">
-        <div className="flex flex-wrap gap-1.5">
-          <Badge tone="green">{creatorTypeLabels[diagnosis.creator.creatorType]}</Badge>
-          <Badge tone={topInsight?.severity ? severityTone[topInsight.severity] : "neutral"}>{topInsight?.severity === "warning" ? "关注" : "机会"}</Badge>
-        </div>
+        <CreatorSummaryTags creator={diagnosis.creator} severity={topInsight?.severity} variant="compact" />
         <div>
           <div className="flex items-end gap-2">
             <span className="text-4xl font-semibold leading-none text-zinc-950">{healthScore}</span>
@@ -191,8 +191,8 @@ const SummaryCardBody = ({
   }
 
   return (
-    <div className={cn("grid gap-5", size === "large" ? "lg:grid-cols-[200px_minmax(0,1fr)]" : "grid-cols-1")}>
-      <div className="rounded-2xl bg-white p-5 shadow-[0_1px_1px_rgba(24,24,27,0.026),0_4px_14px_rgba(24,24,27,0.03)]">
+    <div className={cn("grid min-h-0 gap-5", size === "large" ? "h-full lg:grid-cols-[200px_minmax(0,1fr)]" : "grid-cols-1")}>
+      <div className={cn("rounded-2xl bg-white p-5 shadow-[0_1px_1px_rgba(24,24,27,0.026),0_4px_14px_rgba(24,24,27,0.03)]", size === "large" && "flex h-full min-h-[180px] flex-col")}>
         <p className="text-xs font-medium text-zinc-500">账号健康度</p>
         <div className="mt-4 flex items-end gap-2">
           <span className="text-5xl font-semibold leading-none text-zinc-950">{healthScore}</span>
@@ -203,18 +203,13 @@ const SummaryCardBody = ({
         </div>
       </div>
 
-      <div className="min-w-0 space-y-4">
-        <div className="flex flex-wrap gap-2">
-          <Badge tone="blue">{diagnosis.creator.domain}</Badge>
-          <Badge tone="green">{creatorTypeLabels[diagnosis.creator.creatorType]}</Badge>
-          <Badge tone="neutral">{lifecycleLabels[diagnosis.creator.lifecycle]}</Badge>
-          <Badge tone={topInsight?.severity ? severityTone[topInsight.severity] : "neutral"}>{topInsight?.severity === "warning" ? "需要关注" : "可放大"}</Badge>
-        </div>
+      <div className={cn("min-w-0", size === "large" ? "flex h-full min-h-0 flex-col gap-4" : "space-y-4")}>
+        <CreatorSummaryTags creator={diagnosis.creator} severity={topInsight?.severity} />
         <div>
           <h2 className="text-lg font-semibold text-zinc-950">{topInsight?.title ?? "保持稳定实验节奏"}</h2>
-          <p className="mt-2 text-sm leading-7 text-zinc-600">{topInsight?.summary ?? "当前没有明显异常，可以继续把高表现内容结构沉淀成系列化模板。"}</p>
+          <p className={cn("mt-2 text-sm leading-7 text-zinc-600", size === "large" && "line-clamp-4")}>{topInsight?.summary ?? "当前没有明显异常，可以继续把高表现内容结构沉淀成系列化模板。"}</p>
         </div>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className={cn("grid gap-3 md:grid-cols-3", size === "large" && "mt-auto pt-1")}>
           {diagnosis.creator.goals.slice(0, 3).map((goal) => (
             <div key={goal} className="rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]">
               <p className="text-[11px] font-medium text-zinc-500">当前目标</p>
@@ -238,7 +233,7 @@ const MetricCardBody = ({
 }) => (
   <div className="flex h-full min-h-[116px] flex-col justify-between">
     <div className="flex items-center justify-between gap-3">
-      <span className={cn("rounded-md px-2 py-1 text-xs font-medium", toneClass[metric.tone].soft)}>{metric.trendLabel}</span>
+      <MetricToneTag label={metric.trendLabel} tone={metric.tone} />
       <TrendUp className={cn("h-4 w-4", metric.trend === "down" ? "rotate-180 text-zinc-400" : metric.trend === "flat" ? "text-zinc-400" : "text-zinc-500")} weight={phosphorIconWeight} />
     </div>
     <div className="mt-5">
@@ -267,11 +262,34 @@ const TrendCardBody = ({ fill, size, viewModel }: { fill: boolean; size: Dashboa
   </div>
 );
 
+const ModuleChartCardBody = ({
+  chartIntent,
+  fill,
+  size,
+  viewModel
+}: {
+  chartIntent: NonNullable<DashboardCardDefinition["chartIntent"]>;
+  fill: boolean;
+  size: DashboardCardDefinition["defaultSize"];
+  viewModel: DashboardViewModel;
+}) => (
+  <div className={cn(fill && "flex h-full min-h-0 flex-col")}>
+    <ChartSlot
+      className="rounded-2xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]"
+      height={fill ? "min(100%, 360px)" : chartHeightBySize[size]}
+      intent={chartIntent}
+      metrics={viewModel.metrics}
+      tone="zinc"
+      compact={size === "small"}
+    />
+  </div>
+);
+
 const ActionPreviewCard = ({ action }: { action: DashboardActionCard }) => (
   <div className="rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]">
     <div className="flex items-center justify-between gap-3">
       <p className="text-sm font-semibold text-zinc-950">{action.label}</p>
-      <Badge tone={action.effort === "low" ? "green" : action.effort === "medium" ? "amber" : "red"}>{action.effort}</Badge>
+      <ActionEffortTag effort={action.effort} />
     </div>
     <p className="mt-1 text-xs font-medium text-zinc-500">{action.insightTitle}</p>
     <p className="mt-1 text-xs leading-5 text-zinc-600">{action.detail}</p>

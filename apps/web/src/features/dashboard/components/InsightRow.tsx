@@ -1,11 +1,12 @@
 import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
 
 import type { AiModuleMetadata, Insight } from "@creator/data-contracts";
-import { Badge, cn } from "@creator/ui";
+import { cn } from "@creator/ui";
 
 import { MiniAskButton } from "../../../components/effects/AskAgentButton";
-import { phosphorIconWeight, severityTone } from "../../../constants";
+import { phosphorIconWeight } from "../../../constants";
 import type { AskTarget } from "../../../types";
+import { InsightModuleTag } from "./DashboardTags";
 
 export const InsightRow = ({
   insight,
@@ -34,7 +35,7 @@ export const InsightRow = ({
     <div className="flex min-w-0 items-start justify-between gap-4 pr-10">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={severityTone[insight.severity]}>{module?.name ?? insight.moduleId}</Badge>
+          <InsightModuleTag label={module?.name ?? insight.moduleId} severity={insight.severity} />
           {insight.metricLabel ? <span className="text-xs text-zinc-500">{`${insight.metricLabel} ${insight.metricValue ?? ""}`}</span> : null}
         </div>
         <h3 className={cn("mt-3 text-sm font-semibold text-zinc-950", compact && "line-clamp-2 break-words")}>{insight.title}</h3>

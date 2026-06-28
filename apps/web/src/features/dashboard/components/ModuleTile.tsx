@@ -3,15 +3,14 @@ import { ChatText } from "@phosphor-icons/react/ChatText";
 import { Compass } from "@phosphor-icons/react/Compass";
 import { Pulse } from "@phosphor-icons/react/Pulse";
 
-import { ChartSlot } from "@creator/charts";
-import type { AiModuleMetadata, CreatorMetrics } from "@creator/data-contracts";
-import { Badge } from "@creator/ui";
+import type { AiModuleMetadata } from "@creator/data-contracts";
 
 import { MiniAskButton } from "../../../components/effects/AskAgentButton";
 import { phosphorIconWeight } from "../../../constants";
 import type { AskTarget } from "../../../types";
+import { ModuleTagList } from "./DashboardTags";
 
-export const ModuleTile = ({ module, metrics, onAsk }: { module: AiModuleMetadata; metrics: CreatorMetrics; onAsk: (target: AskTarget) => void }) => {
+export const ModuleTile = ({ module, onAsk }: { module: AiModuleMetadata; onAsk: (target: AskTarget) => void }) => {
   const Icon = module.renderer === "trend-chart" ? ChartBar : module.renderer === "action-plan" ? Compass : module.renderer === "chat-brief" ? ChatText : Pulse;
 
   return (
@@ -37,14 +36,7 @@ export const ModuleTile = ({ module, metrics, onAsk }: { module: AiModuleMetadat
           <p className="mt-1 text-xs leading-5 text-zinc-600">{module.description}</p>
         </div>
       </div>
-      {module.chart && <ChartSlot className="mt-3" height={96} intent={module.chart} metrics={metrics} tone="zinc" compact />}
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {module.tags.map((tag) => (
-          <Badge key={tag} tone="neutral">
-            {tag}
-          </Badge>
-        ))}
-      </div>
+      <ModuleTagList className="mt-3" tags={module.tags} />
     </article>
   );
 };

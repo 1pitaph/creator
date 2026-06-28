@@ -62,7 +62,7 @@ export const CreatorSidebar = ({
 
       <aside
         className={cn(
-          "group/sidebar-shell sticky top-0 z-40 hidden h-screen shrink-0 border-r border-neutral-200 bg-neutral-100 shadow-[6px_0_18px_rgba(15,23,42,0.04)] transition-[width] duration-300 ease-in-out md:flex",
+          "group/sidebar-shell relative sticky top-0 z-40 hidden h-screen shrink-0 bg-neutral-100 transition-[width] duration-300 ease-in-out md:flex",
           isDesktopCollapsed ? "w-[72px]" : "w-[260px]",
         )}
         data-collapsed={isDesktopCollapsed}
@@ -92,6 +92,14 @@ export const CreatorSidebar = ({
           onSelectPanel={onSelectPanel}
           diagnosis={diagnosis}
           isLoadingDiagnosis={isLoadingDiagnosis}
+        />
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-y-0 z-30 w-4 border-l border-r border-neutral-200/70 bg-white/50 bg-[repeating-linear-gradient(135deg,rgba(212,212,216,0.38)_0,rgba(212,212,216,0.38)_1px,transparent_1px,transparent_5px)]",
+            isDesktopCollapsed ? "-right-4" : "right-0",
+          )}
+          data-testid="sidebar-boundary-strip"
         />
       </aside>
 
@@ -186,6 +194,7 @@ const SidebarContent = ({
       collapsed ? "px-2" : "px-4",
       className,
     )}
+    data-testid="sidebar-content"
   >
     {showBrand ? <SidebarBrand collapsed={collapsed} /> : null}
 

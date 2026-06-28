@@ -42,13 +42,13 @@ export const DashboardModuleCard = ({
       <CardHeader
         className={cn(
           "relative z-10 border-b border-zinc-100/80",
-          size === "small" ? "!py-3 !pl-4 !pr-16" : "!py-5 !pl-6 !pr-28"
+          size === "small" ? "!py-3 !pl-4 !pr-16" : "!py-4 !pl-5 !pr-16"
         )}
       >
         <CardTitle className={cn("font-semibold text-zinc-900", size === "small" ? "truncate text-[13px]" : "text-[15px]")}>{title}</CardTitle>
-        {description && size !== "small" ? <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">{description}</p> : null}
+        {description && size !== "small" ? <p className={cn("mt-1.5 text-[13px] leading-5 text-zinc-500", size === "medium" ? "line-clamp-1" : "line-clamp-2")}>{description}</p> : null}
       </CardHeader>
-      <CardContent className={cn("relative z-10", size === "small" ? "!px-4 !py-3" : "!px-6 !py-5", fill && "min-h-0 flex-1", contentClassName)}>{children}</CardContent>
+      <CardContent className={cn("relative z-10", size === "small" ? "!px-4 !py-3" : "!px-5 !py-4", fill && "min-h-0 flex-1", contentClassName)}>{children}</CardContent>
     </Card>
   </GlowingPanel>
 );
