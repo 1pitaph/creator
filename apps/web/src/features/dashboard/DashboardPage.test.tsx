@@ -117,6 +117,20 @@ const installLocalStorageMock = () => {
   });
 };
 
+const setButtonMetrics = (
+  element: HTMLElement,
+  metrics: { offsetLeft: number; offsetWidth: number },
+) => {
+  Object.defineProperty(element, "offsetLeft", {
+    configurable: true,
+    value: metrics.offsetLeft,
+  });
+  Object.defineProperty(element, "offsetWidth", {
+    configurable: true,
+    value: metrics.offsetWidth,
+  });
+};
+
 describe("DashboardPage", () => {
   beforeEach(() => {
     installLocalStorageMock();
@@ -150,6 +164,7 @@ describe("DashboardPage", () => {
     renderDashboard();
 
     expect(screen.getByTestId("aurora-background")).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-view-indicator")).toBeInTheDocument();
     expect(screen.getByTestId("visual-grid")).toBeInTheDocument();
     expect(screen.queryByText("创作者 AI 数据面板")).not.toBeInTheDocument();
     expect(screen.queryByText(/增长诊断台/)).not.toBeInTheDocument();
@@ -170,6 +185,37 @@ describe("DashboardPage", () => {
     expect(
       screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
     ).not.toBeInTheDocument();
+  });
+
+  it("moves the view indicator to the selected pill", async () => {
+    renderDashboard();
+
+    const indicator = screen.getByTestId("dashboard-view-indicator");
+    const boardButton = screen.getByRole("button", { name: "Board" });
+    const tableButton = screen.getByRole("button", { name: "Table" });
+
+    setButtonMetrics(boardButton, { offsetLeft: 88, offsetWidth: 87 });
+    setButtonMetrics(tableButton, { offsetLeft: 175, offsetWidth: 83 });
+
+    fireEvent.click(boardButton);
+
+    await waitFor(() => {
+      expect(indicator).toHaveStyle({
+        transform: "translate3d(88px, 0px, 0px)",
+        width: "87px",
+      });
+    });
+    expect(boardButton).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(tableButton);
+
+    await waitFor(() => {
+      expect(indicator).toHaveStyle({
+        transform: "translate3d(175px, 0px, 0px)",
+        width: "83px",
+      });
+    });
+    expect(tableButton).toHaveAttribute("aria-pressed", "true");
   });
 
   it("hides a card from Table and removes it from Visual", async () => {

@@ -57,14 +57,22 @@ describe("DashboardModuleCard", () => {
     const handle = screen.getByLabelText("拖动卡片：AI 诊断摘要");
 
     expect(handle).toHaveClass("dashboard-card-drag-handle");
-    expect(handle).toHaveClass("left-2.5");
+    expect(handle).toHaveClass("left-0");
     expect(handle).toHaveClass("top-4");
+    expect(handle).toHaveClass("-translate-x-1/2");
+    expect(handle).toHaveClass("z-30");
     expect(handle).toHaveClass("opacity-0");
     expect(handle).toHaveClass("group-hover:opacity-100");
     expect(handle).toHaveClass("group-focus-within:opacity-100");
     expect(handle).toHaveClass("cursor-grab");
     expect(handle).toHaveClass("touch-none");
     expect(handle).toHaveAttribute("data-dashboard-card-drag-handle", "true");
+
+    const heading = screen.getByRole("heading", { name: "AI 诊断摘要" });
+    const header = heading.parentElement;
+
+    expect(header).toHaveClass("!pl-6");
+    expect(header).not.toHaveClass("!pl-14");
 
     fireEvent.pointerDown(handle);
 
