@@ -15,9 +15,9 @@
     "@creator/data-contracts": "workspace:*",
     "@creator/mock-data": "workspace:*",
     "@creator/ui": "workspace:*",
+    "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-select": "^2.2.6",
-    "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
