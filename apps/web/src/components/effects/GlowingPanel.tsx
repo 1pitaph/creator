@@ -1,4 +1,4 @@
-import type { CSSProperties, PointerEvent, ReactNode } from "react";
+import { useCallback, useEffect, useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 
 import { cn } from "@creator/ui";
 
@@ -22,11 +22,63 @@ const glowHaloStyle = {
 } as CSSProperties;
 
 export const GlowingPanel = ({ className, children }: { className?: string; children: ReactNode }) => {
-  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty("--glow-x", `${event.clientX - rect.left}px`);
-    event.currentTarget.style.setProperty("--glow-y", `${event.clientY - rect.top}px`);
+  const rectRef = useRef<DOMRect | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const pointRef = useRef<{ x: number; y: number } | null>(null);
+
+  const flushGlowPosition = useCallback((element: HTMLDivElement) => {
+    frameRef.current = null;
+
+    const point = pointRef.current;
+
+    if (!point) {
+      return;
+    }
+
+    element.style.setProperty("--glow-x", `${point.x}px`);
+    element.style.setProperty("--glow-y", `${point.y}px`);
+  }, []);
+
+  const handlePointerEnter = (event: PointerEvent<HTMLDivElement>) => {
+    rectRef.current = event.currentTarget.getBoundingClientRect();
   };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const rect = rectRef.current;
+
+    if (!rect) {
+      return;
+    }
+
+    pointRef.current = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+
+    if (frameRef.current === null) {
+      const element = event.currentTarget;
+      frameRef.current = window.requestAnimationFrame(() => flushGlowPosition(element));
+    }
+  };
+
+  const handlePointerLeave = () => {
+    rectRef.current = null;
+    pointRef.current = null;
+
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+  };
+
+  useEffect(
+    () => () => {
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+      }
+    },
+    []
+  );
 
   return (
     <div
@@ -35,6 +87,8 @@ export const GlowingPanel = ({ className, children }: { className?: string; chil
         className
       )}
       data-testid="dashboard-module-card"
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
       onPointerMove={handlePointerMove}
       style={glowBaseStyle}
     >

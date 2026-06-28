@@ -4,7 +4,7 @@ import type { ISpec } from "@visactor/react-vchart";
 import { buildChartSeries } from "../../adapters/metricSeries";
 import { chartToneColors } from "../../theme/creatorChartTheme";
 import type { ChartTone } from "../../types";
-import { baseChartSpec, compactAxis, defaultTooltip } from "../shared/spec";
+import { baseChartSpec, compactAxes, defaultTooltip } from "../shared/spec";
 
 export const buildMiniTrendSpec = (intent: ChartIntent, metrics: CreatorMetrics, tone: ChartTone = "zinc"): ISpec => {
   const values = buildChartSeries(intent, metrics);
@@ -13,6 +13,8 @@ export const buildMiniTrendSpec = (intent: ChartIntent, metrics: CreatorMetrics,
   return {
     ...baseChartSpec,
     type: "line",
+    padding: { top: 2, right: 2, bottom: 2, left: 2 },
+    animation: false,
     data: [{ id: "trend", values }],
     xField: "date",
     yField,
@@ -27,7 +29,7 @@ export const buildMiniTrendSpec = (intent: ChartIntent, metrics: CreatorMetrics,
         curveType: "monotone"
       }
     },
-    axes: [compactAxis, compactAxis],
+    axes: compactAxes,
     legends: {
       visible: false
     },

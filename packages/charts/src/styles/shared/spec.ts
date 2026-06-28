@@ -9,10 +9,32 @@ export const baseChartSpec = {
 
 export const compactAxis = {
   visible: false,
+  label: {
+    visible: false
+  },
+  tick: {
+    visible: false
+  },
+  domainLine: {
+    visible: false
+  },
   grid: {
     visible: false
   }
 };
+
+export const compactAxes = [
+  {
+    ...compactAxis,
+    orient: "bottom",
+    type: "band"
+  },
+  {
+    ...compactAxis,
+    orient: "left",
+    type: "linear"
+  }
+];
 
 export const defaultTooltip = {
   visible: true,

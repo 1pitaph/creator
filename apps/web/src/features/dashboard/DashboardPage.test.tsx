@@ -8,24 +8,22 @@ import { localDiagnosis } from "../creator-diagnosis/api";
 import { buildDashboardViewModel } from "./model";
 import { DashboardPage } from "./DashboardPage";
 
+const containerWidthMock = vi.hoisted(() => ({
+  mounted: true,
+  width: 1200,
+}));
+
 vi.mock("react-grid-layout", async () => {
   const React = await import("react");
-  const renderResizeHandles = (cardId: string, handles: readonly string[]) =>
-    handles.map((axis) =>
-      React.createElement("span", {
-        key: axis,
-        className: `react-resizable-handle react-resizable-handle-${axis} dashboard-card-resize-edge dashboard-card-resize-edge--${axis}`,
-        "data-dashboard-resize-axis": axis,
-        "data-testid": `visual-resize-handle-${cardId}-${axis}`,
-      }),
-    );
 
   return {
     ResponsiveGridLayout: ({
       children,
       dragConfig,
+      onDragStop,
       onLayoutChange,
       resizeConfig,
+      width,
     }: {
       children: ReactNode;
       dragConfig?: {
@@ -37,17 +35,27 @@ vi.mock("react-grid-layout", async () => {
         layout: unknown[],
         layouts: Record<string, unknown[]>,
       ) => void;
+      onDragStop?: (
+        layout: unknown[],
+        oldItem: unknown,
+        newItem: unknown,
+        placeholder: unknown,
+        event: Event,
+        element: HTMLElement | null,
+      ) => void;
       resizeConfig?: {
         enabled?: boolean;
         handleComponent?: unknown;
         handles?: readonly string[];
       };
+      width?: number;
     }) => (
       <div
         data-testid="visual-grid"
         data-drag-enabled={String(dragConfig?.enabled)}
         data-drag-handle={dragConfig?.handle ?? ""}
         data-drag-cancel={dragConfig?.cancel ?? ""}
+        data-grid-width={String(width ?? "")}
         data-resize-enabled={String(resizeConfig?.enabled)}
         data-resize-handles={(resizeConfig?.handles ?? []).join(",")}
       >
@@ -76,6 +84,24 @@ vi.mock("react-grid-layout", async () => {
         >
           mock layout change
         </button>
+        <button
+          type="button"
+          onClick={() =>
+            onDragStop?.(
+              [
+                { i: "insights", x: 0, y: 0, w: 4, h: 8 },
+                { i: "summary", x: 4, y: 0, w: 8, h: 11 },
+              ],
+              null,
+              null,
+              null,
+              new Event("mouseup"),
+              null,
+            )
+          }
+        >
+          mock drag stop
+        </button>
         {React.Children.map(children, (child) => {
           if (
             !React.isValidElement<{
@@ -95,12 +121,7 @@ vi.mock("react-grid-layout", async () => {
           return React.cloneElement(
             child,
             undefined,
-            React.createElement(
-              React.Fragment,
-              null,
-              child.props.children,
-              ...renderResizeHandles(cardId, resizeConfig?.handles ?? []),
-            ),
+            child.props.children,
           );
         })}
       </div>
@@ -119,8 +140,8 @@ vi.mock("react-grid-layout", async () => {
     },
     useContainerWidth: () => ({
       containerRef: { current: null },
-      mounted: true,
-      width: 1200,
+      mounted: containerWidthMock.mounted,
+      width: containerWidthMock.width,
     }),
   };
 });
@@ -173,7 +194,7 @@ const readStoredPreferences = () => {
   return raw
     ? (JSON.parse(raw) as {
         cards: Record<string, { height: string; visible: boolean; width: string }>;
-        visual: { layouts: { lg: Array<{ h: number; i: string; maxH?: number; maxW?: number; minH?: number; minW?: number; w: number; x: number }> } };
+        visual: { layouts: { lg: Array<{ h: number; i: string; maxH?: number; maxW?: number; minH?: number; minW?: number; w: number; x: number; y: number }> } };
       })
     : null;
 };
@@ -226,6 +247,8 @@ const setButtonMetrics = (
 
 describe("DashboardPage", () => {
   beforeEach(() => {
+    containerWidthMock.mounted = true;
+    containerWidthMock.width = 1200;
     installLocalStorageMock();
     installPointerCaptureMocks();
     window.localStorage.clear();
@@ -294,6 +317,29 @@ describe("DashboardPage", () => {
     expect(
       screen.queryByTestId("visual-resize-handle-summary-s"),
     ).not.toBeInTheDocument();
+  });
+
+  it("waits for measured Visual grid width before rendering the layout", () => {
+    containerWidthMock.mounted = false;
+    containerWidthMock.width = 0;
+
+    renderDashboard();
+
+    expect(screen.queryByTestId("visual-grid")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("passes a rounded measured width to the Visual grid", () => {
+    containerWidthMock.width = 1199.6;
+
+    renderDashboard();
+
+    expect(screen.getByTestId("visual-grid")).toHaveAttribute(
+      "data-grid-width",
+      "1200",
+    );
   });
 
   it("moves the module mode indicator to the selected pill", async () => {
@@ -402,10 +448,18 @@ describe("DashboardPage", () => {
     });
   });
 
-  it("saves Visual layout changes without entering edit mode", async () => {
+  it("ignores passive Visual layout reports and saves completed drags", async () => {
     renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: "mock layout change" }));
+
+    expect(readStoredPreferences()?.visual.layouts.lg[0]).toMatchObject({
+      i: "summary",
+      x: 0,
+      y: 0,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "mock drag stop" }));
 
     await waitFor(() => {
       expect(readStoredPreferences()?.visual.layouts.lg[0]).toMatchObject({
@@ -429,9 +483,8 @@ describe("DashboardPage", () => {
     const resizeHandles = grid.dataset.resizeHandles?.split(",").filter(Boolean) ?? [];
 
     expect(grid).toHaveAttribute("data-drag-enabled", "true");
-    expect(grid).toHaveAttribute("data-resize-enabled", "true");
-    expect(resizeHandles).toEqual(expect.arrayContaining(["e", "s"]));
-    expect(resizeHandles).not.toContain("se");
+    expect(grid).toHaveAttribute("data-resize-enabled", "false");
+    expect(resizeHandles).toEqual([]);
     expect(grid).toHaveAttribute(
       "data-drag-handle",
       ".dashboard-card-drag-handle",

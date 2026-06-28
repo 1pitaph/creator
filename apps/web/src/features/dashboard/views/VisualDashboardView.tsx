@@ -1,13 +1,11 @@
 import "react-grid-layout/css/styles.css";
 
-import { useCallback, type PointerEvent as ReactPointerEvent, type Ref } from "react";
+import { useCallback, type PointerEvent as ReactPointerEvent } from "react";
 
 import {
-  moveElement,
   ResponsiveGridLayout,
   useContainerWidth,
   type Layout,
-  type ResizeHandleAxis,
   type ResponsiveLayouts
 } from "react-grid-layout";
 
@@ -15,14 +13,13 @@ import type { DashboardBreakpoint, DashboardCardSize, DashboardGridItem, Dashboa
 
 import type { AskTarget, DashboardViewModel } from "../../../types";
 import {
-  createDashboardLayout,
+  createDashboardGridItem,
   createDashboardLayouts,
   dashboardCardSizeOrder,
   dashboardBreakpoints,
   dashboardColumnCounts,
   getDashboardCardContentSize,
   normalizeDashboardCardDimensions,
-  orderDashboardCardsByLayout,
   type DashboardActionCard,
   type DashboardCardDefinition
 } from "../customization";
@@ -37,25 +34,24 @@ const breakpoints: Record<DashboardBreakpoint, number> = {
 
 const visualGridMargin: [number, number] = [16, 16];
 const visualGridRowHeight = 36;
-const visualResizeHandles = ["e", "s"] as const satisfies readonly ResizeHandleAxis[];
+const visualResizeHandles = ["e", "s"] as const;
 type DashboardResizeAxis = (typeof visualResizeHandles)[number];
 
 const isDashboardResizeAxis = (axis: string | null | undefined): axis is DashboardResizeAxis => axis === "e" || axis === "s";
 
-const renderDashboardResizeHandle = (axis: ResizeHandleAxis, ref: Ref<HTMLElement>) => {
-  if (!isDashboardResizeAxis(axis)) {
-    return null;
-  }
-
-  return (
-    <span
-      ref={ref}
-      aria-hidden="true"
-      className={`react-resizable-handle react-resizable-handle-${axis} dashboard-card-resize-edge dashboard-card-resize-edge--${axis}`}
-      data-dashboard-resize-axis={axis}
-    />
-  );
-};
+const DashboardResizeHandles = ({ cardId }: { cardId: string }) => (
+  <>
+    {visualResizeHandles.map((axis) => (
+      <span
+        key={axis}
+        aria-hidden="true"
+        className={`react-resizable-handle react-resizable-handle-${axis} dashboard-card-resize-edge dashboard-card-resize-edge--${axis}`}
+        data-dashboard-resize-axis={axis}
+        data-testid={`visual-resize-handle-${cardId}-${axis}`}
+      />
+    ))}
+  </>
+);
 
 const getBreakpointForWidth = (width: number): DashboardBreakpoint => {
   if (width >= breakpoints.lg) {
@@ -99,27 +95,26 @@ const toResponsiveLayouts = (
     ])
   ) as ResponsiveLayouts<DashboardBreakpoint>;
 
-const toStoredGridItemsForBreakpoint = (layouts: ResponsiveLayouts<DashboardBreakpoint>, breakpoint: DashboardBreakpoint) =>
-  toStoredGridItems([...(layouts[breakpoint] ?? [])] as Layout);
-
 const areGridItemsEqual = (left: DashboardGridItem[], right: DashboardGridItem[]) =>
-  left.length === right.length &&
-  left.every((item, index) => {
-    const nextItem = right[index];
+  left.length === right.length && (() => {
+    const rightById = new Map(right.map((item) => [item.i, item]));
 
-    return (
-      nextItem &&
-      item.i === nextItem.i &&
-      item.x === nextItem.x &&
-      item.y === nextItem.y &&
-      item.w === nextItem.w &&
-      item.h === nextItem.h &&
-      item.minW === nextItem.minW &&
-      item.minH === nextItem.minH &&
-      item.maxW === nextItem.maxW &&
-      item.maxH === nextItem.maxH
-    );
-  });
+    return left.every((item) => {
+      const nextItem = rightById.get(item.i);
+
+      return (
+        nextItem &&
+        item.x === nextItem.x &&
+        item.y === nextItem.y &&
+        item.w === nextItem.w &&
+        item.h === nextItem.h &&
+        item.minW === nextItem.minW &&
+        item.minH === nextItem.minH &&
+        item.maxW === nextItem.maxW &&
+        item.maxH === nextItem.maxH
+      );
+    });
+  })();
 
 const hasStoredLayoutChanges = (
   currentLayouts: DashboardPreferencesV1["visual"]["layouts"],
@@ -129,56 +124,65 @@ const hasStoredLayoutChanges = (
     return !areGridItemsEqual(currentLayouts[breakpoint], nextLayouts[breakpoint]);
   });
 
-const createPresetLayoutsFromResponsiveLayouts = (
+const normalizeStoredGridItem = (
+  item: DashboardGridItem,
+  breakpoint: DashboardBreakpoint,
+  card: DashboardCardDefinition,
+  cardPreferences: DashboardPreferencesV1["cards"]
+): DashboardGridItem => {
+  const dimensions = normalizeDashboardCardDimensions(cardPreferences[card.id], card.defaultSize);
+  const presetItem = createDashboardGridItem(card, breakpoint, item.x, item.y, dimensions);
+  const maxX = Math.max(dashboardColumnCounts[breakpoint] - presetItem.w, 0);
+
+  return {
+    ...presetItem,
+    x: clamp(item.x, 0, maxX),
+    y: Math.max(item.y, 0)
+  };
+};
+
+const createStoredLayoutForBreakpoint = (
   currentLayouts: DashboardPreferencesV1["visual"]["layouts"],
-  nextLayouts: ResponsiveLayouts<DashboardBreakpoint>,
+  breakpoint: DashboardBreakpoint,
+  nextLayout: Layout,
   visibleIds: Set<string>,
   cards: DashboardCardDefinition[],
   cardPreferences: DashboardPreferencesV1["cards"]
-): DashboardPreferencesV1["visual"]["layouts"] =>
-  Object.fromEntries(
-    dashboardBreakpoints.map((breakpoint) => {
-      const nextVisibleLayout = toStoredGridItemsForBreakpoint(nextLayouts, breakpoint);
-      const currentHiddenLayout = currentLayouts[breakpoint].filter((item) => !visibleIds.has(item.i));
-      const orderedCards = orderDashboardCardsByLayout(cards, [...nextVisibleLayout, ...currentHiddenLayout]);
+): DashboardGridItem[] => {
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const nextVisibleLayout = toStoredGridItems(nextLayout).flatMap((item) => {
+    if (!visibleIds.has(item.i)) {
+      return [];
+    }
 
-      return [breakpoint, createDashboardLayout(orderedCards, breakpoint, cardPreferences)];
-    })
-  ) as DashboardPreferencesV1["visual"]["layouts"];
+    const card = cardById.get(item.i);
+    return card ? [normalizeStoredGridItem(item, breakpoint, card, cardPreferences)] : [];
+  });
+  const nextVisibleIds = new Set(nextVisibleLayout.map((item) => item.i));
+  const currentVisibleLayout = currentLayouts[breakpoint].flatMap((item) => {
+    if (!visibleIds.has(item.i) || nextVisibleIds.has(item.i)) {
+      return [];
+    }
 
-const moveDashboardGridItem = ({
-  cardId,
-  cards,
-  breakpoint,
-  cardPreferences,
-  cols,
-  layout,
-  x,
-  y
-}: {
-  cardId: string;
-  cards: DashboardCardDefinition[];
-  breakpoint: DashboardBreakpoint;
-  cardPreferences: DashboardPreferencesV1["cards"];
-  cols: number;
-  layout: DashboardGridItem[];
-  x: number;
-  y: number;
-}): DashboardGridItem[] => {
-  const nextLayout = layout.map((item) => ({ ...item })) as Layout;
-  const item = nextLayout.find((layoutItem) => layoutItem.i === cardId);
+    const card = cardById.get(item.i);
+    return card ? [normalizeStoredGridItem(item, breakpoint, card, cardPreferences)] : [];
+  });
+  const currentHiddenLayout = currentLayouts[breakpoint].filter((item) => !visibleIds.has(item.i));
 
-  if (!item) {
-    return layout;
-  }
-
-  const nextX = clamp(x, 0, Math.max(0, cols - item.w));
-  const nextY = Math.max(0, y);
-  const movedLayout = moveElement(nextLayout, item, nextX, nextY, true, false, "vertical", cols, false) as Layout;
-  const orderedCards = orderDashboardCardsByLayout(cards, toStoredGridItems(movedLayout));
-
-  return createDashboardLayout(orderedCards, breakpoint, cardPreferences);
+  return [...nextVisibleLayout, ...currentVisibleLayout, ...currentHiddenLayout];
 };
+
+const createStoredLayoutsForBreakpoint = (
+  currentLayouts: DashboardPreferencesV1["visual"]["layouts"],
+  breakpoint: DashboardBreakpoint,
+  nextLayout: Layout,
+  visibleIds: Set<string>,
+  cards: DashboardCardDefinition[],
+  cardPreferences: DashboardPreferencesV1["cards"]
+): DashboardPreferencesV1["visual"]["layouts"] => ({
+  ...currentLayouts,
+  [breakpoint]: createStoredLayoutForBreakpoint(currentLayouts, breakpoint, nextLayout, visibleIds, cards, cardPreferences)
+});
 
 const getCardPresetAtDelta = (startSize: DashboardCardSize, delta: number) => {
   const startIndex = dashboardCardSizeOrder.indexOf(startSize);
@@ -204,97 +208,32 @@ export const VisualDashboardView = ({
   updatePreferences: (updater: (current: DashboardPreferencesV1) => DashboardPreferencesV1) => void;
   viewModel: DashboardViewModel;
 }) => {
-  const { containerRef, mounted, width } = useContainerWidth({ initialWidth: 1200 });
+  const { containerRef, mounted, width } = useContainerWidth({ measureBeforeMount: true, initialWidth: 0 });
+  const measuredWidth = Math.round(width);
+  const gridReady = mounted && measuredWidth > 0;
   const visibleCards = cards.filter((card) => preferences.cards[card.id]?.visible !== false);
   const visibleIds = new Set(visibleCards.map((card) => card.id));
   const layouts = toResponsiveLayouts(preferences, visibleIds);
-  const breakpoint = getBreakpointForWidth(width);
+  const breakpoint = getBreakpointForWidth(measuredWidth);
 
-  const handleDragHandlePointerDown = useCallback(
-    (cardId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
-      if (event.button !== 0) {
-        return;
-      }
+  const commitLayoutForBreakpoint = useCallback(
+    (nextLayout: Layout) => {
+      updatePreferences((current) => {
+        const nextLayouts = createStoredLayoutsForBreakpoint(current.visual.layouts, breakpoint, nextLayout, visibleIds, cards, current.cards);
 
-      const currentLayout = preferences.visual.layouts[breakpoint];
-      const startItem = currentLayout.find((item) => item.i === cardId);
-
-      if (!startItem) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const handle = event.currentTarget;
-      const pointerId = event.pointerId;
-      const cols = dashboardColumnCounts[breakpoint];
-      const colWidth = (width - visualGridMargin[0] * (cols - 1)) / cols;
-      const columnStep = colWidth + visualGridMargin[0];
-      const rowStep = visualGridRowHeight + visualGridMargin[1];
-      const startClientX = event.clientX;
-      const startClientY = event.clientY;
-      let lastX = startItem.x;
-      let lastY = startItem.y;
-
-      handle.setPointerCapture(pointerId);
-
-      const handlePointerMove = (pointerEvent: PointerEvent) => {
-        if (pointerEvent.pointerId !== pointerId) {
-          return;
+        if (!hasStoredLayoutChanges(current.visual.layouts, nextLayouts)) {
+          return current;
         }
 
-        pointerEvent.preventDefault();
-
-        const nextX = clamp(startItem.x + Math.round((pointerEvent.clientX - startClientX) / columnStep), 0, Math.max(0, cols - startItem.w));
-        const nextY = Math.max(0, startItem.y + Math.round((pointerEvent.clientY - startClientY) / rowStep));
-
-        if (nextX === lastX && nextY === lastY) {
-          return;
-        }
-
-        lastX = nextX;
-        lastY = nextY;
-
-        updatePreferences((current) => ({
+        return {
           ...current,
           visual: {
-            layouts: {
-              ...current.visual.layouts,
-              [breakpoint]: moveDashboardGridItem({
-                cardId,
-                cards,
-                breakpoint,
-                cardPreferences: current.cards,
-                cols,
-                layout: current.visual.layouts[breakpoint],
-                x: nextX,
-                y: nextY
-              })
-            }
+            layouts: nextLayouts
           }
-        }));
-      };
-
-      const stopDragging = (pointerEvent: PointerEvent) => {
-        if (pointerEvent.pointerId !== pointerId) {
-          return;
-        }
-
-        handle.removeEventListener("pointermove", handlePointerMove);
-        handle.removeEventListener("pointerup", stopDragging);
-        handle.removeEventListener("pointercancel", stopDragging);
-
-        if (handle.hasPointerCapture(pointerId)) {
-          handle.releasePointerCapture(pointerId);
-        }
-      };
-
-      handle.addEventListener("pointermove", handlePointerMove);
-      handle.addEventListener("pointerup", stopDragging);
-      handle.addEventListener("pointercancel", stopDragging);
+        };
+      });
     },
-    [breakpoint, cards, preferences.visual.layouts, updatePreferences, width]
+    [breakpoint, cards, updatePreferences, visibleIds]
   );
 
   const handleResizeHandlePointerDown = useCallback(
@@ -335,7 +274,7 @@ export const VisualDashboardView = ({
 
       const pointerId = event.pointerId;
       const cols = dashboardColumnCounts[breakpoint];
-      const colWidth = (width - visualGridMargin[0] * (cols - 1)) / cols;
+      const colWidth = (measuredWidth - visualGridMargin[0] * (cols - 1)) / cols;
       const columnStep = colWidth + visualGridMargin[0];
       const rowStep = visualGridRowHeight + visualGridMargin[1];
       const startClientX = event.clientX;
@@ -414,14 +353,14 @@ export const VisualDashboardView = ({
       resizeHandle.addEventListener("pointerup", stopResizing);
       resizeHandle.addEventListener("pointercancel", stopResizing);
     },
-    [breakpoint, cards, preferences.cards, preferences.visual.layouts, updatePreferences, width]
+    [breakpoint, cards, measuredWidth, preferences.cards, preferences.visual.layouts, updatePreferences]
   );
 
   return (
-    <div ref={containerRef} onPointerDownCapture={handleResizeHandlePointerDown}>
-      {mounted ? (
+    <div ref={containerRef} className="dashboard-visual-grid-shell" onPointerDownCapture={handleResizeHandlePointerDown}>
+      {gridReady ? (
         <ResponsiveGridLayout<DashboardBreakpoint>
-          width={width}
+          width={measuredWidth}
           breakpoints={breakpoints}
           cols={dashboardColumnCounts}
           layouts={layouts}
@@ -437,24 +376,9 @@ export const VisualDashboardView = ({
             threshold: 4
           }}
           resizeConfig={{
-            enabled: true,
-            handleComponent: renderDashboardResizeHandle,
-            handles: visualResizeHandles
+            enabled: false
           }}
-          onLayoutChange={(_, nextLayouts) => {
-            const presetLayouts = createPresetLayoutsFromResponsiveLayouts(preferences.visual.layouts, nextLayouts, visibleIds, cards, preferences.cards);
-
-            if (!hasStoredLayoutChanges(preferences.visual.layouts, presetLayouts)) {
-              return;
-            }
-
-            updatePreferences((current) => ({
-              ...current,
-              visual: {
-                layouts: createPresetLayoutsFromResponsiveLayouts(current.visual.layouts, nextLayouts, visibleIds, cards, current.cards)
-              }
-            }));
-          }}
+          onDragStop={(nextLayout) => commitLayoutForBreakpoint(nextLayout)}
         >
           {visibleCards.map((card) => {
             const dimensions = normalizeDashboardCardDimensions(preferences.cards[card.id], card.defaultSize);
@@ -468,11 +392,11 @@ export const VisualDashboardView = ({
                   diagnosis={diagnosis}
                   fill
                   onAsk={onAsk}
-                  onDragHandlePointerDown={(event) => handleDragHandlePointerDown(card.id, event)}
                   showDragHandle
                   size={contentSize}
                   viewModel={viewModel}
                 />
+                <DashboardResizeHandles cardId={card.id} />
               </div>
             );
           })}

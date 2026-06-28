@@ -111,7 +111,11 @@ export const useDashboardPreferences = ({
 
   const updatePreferences = useCallback(
     (updater: (current: DashboardPreferencesV1) => DashboardPreferencesV1) => {
-      setPreferences((current) => updateDashboardPreferencesTimestamp(updater(current)));
+      setPreferences((current) => {
+        const nextPreferences = updater(current);
+
+        return nextPreferences === current ? current : updateDashboardPreferencesTimestamp(nextPreferences);
+      });
     },
     []
   );

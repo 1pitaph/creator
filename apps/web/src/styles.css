@@ -14,6 +14,10 @@
     sans-serif;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -149,6 +153,29 @@ textarea {
       rgba(255, 255, 255, 0.7),
       transparent 46%
     );
+}
+
+.dashboard-visual-grid-shell .react-grid-layout {
+  transition: height 200ms ease;
+}
+
+.dashboard-visual-grid-shell .react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+
+.dashboard-visual-grid-shell .react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+
+.dashboard-visual-grid-shell .react-grid-item.react-draggable-dragging,
+.dashboard-visual-grid-shell .react-grid-item.resizing,
+.dashboard-visual-grid-shell .react-grid-placeholder.placeholder-resizing {
+  transition: none;
+}
+
+.dashboard-visual-grid-shell .react-grid-placeholder {
+  transition-duration: 100ms;
 }
 
 .react-grid-item > .react-resizable-handle.dashboard-card-resize-edge {
