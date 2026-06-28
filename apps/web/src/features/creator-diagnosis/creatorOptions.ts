@@ -1,0 +1,10 @@
+import { mockCreators } from "@creator/mock-data";
+
+export const creatorOptions = mockCreators.map(({ profile }) => ({
+  id: profile.id,
+  name: profile.displayName,
+  handle: profile.handle,
+  domain: profile.domain
+}));
+
+export const defaultCreatorId = creatorOptions[0]?.id ?? "starter-food";
