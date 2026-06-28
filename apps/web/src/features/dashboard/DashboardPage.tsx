@@ -224,7 +224,7 @@ const DashboardViewSwitcher = ({
   return (
     <div
       ref={rootRef}
-      className="relative isolate inline-flex rounded-full bg-white/90 p-1 shadow-[0_1px_1px_rgba(24,24,27,0.025),0_6px_18px_rgba(24,24,27,0.04)] backdrop-blur"
+      className="relative inline-flex rounded-full bg-white/90 p-1 shadow-[0_1px_1px_rgba(24,24,27,0.025),0_6px_18px_rgba(24,24,27,0.04)] backdrop-blur"
     >
       <span
         aria-hidden="true"
@@ -246,13 +246,15 @@ const DashboardViewSwitcher = ({
             }}
             type="button"
             aria-pressed={selected}
-            className="relative z-10 inline-flex h-9 items-center rounded-full px-3 text-sm font-medium outline-none transition-opacity hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
+            className="group/view relative z-10 inline-flex h-9 items-center rounded-full px-3 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
             onClick={() => onViewChange(value)}
           >
             <span
               className={cn(
-                "inline-flex items-center gap-2 text-white mix-blend-difference",
-                selected ? "opacity-100" : "opacity-70",
+                "inline-flex items-center gap-2 transition-colors",
+                selected
+                  ? "text-white"
+                  : "text-zinc-600 group-hover/view:text-zinc-950",
               )}
             >
               <Icon className="h-4 w-4" weight={phosphorIconWeight} />

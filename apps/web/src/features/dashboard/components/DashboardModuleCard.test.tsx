@@ -58,15 +58,23 @@ describe("DashboardModuleCard", () => {
 
     expect(handle).toHaveClass("dashboard-card-drag-handle");
     expect(handle).toHaveClass("left-0");
-    expect(handle).toHaveClass("top-4");
+    expect(handle).toHaveClass("top-3");
     expect(handle).toHaveClass("-translate-x-1/2");
     expect(handle).toHaveClass("z-30");
+    expect(handle).toHaveClass("h-[34px]");
+    expect(handle).toHaveClass("w-[34px]");
+    expect(handle).toHaveClass("bg-zinc-100/100");
+    expect(handle).toHaveClass("text-zinc-500");
+    expect(handle).toHaveClass("shadow-[0_4px_12px_rgba(24,24,27,0.12)]");
+    expect(handle).toHaveClass("hover:bg-zinc-200/100");
+    expect(handle).toHaveClass("hover:shadow-[0_7px_18px_rgba(24,24,27,0.16)]");
     expect(handle).toHaveClass("opacity-0");
     expect(handle).toHaveClass("group-hover:opacity-100");
     expect(handle).toHaveClass("group-focus-within:opacity-100");
     expect(handle).toHaveClass("cursor-grab");
     expect(handle).toHaveClass("touch-none");
     expect(handle).toHaveAttribute("data-dashboard-card-drag-handle", "true");
+    expect(handle.querySelector("svg")).toHaveClass("h-6", "w-6");
 
     const heading = screen.getByRole("heading", { name: "AI 诊断摘要" });
     const header = heading.parentElement;
