@@ -5,6 +5,8 @@ import { defaultCreatorId } from "./features/creator-diagnosis/creatorOptions";
 import { useCreatorDiagnosis } from "./features/creator-diagnosis/useCreatorDiagnosis";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { buildDashboardViewModel } from "./features/dashboard/model";
+import { InitialLoadingOverlay } from "./features/loading/InitialLoadingOverlay";
+import { useInitialLoaderState } from "./features/loading/useInitialLoaderState";
 import { CreatorSidebar } from "./features/sidebar/CreatorSidebar";
 import type { AgentCommand, AskTarget } from "./types";
 
@@ -23,6 +25,8 @@ export const App = () => {
     () => buildDashboardViewModel(diagnosis),
     [diagnosis],
   );
+  const { completeInitialLoader, initialLoaderActive, showInitialLoader } =
+    useInitialLoaderState(isLoadingDiagnosis);
   const [agentCommand, setAgentCommand] = useState<AgentCommand | null>(null);
 
   const askAgent = useCallback((target: AskTarget) => {
@@ -58,6 +62,13 @@ export const App = () => {
         creatorId={selectedCreatorId}
         diagnosis={diagnosis}
       />
+
+      {showInitialLoader ? (
+        <InitialLoadingOverlay
+          active={initialLoaderActive}
+          onExitComplete={completeInitialLoader}
+        />
+      ) : null}
     </main>
   );
 };

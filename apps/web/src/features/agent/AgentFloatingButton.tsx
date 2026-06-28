@@ -26,13 +26,13 @@ export const AgentFloatingButton = ({
   return (
     <div
       className={cn(
-        "group fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-[60] flex items-end gap-3 md:bottom-6 md:right-6",
+        "group fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-[60] h-14 w-14 md:bottom-6 md:right-6",
         open && "pointer-events-none",
       )}
     >
       <div
         className={cn(
-          "hidden translate-y-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-xs shadow-[0_14px_40px_rgba(24,24,27,0.14)] transition duration-200 md:block",
+          "pointer-events-none absolute right-[calc(100%+0.75rem)] top-1/2 hidden -translate-y-1/2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-xs shadow-[0_14px_40px_rgba(24,24,27,0.14)] transition duration-200 md:block",
           open
             ? "opacity-0"
             : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
@@ -45,7 +45,7 @@ export const AgentFloatingButton = ({
       <button
         type="button"
         className={cn(
-          "group relative flex h-14 w-14 items-center justify-center rounded-full border border-zinc-900 bg-zinc-950 text-white shadow-[0_18px_48px_rgba(24,24,27,0.26)] transition duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-[0_22px_54px_rgba(24,24,27,0.30)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-400",
+          "group relative flex h-14 w-14 items-center justify-center rounded-full border border-zinc-900 bg-zinc-950 text-white shadow-[0_18px_48px_rgba(24,24,27,0.26)] transition duration-200 hover:bg-zinc-800 hover:shadow-[0_22px_54px_rgba(24,24,27,0.30)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-400",
           open && "translate-y-2 scale-95 opacity-0",
         )}
         aria-expanded={open}
