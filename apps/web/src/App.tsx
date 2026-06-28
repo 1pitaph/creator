@@ -5,6 +5,7 @@ import { getMockCreator, mockCreators } from "@creator/mock-data";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Sparkline, cn } from "@creator/ui";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import * as Select from "@radix-ui/react-select";
+import { motion } from "motion/react";
 import {
   CaretDown,
   ChartBar,
@@ -23,7 +24,21 @@ import {
   TrendUp,
   X
 } from "@phosphor-icons/react";
-import { type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ElementType,
+  type FormEvent,
+  type HTMLAttributes,
+  type MouseEvent,
+  type PointerEvent,
+  type PropsWithChildren,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 
 type UiMessage = AgentMessage & {
   id: string;
@@ -468,7 +483,7 @@ export const App = () => {
                 className="min-h-[260px]"
               >
                 <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-                  <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-[0_1px_1px_rgba(24,24,27,0.04),0_12px_36px_rgba(24,24,27,0.05)]">
+                  <div className="rounded-2xl bg-white p-5 shadow-[0_1px_1px_rgba(24,24,27,0.026),0_4px_14px_rgba(24,24,27,0.03)]">
                     <p className="text-xs font-medium text-zinc-500">账号健康度</p>
                     <div className="mt-4 flex items-end gap-2">
                       <span className="text-6xl font-semibold leading-none text-zinc-950">{healthScore}</span>
@@ -496,7 +511,7 @@ export const App = () => {
                     </div>
                     <div className="grid gap-3 md:grid-cols-3">
                       {diagnosis.creator.goals.slice(0, 3).map((goal) => (
-                        <div key={goal} className="rounded-xl border border-zinc-200/70 bg-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                        <div key={goal} className="rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]">
                           <p className="text-[11px] font-medium text-zinc-500">当前目标</p>
                           <p className="mt-1 text-sm font-semibold text-zinc-900">{goalLabels[goal]}</p>
                         </div>
@@ -616,7 +631,7 @@ export const App = () => {
                     .flatMap((insight) => insight.actions.map((action) => ({ ...action, moduleId: insight.moduleId, insightTitle: insight.title })))
                     .slice(0, 4)
                     .map((action) => (
-                      <div key={`${action.insightTitle}-${action.label}`} className="rounded-xl border border-zinc-200/70 bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.03)]">
+                      <div key={`${action.insightTitle}-${action.label}`} className="rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-sm font-semibold text-zinc-950">{action.label}</p>
                           <Badge tone={action.effort === "low" ? "green" : action.effort === "medium" ? "amber" : "red"}>
@@ -999,12 +1014,16 @@ const glowBaseStyle = {
 
 const glowBorderStyle = {
   background:
-    "radial-gradient(260px circle at var(--glow-x) var(--glow-y), rgba(24,24,27,0.24), rgba(113,113,122,0.10) 36%, transparent 66%)"
+    "radial-gradient(220px circle at var(--glow-x) var(--glow-y), rgba(24,24,27,0.26), rgba(113,113,122,0.12) 38%, transparent 70%)",
+  WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+  WebkitMaskComposite: "xor",
+  mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+  maskComposite: "exclude"
 } as CSSProperties;
 
 const glowHaloStyle = {
   background:
-    "radial-gradient(300px circle at var(--glow-x) var(--glow-y), rgba(24,24,27,0.12), rgba(113,113,122,0.06) 34%, transparent 68%)"
+    "radial-gradient(280px circle at var(--glow-x) var(--glow-y), rgba(24,24,27,0.08), rgba(113,113,122,0.04) 34%, transparent 68%)"
 } as CSSProperties;
 
 const GlowingPanel = ({ className, children }: { className?: string; children: ReactNode }) => {
@@ -1017,7 +1036,7 @@ const GlowingPanel = ({ className, children }: { className?: string; children: R
   return (
     <div
       className={cn(
-        "group relative isolate rounded-[20px] bg-zinc-200/80 p-px shadow-[0_1px_1px_rgba(24,24,27,0.04),0_14px_42px_rgba(24,24,27,0.07),0_2px_4px_rgba(24,24,27,0.04)] transition duration-300 hover:bg-zinc-300/70 hover:shadow-[0_1px_1px_rgba(24,24,27,0.05),0_22px_64px_rgba(24,24,27,0.10),0_2px_6px_rgba(24,24,27,0.05)]",
+        "group relative isolate rounded-[20px] bg-transparent shadow-[0_1px_1px_rgba(24,24,27,0.025),0_4px_14px_rgba(24,24,27,0.032)] transition duration-300 hover:shadow-[0_1px_2px_rgba(24,24,27,0.05),0_16px_42px_rgba(24,24,27,0.075)]",
         className
       )}
       data-testid="dashboard-module-card"
@@ -1029,11 +1048,98 @@ const GlowingPanel = ({ className, children }: { className?: string; children: R
         style={glowHaloStyle}
       />
       <div
-        className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] opacity-0 transition duration-300 group-hover:opacity-100 group-focus-within:opacity-100"
+        className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] p-px opacity-0 transition duration-300 group-hover:opacity-100 group-focus-within:opacity-100"
         style={glowBorderStyle}
       />
       {children}
     </div>
+  );
+};
+
+type HoverBorderDirection = "TOP" | "LEFT" | "BOTTOM" | "RIGHT";
+
+type HoverBorderGradientProps = PropsWithChildren<
+  {
+    as?: ElementType;
+    containerClassName?: string;
+    className?: string;
+    duration?: number;
+    clockwise?: boolean;
+    type?: "button" | "submit" | "reset";
+  } & HTMLAttributes<HTMLElement>
+>;
+
+const hoverBorderDirections: HoverBorderDirection[] = ["TOP", "LEFT", "BOTTOM", "RIGHT"];
+
+const hoverBorderMovingMap: Record<HoverBorderDirection, string> = {
+  TOP: "radial-gradient(20.7% 50% at 50% 0%, hsl(0, 0%, 100%) 0%, rgba(255, 255, 255, 0) 100%)",
+  LEFT: "radial-gradient(16.6% 43.1% at 0% 50%, hsl(0, 0%, 100%) 0%, rgba(255, 255, 255, 0) 100%)",
+  BOTTOM: "radial-gradient(20.7% 50% at 50% 100%, hsl(0, 0%, 100%) 0%, rgba(255, 255, 255, 0) 100%)",
+  RIGHT: "radial-gradient(16.2% 41.199999999999996% at 100% 50%, hsl(0, 0%, 100%) 0%, rgba(255, 255, 255, 0) 100%)"
+};
+
+const hoverBorderHighlight = "radial-gradient(75% 181.15942028985506% at 50% 50%, #3275F8 0%, rgba(255, 255, 255, 0) 100%)";
+
+const getNextHoverBorderDirection = (currentDirection: HoverBorderDirection, clockwise: boolean) => {
+  const currentIndex = hoverBorderDirections.indexOf(currentDirection);
+  const nextIndex = clockwise ? (currentIndex - 1 + hoverBorderDirections.length) % hoverBorderDirections.length : (currentIndex + 1) % hoverBorderDirections.length;
+
+  return hoverBorderDirections[nextIndex] ?? "TOP";
+};
+
+const HoverBorderGradient = ({ children, containerClassName, className, as: Tag = "button", duration = 1, clockwise = true, onMouseEnter, onMouseLeave, ...props }: HoverBorderGradientProps) => {
+  const [hovered, setHovered] = useState(false);
+  const [direction, setDirection] = useState<HoverBorderDirection>("TOP");
+
+  useEffect(() => {
+    if (hovered) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setDirection((currentDirection) => getNextHoverBorderDirection(currentDirection, clockwise));
+    }, duration * 1000);
+
+    return () => window.clearInterval(interval);
+  }, [clockwise, duration, hovered]);
+
+  const handleMouseEnter = (event: MouseEvent<HTMLElement>) => {
+    setHovered(true);
+    onMouseEnter?.(event);
+  };
+
+  const handleMouseLeave = (event: MouseEvent<HTMLElement>) => {
+    setHovered(false);
+    onMouseLeave?.(event);
+  };
+
+  return (
+    <Tag
+      className={cn(
+        "relative flex h-min w-fit flex-col flex-nowrap content-center items-center justify-center gap-10 overflow-visible rounded-full border bg-black/20 p-px decoration-clone transition duration-500 hover:bg-black/10 dark:bg-white/20",
+        containerClassName
+      )}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...props}
+    >
+      <div className={cn("z-10 w-auto rounded-[inherit] bg-black px-4 py-2 text-white", className)}>{children}</div>
+      <motion.div
+        className="absolute inset-0 z-0 flex-none overflow-hidden rounded-[inherit]"
+        style={{
+          filter: "blur(2px)",
+          position: "absolute",
+          width: "100%",
+          height: "100%"
+        }}
+        initial={{ background: hoverBorderMovingMap[direction] }}
+        animate={{
+          background: hovered ? [hoverBorderMovingMap[direction], hoverBorderHighlight] : hoverBorderMovingMap[direction]
+        }}
+        transition={{ ease: "linear", duration }}
+      />
+      <div className="absolute inset-[2px] z-[1] flex-none rounded-[100px] bg-black" />
+    </Tag>
   );
 };
 
@@ -1074,20 +1180,30 @@ const AskAgentToolbar = ({ target, onAsk }: { target: AskTarget; onAsk: (target:
 );
 
 const HoverBorderGradientButton = ({ ariaLabel, onClick }: { ariaLabel: string; onClick: () => void }) => (
-  <button
+  <HoverBorderGradient
+    containerClassName="rounded-full shadow-[0_10px_26px_rgba(24,24,27,0.10)] hover:shadow-[0_14px_34px_rgba(24,24,27,0.14)] focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-200"
+    as="button"
     type="button"
-    className="group/ask relative inline-flex h-9 overflow-hidden rounded-full p-px text-sm font-medium text-black shadow-[0_10px_26px_rgba(24,24,27,0.10)] transition duration-200 hover:shadow-[0_14px_34px_rgba(24,24,27,0.14)] focus:outline-none focus:ring-2 focus:ring-violet-200"
+    className="flex items-center space-x-2 bg-white text-black dark:bg-black dark:text-white"
     aria-label={ariaLabel}
     data-testid="ask-agent-primary"
     onClick={onClick}
   >
-    <span className="absolute inset-0 rounded-full bg-[linear-gradient(90deg,#e4e4e7,#a78bfa,#e4e4e7)] opacity-80 transition duration-300 group-hover/ask:opacity-100" />
-    <span className="absolute inset-[-120%] rounded-full bg-[conic-gradient(from_180deg_at_50%_50%,transparent_0deg,#8b5cf6_80deg,transparent_130deg,transparent_220deg,#c4b5fd_290deg,transparent_360deg)] opacity-0 transition duration-500 group-hover/ask:rotate-180 group-hover/ask:opacity-100 group-focus-visible/ask:opacity-100" />
-    <span className="relative inline-flex h-full items-center gap-2 rounded-full bg-white px-3.5 text-black">
-      <Sparkle className="h-3.5 w-3.5 text-violet-600" weight={phosphorIconWeight} />
-      <span className="whitespace-nowrap text-[13px] font-medium leading-none">询问 AI</span>
-    </span>
-  </button>
+    <AceternityLogo />
+    <span className="whitespace-nowrap">询问 AI</span>
+  </HoverBorderGradient>
+);
+
+const AceternityLogo = () => (
+  <svg width="66" height="65" viewBox="0 0 66 65" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-black dark:text-white" aria-hidden="true" focusable="false">
+    <path
+      d="M8 8.05571C8 8.05571 54.9009 18.1782 57.8687 30.062C60.8365 41.9458 9.05432 57.4696 9.05432 57.4696"
+      stroke="currentColor"
+      strokeWidth="15"
+      strokeMiterlimit="3.86874"
+      strokeLinecap="round"
+    />
+  </svg>
 );
 
 const MetricPanel = ({ metric, onAsk }: { metric: MetricDefinition; onAsk: (target: AskTarget) => void }) => (
@@ -1126,7 +1242,7 @@ const InsightRow = ({
   module?: AiModuleMetadata;
   onAsk: (target: AskTarget) => void;
 }) => (
-  <article className="group/row relative rounded-xl border border-zinc-200/70 bg-white p-4 shadow-[0_1px_1px_rgba(24,24,27,0.03)] transition hover:border-zinc-300/80 hover:shadow-[0_10px_30px_rgba(24,24,27,0.06)]">
+  <article className="group/row relative rounded-xl bg-white p-4 shadow-[0_1px_1px_rgba(24,24,27,0.024)] transition hover:shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_rgba(24,24,27,0.055)]">
     <MiniAskButton
       label={insight.title}
       onClick={() =>
@@ -1152,7 +1268,7 @@ const InsightRow = ({
     </div>
     <div className="mt-4 grid gap-3 md:grid-cols-2">
       {insight.actions.map((action) => (
-        <div key={action.label} className="rounded-lg border border-zinc-200/60 bg-zinc-50/60 p-3">
+        <div key={action.label} className="rounded-lg bg-zinc-50/70 p-3 shadow-[inset_0_0_0_1px_rgba(244,244,245,0.75)]">
           <p className="text-xs font-semibold text-zinc-900">{action.label}</p>
           <p className="mt-1 text-xs leading-5 text-zinc-600">{action.detail}</p>
         </div>
@@ -1165,7 +1281,7 @@ const ModuleTile = ({ module, onAsk }: { module: AiModuleMetadata; onAsk: (targe
   const Icon = module.renderer === "trend-chart" ? ChartBar : module.renderer === "action-plan" ? Compass : module.renderer === "chat-brief" ? ChatText : Pulse;
 
   return (
-    <article className="group/row relative rounded-xl border border-zinc-200/70 bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.03)] transition hover:border-zinc-300/80 hover:shadow-[0_10px_30px_rgba(24,24,27,0.06)]">
+    <article className="group/row relative rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)] transition hover:shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_rgba(24,24,27,0.055)]">
       <MiniAskButton
         label={module.name}
         onClick={() =>
@@ -1179,7 +1295,7 @@ const ModuleTile = ({ module, onAsk }: { module: AiModuleMetadata; onAsk: (targe
         }
       />
       <div className="flex items-start gap-3 pr-10">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-200/70 bg-zinc-50 text-zinc-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-50 text-zinc-800 shadow-[inset_0_0_0_1px_rgba(228,228,231,0.65)]">
           <Icon className="h-4 w-4" weight={phosphorIconWeight} />
         </div>
         <div className="min-w-0">
@@ -1199,7 +1315,7 @@ const ModuleTile = ({ module, onAsk }: { module: AiModuleMetadata; onAsk: (targe
 };
 
 const TopContentTile = ({ content, onAsk }: { content: TopContent; onAsk: (target: AskTarget) => void }) => (
-  <article className="group/row relative rounded-xl border border-zinc-200/70 bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.03)] transition hover:border-zinc-300/80 hover:shadow-[0_10px_30px_rgba(24,24,27,0.06)]">
+  <article className="group/row relative rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)] transition hover:shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_rgba(24,24,27,0.055)]">
     <MiniAskButton
       label={content.title}
       onClick={() =>
@@ -1236,7 +1352,7 @@ const MiniAskButton = ({ label, onClick }: { label: string; onClick: () => void 
 );
 
 const TrendStrip = ({ metric }: { metric: MetricDefinition }) => (
-  <div className="rounded-2xl border border-zinc-200/70 bg-white p-4 shadow-[0_1px_1px_rgba(24,24,27,0.03),0_10px_30px_rgba(24,24,27,0.04)]">
+  <div className="rounded-2xl bg-white p-4 shadow-[0_1px_1px_rgba(24,24,27,0.024),0_3px_10px_rgba(24,24,27,0.026)]">
     <div className="flex items-center justify-between gap-3">
       <div>
         <p className="text-xs font-medium text-zinc-500">{metric.label}</p>
@@ -1249,7 +1365,7 @@ const TrendStrip = ({ metric }: { metric: MetricDefinition }) => (
 );
 
 const Stat = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-lg border border-zinc-200/70 bg-white px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+  <div className="rounded-lg bg-white px-2 py-2 shadow-[0_1px_1px_rgba(24,24,27,0.02)]">
     <p className="text-[11px] text-zinc-500">{label}</p>
     <p className="mt-1 font-semibold text-zinc-900">{value}</p>
   </div>
