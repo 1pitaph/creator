@@ -1,0 +1,12 @@
+{
+  "name": "@creator/data-kernel",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8790 --reload",
+    "build": "python3 -m py_compile app/*.py",
+    "lint": "python3 -m py_compile app/*.py tests/*.py",
+    "typecheck": "python3 -m py_compile app/*.py",
+    "test": "python3 -m pytest -q"
+  }
+}

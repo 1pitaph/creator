@@ -135,7 +135,8 @@ export const DiagnosisResponseSchema = z.object({
 export const AgentMessageSchema = z.object({
   id: z.string().optional(),
   role: z.enum(["system", "user", "assistant"]),
-  content: z.string()
+  content: z.string(),
+  localOnly: z.boolean().optional()
 });
 
 export const AgentEvidenceSourceTypeSchema = z.enum([
@@ -217,17 +218,174 @@ export const AgentRunSchema = z.object({
   createdAt: z.string()
 });
 
+const JsonRecordSchema = z.record(z.string(), z.unknown());
+
+export const AgentRunPatchSchema = z.object({
+  id: z.string(),
+  answer: z.string().optional(),
+  usedModules: z.array(z.string()).optional(),
+  toolCalls: z.array(AgentToolCallSchema).optional(),
+  evidence: z.array(AgentEvidenceRefSchema).optional(),
+  facts: z.array(AgentFactSchema).optional(),
+  assumptions: z.array(AgentAssumptionSchema).optional(),
+  actions: z.array(AgentActionSchema).optional(),
+  followUpQuestions: z.array(z.string()).optional()
+});
+
+export const AgentThreadStatusSchema = z.enum(["idle", "running", "awaiting_approval", "completed", "error"]);
+
+export const AgentApprovalDecisionSchema = z.enum(["approve", "deny"]);
+
+export const AgentApprovalRequestSchema = z.object({
+  id: z.string(),
+  threadId: z.string(),
+  actionIds: z.array(z.string()),
+  title: z.string(),
+  detail: z.string(),
+  risk: z.string().optional(),
+  createdAt: z.string()
+});
+
+export const AgentResumeRequestSchema = z.object({
+  threadId: z.string(),
+  approvalId: z.string(),
+  decision: AgentApprovalDecisionSchema,
+  note: z.string().optional()
+});
+
+export const AgentResumeResponseSchema = z.object({
+  threadId: z.string(),
+  status: AgentThreadStatusSchema,
+  agentRun: AgentRunSchema.optional(),
+  approval: AgentApprovalRequestSchema.optional()
+});
+
+export const AgentStreamEventSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("thread"),
+    threadId: z.string(),
+    status: AgentThreadStatusSchema
+  }),
+  z.object({
+    type: z.literal("text-delta"),
+    delta: z.string()
+  }),
+  z.object({
+    type: z.literal("tool-call"),
+    toolCall: AgentToolCallSchema
+  }),
+  z.object({
+    type: z.literal("agent-run"),
+    agentRun: AgentRunSchema
+  }),
+  z.object({
+    type: z.literal("agent-run-patch"),
+    patch: AgentRunPatchSchema
+  }),
+  z.object({
+    type: z.literal("approval-requested"),
+    approval: AgentApprovalRequestSchema
+  }),
+  z.object({
+    type: z.literal("finish"),
+    threadId: z.string().optional(),
+    status: AgentThreadStatusSchema,
+    agentRun: AgentRunSchema.optional()
+  }),
+  z.object({
+    type: z.literal("error"),
+    message: z.string(),
+    code: z.string().optional()
+  })
+]);
+
+export const AgentChatMetadataSchema = z.object({
+  agentRunId: z.string().optional(),
+  mode: z.enum(["mock", "llm", "local"]).optional(),
+  usedModules: z.array(z.string()).optional(),
+  threadId: z.string().optional(),
+  finishReason: z.string().optional(),
+  localOnly: z.boolean().optional()
+});
+
+export const DatasetSnapshotSchema = z.object({
+  profile: CreatorProfileSchema,
+  summary: CreatorMetricsSchema.shape.summary,
+  history: z.array(MetricPointSchema),
+  topContents: z.array(TopContentSchema)
+});
+
+export const DataKernelToolNameSchema = z.enum(["profile_dataset", "create_chart_data", "explain_metric_drop", "run_sql"]);
+
+export const DataKernelLimitsSchema = z.object({
+  maxRows: z.number().int().positive().default(200),
+  maxExecutionMs: z.number().int().positive().default(3000),
+  maxColumns: z.number().int().positive().default(40)
+});
+
+export const DataKernelRequestSchema = z.object({
+  requestId: z.string(),
+  tool: DataKernelToolNameSchema,
+  creatorId: z.string(),
+  dataset: DatasetSnapshotSchema,
+  input: JsonRecordSchema.default({}),
+  limits: DataKernelLimitsSchema.default({})
+});
+
+export const DataKernelEvidenceSchema = z.object({
+  sourceTable: z.string(),
+  rowCount: z.number().int().nonnegative(),
+  columns: z.array(z.string()),
+  excerpt: z.string(),
+  metricKey: z.string().optional()
+});
+
+export const DataKernelArtifactSchema = z.object({
+  id: z.string(),
+  kind: z.enum(["table", "chart", "profile", "explanation"]),
+  title: z.string(),
+  data: z.unknown()
+});
+
+export const DataKernelErrorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  detail: z.string().optional()
+});
+
+export const DataKernelResponseSchema = z.object({
+  ok: z.boolean(),
+  requestId: z.string(),
+  tool: DataKernelToolNameSchema,
+  result: z.unknown().optional(),
+  evidence: z.array(DataKernelEvidenceSchema).default([]),
+  artifacts: z.array(DataKernelArtifactSchema).default([]),
+  stats: JsonRecordSchema.default({}),
+  warnings: z.array(z.string()).default([]),
+  error: DataKernelErrorSchema.optional()
+});
+
 export const ChatRequestSchema = z.object({
   creatorId: z.string(),
   messages: z.array(AgentMessageSchema),
-  activeModules: z.array(z.string()).default([])
+  activeModules: z.array(z.string()).default([]),
+  threadId: z.string().optional(),
+  focus: z
+    .object({
+      title: z.string(),
+      moduleId: z.string().optional()
+    })
+    .optional()
 });
 
 export const ChatResponseSchema = z.object({
   reply: z.string(),
   usedModules: z.array(z.string()),
   mode: z.enum(["mock", "llm"]),
-  agentRun: AgentRunSchema.optional()
+  agentRun: AgentRunSchema.optional(),
+  threadId: z.string().optional(),
+  status: AgentThreadStatusSchema.optional(),
+  approval: AgentApprovalRequestSchema.optional()
 });
 
 export type CreatorLifecycle = z.infer<typeof CreatorLifecycleSchema>;
@@ -260,6 +418,22 @@ export type AgentAssumption = z.infer<typeof AgentAssumptionSchema>;
 export type AgentAction = z.infer<typeof AgentActionSchema>;
 export type AgentToolCall = z.infer<typeof AgentToolCallSchema>;
 export type AgentRun = z.infer<typeof AgentRunSchema>;
+export type AgentRunPatch = z.infer<typeof AgentRunPatchSchema>;
+export type AgentThreadStatus = z.infer<typeof AgentThreadStatusSchema>;
+export type AgentApprovalDecision = z.infer<typeof AgentApprovalDecisionSchema>;
+export type AgentApprovalRequest = z.infer<typeof AgentApprovalRequestSchema>;
+export type AgentResumeRequest = z.infer<typeof AgentResumeRequestSchema>;
+export type AgentResumeResponse = z.infer<typeof AgentResumeResponseSchema>;
+export type AgentStreamEvent = z.infer<typeof AgentStreamEventSchema>;
+export type AgentChatMetadata = z.infer<typeof AgentChatMetadataSchema>;
+export type DatasetSnapshot = z.infer<typeof DatasetSnapshotSchema>;
+export type DataKernelToolName = z.infer<typeof DataKernelToolNameSchema>;
+export type DataKernelLimits = z.infer<typeof DataKernelLimitsSchema>;
+export type DataKernelRequest = z.infer<typeof DataKernelRequestSchema>;
+export type DataKernelEvidence = z.infer<typeof DataKernelEvidenceSchema>;
+export type DataKernelArtifact = z.infer<typeof DataKernelArtifactSchema>;
+export type DataKernelError = z.infer<typeof DataKernelErrorSchema>;
+export type DataKernelResponse = z.infer<typeof DataKernelResponseSchema>;
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;
 

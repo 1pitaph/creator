@@ -7,6 +7,7 @@ import type {
   AgentRun,
   AgentToolCall,
   AiModuleMetadata,
+  DataKernelResponse,
   DiagnosisResponse,
   Insight
 } from "@creator/data-contracts";
@@ -16,6 +17,7 @@ export type DataAgentInput = {
   messages: AgentMessage[];
   activeModules?: string[];
   llmAnswer?: string | null;
+  kernelResponses?: DataKernelResponse[];
   now?: Date;
 };
 
@@ -64,6 +66,30 @@ const createToolCall = (
   startedAt: new Date().toISOString(),
   finishedAt: new Date().toISOString()
 });
+
+const createKernelToolCall = (response: DataKernelResponse, index: number): AgentToolCall => ({
+  id: `kernel-${index + 1}`,
+  name: response.tool,
+  status: response.ok ? "success" : "error",
+  inputSummary: `调用 Python 数据内核工具 ${response.tool}。`,
+  outputSummary: response.ok
+    ? response.artifacts[0]?.title ?? response.evidence[0]?.excerpt ?? "数据内核返回成功。"
+    : response.error?.message ?? "数据内核调用失败。",
+  evidenceIds: response.evidence.map((item, evidenceIndex) => `ev-kernel-${index + 1}-${evidenceIndex + 1}`),
+  error: response.error?.message
+});
+
+const createKernelEvidence = (responses: DataKernelResponse[]): AgentEvidenceRef[] =>
+  responses.flatMap((response, responseIndex) =>
+    response.evidence.map((item, evidenceIndex) => ({
+      id: `ev-kernel-${responseIndex + 1}-${evidenceIndex + 1}`,
+      label: `${response.tool}: ${item.sourceTable}`,
+      sourceType: "agent-tool" as const,
+      sourceId: response.requestId,
+      metricKey: item.metricKey,
+      excerpt: item.excerpt
+    }))
+  );
 
 const pickPriorityInsight = (insights: Insight[]) =>
   insights.find((insight) => insight.severity === "critical") ??
@@ -284,10 +310,11 @@ export const createStructuredAgentRun = ({
   messages,
   activeModules = [],
   llmAnswer,
+  kernelResponses = [],
   now = new Date()
 }: DataAgentInput): AgentRun => {
   const context = filterActiveContext(diagnosis, activeModules);
-  const evidence = createEvidence(diagnosis, context);
+  const evidence = [...createEvidence(diagnosis, context), ...createKernelEvidence(kernelResponses)];
   const facts = createFacts(diagnosis, context);
   const assumptions = createAssumptions(diagnosis, context);
   const actions = createActions(context);
@@ -331,7 +358,8 @@ export const createStructuredAgentRun = ({
       inputSummary: "根据工具结果生成面向创作者的自然语言回答。",
       outputSummary: llmAnswer ? "已使用外部 LLM 生成最终回答。" : "未配置或未使用 LLM，采用确定性 fallback 回答。",
       evidenceIds
-    }
+    },
+    ...kernelResponses.map(createKernelToolCall)
   ];
 
   return {
