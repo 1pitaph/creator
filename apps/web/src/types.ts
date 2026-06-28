@@ -1,4 +1,4 @@
-import type { AgentMessage, AiModuleMetadata, DiagnosisResponse, InsightAction, TopContent } from "@creator/data-contracts";
+import type { AgentMessage, AiModuleMetadata, ChartIntent, CreatorMetrics, DiagnosisResponse, InsightAction, TopContent } from "@creator/data-contracts";
 
 export type UiMessage = AgentMessage & {
   id: string;
@@ -24,7 +24,7 @@ export type MetricDefinition = {
   tone: MetricTone;
   trendLabel: string;
   trend: "up" | "down" | "flat";
-  values: number[];
+  chartIntent: ChartIntent;
   askTarget: AskTarget;
 };
 
@@ -38,7 +38,9 @@ export type DashboardViewModel = {
   actionQueue: DashboardAction[];
   healthScore: number;
   metricCards: MetricDefinition[];
+  metrics: CreatorMetrics;
   moduleById: Map<string, AiModuleMetadata>;
+  trendComparisonChart: ChartIntent;
   topContent?: TopContent;
   topInsight?: DiagnosisResponse["insights"][number];
 };

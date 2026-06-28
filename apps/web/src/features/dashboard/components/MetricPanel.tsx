@@ -1,12 +1,22 @@
 import { TrendUp } from "@phosphor-icons/react/TrendUp";
 
-import { Sparkline, cn } from "@creator/ui";
+import { ChartSlot } from "@creator/charts";
+import type { CreatorMetrics } from "@creator/data-contracts";
+import { cn } from "@creator/ui";
 
 import { phosphorIconWeight, toneClass } from "../../../constants";
 import type { AskTarget, MetricDefinition } from "../../../types";
 import { DashboardModuleCard } from "./DashboardModuleCard";
 
-export const MetricPanel = ({ metric, onAsk }: { metric: MetricDefinition; onAsk: (target: AskTarget) => void }) => (
+export const MetricPanel = ({
+  metric,
+  metrics,
+  onAsk
+}: {
+  metric: MetricDefinition;
+  metrics: CreatorMetrics;
+  onAsk: (target: AskTarget) => void;
+}) => (
   <DashboardModuleCard
     title={metric.label}
     description={metric.helper}
@@ -27,7 +37,7 @@ export const MetricPanel = ({ metric, onAsk }: { metric: MetricDefinition; onAsk
       </div>
       <div className="mt-5">
         <p className="text-4xl font-semibold tracking-normal text-zinc-950">{metric.value}</p>
-        <Sparkline className={cn("mt-5 h-14", metric.trend === "down" ? "text-zinc-500" : "text-zinc-900")} values={metric.values} />
+        <ChartSlot className="mt-5" height={56} intent={metric.chartIntent} metrics={metrics} tone={metric.tone} compact />
       </div>
     </div>
   </DashboardModuleCard>

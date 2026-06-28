@@ -24,6 +24,14 @@ export const aiModules: AiModule[] = [
     name: "内容表现诊断",
     description: "判断播放、完播和互动的主要矛盾，给出下一条内容的改法。",
     renderer: "insight-card",
+    chart: {
+      style: "multi-metric-trend",
+      title: "播放与内容质量趋势",
+      description: "把播放、完播和互动放在同一趋势图里看内容兑现能力。",
+      metricKeys: ["views", "completionRate", "interactionRate"],
+      unit: "mixed",
+      timeRangeDays: 7
+    },
     tags: ["内容", "完播", "互动"],
     requiredData: ["summary", "history", "topContents"],
     match: () => true,
@@ -66,6 +74,14 @@ export const aiModules: AiModule[] = [
     name: "选题机会雷达",
     description: "根据创作者领域、受众和高表现内容生成下一组可实验选题。",
     renderer: "action-plan",
+    chart: {
+      style: "radar-score",
+      title: "选题机会能力雷达",
+      description: "用播放增长、完播、互动和转粉粗略衡量下一轮选题基础。",
+      metricKeys: ["views", "completionRate", "interactionRate", "followerConversionRate"],
+      unit: "mixed",
+      timeRangeDays: 7
+    },
     tags: ["选题", "实验", "增长"],
     requiredData: ["profile", "topContents"],
     match: ({ profile }) => profile.goals.includes("increase_views") || profile.lifecycle === "new",
@@ -106,6 +122,14 @@ export const aiModules: AiModule[] = [
     name: "粉丝经营诊断",
     description: "识别转粉、老粉互动和评论运营机会。",
     renderer: "chat-brief",
+    chart: {
+      style: "multi-metric-trend",
+      title: "粉丝承接趋势",
+      description: "对照新增粉丝和转粉率，判断播放是否被有效承接。",
+      metricKeys: ["followersGained", "followerConversionRate"],
+      unit: "mixed",
+      timeRangeDays: 7
+    },
     tags: ["粉丝", "转粉", "评论"],
     requiredData: ["summary", "audience"],
     match: ({ profile, metrics }) =>
@@ -144,6 +168,14 @@ export const aiModules: AiModule[] = [
     name: "商业化承接优化",
     description: "面向直播、电商和商单场景，诊断内容到成交的承接链路。",
     renderer: "trend-chart",
+    chart: {
+      style: "dual-axis-trend",
+      title: "GMV 与商品转化趋势",
+      description: "用双轴对照 GMV 和商品转化率，定位短视频到直播货架的承接效率。",
+      metricKeys: ["liveGmv", "commerceConversionRate"],
+      unit: "mixed",
+      timeRangeDays: 7
+    },
     tags: ["电商", "直播", "转化"],
     requiredData: ["commerceConversionRate", "liveGmv", "topContents"],
     match: ({ profile, metrics }) =>
@@ -182,6 +214,14 @@ export const aiModules: AiModule[] = [
     name: "发布节奏建议",
     description: "根据发布频次和波动判断是否需要稳定更新节奏。",
     renderer: "insight-card",
+    chart: {
+      style: "heatmap-calendar",
+      title: "发布节奏热力",
+      description: "用近 7 天播放波动提示内容节奏是否稳定。",
+      metricKeys: ["views"],
+      unit: "count",
+      timeRangeDays: 7
+    },
     tags: ["发布", "节奏", "稳定性"],
     requiredData: ["summary", "history"],
     match: ({ profile, metrics }) =>
@@ -224,6 +264,7 @@ export const toModuleMetadata = (module: AiModule): AiModuleMetadata => ({
   name: module.name,
   description: module.description,
   renderer: module.renderer,
+  chart: module.chart,
   tags: module.tags,
   requiredData: module.requiredData
 });

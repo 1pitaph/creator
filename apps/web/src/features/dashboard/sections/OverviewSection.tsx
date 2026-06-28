@@ -83,7 +83,7 @@ export const OverviewSection = ({
       >
         <div className="space-y-3">
           {diagnosis.modules.map((module) => (
-            <ModuleTile key={module.id} module={module} onAsk={onAsk} />
+            <ModuleTile key={module.id} module={module} metrics={viewModel.metrics} onAsk={onAsk} />
           ))}
         </div>
       </DashboardModuleCard>

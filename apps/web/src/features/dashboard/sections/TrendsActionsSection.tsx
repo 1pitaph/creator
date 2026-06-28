@@ -1,4 +1,5 @@
 import type { DiagnosisResponse } from "@creator/data-contracts";
+import { ChartSlot } from "@creator/charts";
 import { Badge } from "@creator/ui";
 
 import { formatCompact } from "../../../lib/format";
@@ -27,9 +28,17 @@ export const TrendsActionsSection = ({
       }}
       onAsk={onAsk}
     >
-      <div className="grid gap-4 lg:grid-cols-2">
+      <ChartSlot
+        className="rounded-2xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]"
+        height={260}
+        intent={viewModel.trendComparisonChart}
+        metrics={viewModel.metrics}
+        tone="zinc"
+      />
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {viewModel.metricCards.slice(0, 4).map((metric) => (
-          <TrendStrip key={metric.id} metric={metric} />
+          <TrendStrip key={metric.id} metric={metric} metrics={viewModel.metrics} />
         ))}
       </div>
     </DashboardModuleCard>

@@ -28,7 +28,7 @@ export const DashboardPage = memo(function DashboardPage({
 
       <div className="space-y-5 px-5 py-5 xl:px-7">
         <OverviewSection diagnosis={diagnosis} viewModel={viewModel} onAsk={onAskAgent} />
-        <MetricsSection metricCards={viewModel.metricCards} onAsk={onAskAgent} />
+        <MetricsSection metricCards={viewModel.metricCards} metrics={viewModel.metrics} onAsk={onAskAgent} />
         <InsightsContentSection diagnosis={diagnosis} viewModel={viewModel} onAsk={onAskAgent} />
         <TrendsActionsSection diagnosis={diagnosis} viewModel={viewModel} onAsk={onAskAgent} />
       </div>

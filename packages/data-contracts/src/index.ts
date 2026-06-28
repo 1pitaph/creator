@@ -11,6 +11,24 @@ export const CreatorGoalSchema = z.enum([
 export const ContentFormatSchema = z.enum(["short_video", "live", "image_text", "series", "commerce"]);
 export const AiModuleRendererSchema = z.enum(["insight-card", "trend-chart", "chat-brief", "action-plan"]);
 export const InsightSeveritySchema = z.enum(["positive", "notice", "warning", "critical"]);
+export const ChartStyleSchema = z.enum([
+  "mini-trend",
+  "multi-metric-trend",
+  "dual-axis-trend",
+  "funnel-conversion",
+  "radar-score",
+  "heatmap-calendar"
+]);
+export const MetricSeriesKeySchema = z.enum([
+  "views",
+  "completionRate",
+  "interactionRate",
+  "followerConversionRate",
+  "followersGained",
+  "commerceConversionRate",
+  "liveGmv"
+]);
+export const ChartUnitSchema = z.enum(["count", "percent", "currency", "mixed"]);
 
 export const AudienceSegmentSchema = z.object({
   label: z.string(),
@@ -70,11 +88,21 @@ export const CreatorMetricsSchema = z.object({
   topContents: z.array(TopContentSchema)
 });
 
+export const ChartIntentSchema = z.object({
+  style: ChartStyleSchema,
+  title: z.string(),
+  description: z.string().optional(),
+  metricKeys: z.array(MetricSeriesKeySchema).min(1),
+  unit: ChartUnitSchema,
+  timeRangeDays: z.number().int().positive().optional()
+});
+
 export const AiModuleMetadataSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
   renderer: AiModuleRendererSchema,
+  chart: ChartIntentSchema.optional(),
   tags: z.array(z.string()),
   requiredData: z.array(z.string())
 });
@@ -126,11 +154,15 @@ export type CreatorLifecycle = z.infer<typeof CreatorLifecycleSchema>;
 export type CreatorGoal = z.infer<typeof CreatorGoalSchema>;
 export type ContentFormat = z.infer<typeof ContentFormatSchema>;
 export type AiModuleRenderer = z.infer<typeof AiModuleRendererSchema>;
+export type ChartStyle = z.infer<typeof ChartStyleSchema>;
+export type MetricSeriesKey = z.infer<typeof MetricSeriesKeySchema>;
+export type ChartUnit = z.infer<typeof ChartUnitSchema>;
 export type AudienceSegment = z.infer<typeof AudienceSegmentSchema>;
 export type CreatorProfile = z.infer<typeof CreatorProfileSchema>;
 export type MetricPoint = z.infer<typeof MetricPointSchema>;
 export type TopContent = z.infer<typeof TopContentSchema>;
 export type CreatorMetrics = z.infer<typeof CreatorMetricsSchema>;
+export type ChartIntent = z.infer<typeof ChartIntentSchema>;
 export type AiModuleMetadata = z.infer<typeof AiModuleMetadataSchema>;
 export type InsightAction = z.infer<typeof InsightActionSchema>;
 export type Insight = z.infer<typeof InsightSchema>;

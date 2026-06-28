@@ -1,4 +1,4 @@
-import type { DiagnosisResponse } from "@creator/data-contracts";
+import type { ChartIntent, DiagnosisResponse } from "@creator/data-contracts";
 
 import { clamp } from "../../lib/math";
 import { formatCompact, formatCurrency, formatPct } from "../../lib/format";
@@ -32,7 +32,13 @@ export const buildMetricCards = (diagnosis: DiagnosisResponse): MetricDefinition
       tone: "sky",
       trendLabel: metrics.viewsChangePct > 0 ? "上升" : metrics.viewsChangePct < 0 ? "下降" : "稳定",
       trend: metrics.viewsChangePct > 0 ? "up" : metrics.viewsChangePct < 0 ? "down" : "flat",
-      values: diagnosis.metrics.history.map((item) => item.views),
+      chartIntent: {
+        style: "mini-trend",
+        title: "7 日播放趋势",
+        metricKeys: ["views"],
+        unit: "count",
+        timeRangeDays: 7
+      },
       askTarget: {
         title: "7 日播放",
         moduleId: "content-diagnosis",
@@ -49,7 +55,13 @@ export const buildMetricCards = (diagnosis: DiagnosisResponse): MetricDefinition
       tone: "emerald",
       trendLabel: metrics.completionRate >= 0.45 ? "健康" : "待修复",
       trend: metrics.completionRate >= 0.45 ? "up" : "down",
-      values: diagnosis.metrics.history.map((item) => item.completionRate),
+      chartIntent: {
+        style: "mini-trend",
+        title: "完播率趋势",
+        metricKeys: ["completionRate"],
+        unit: "percent",
+        timeRangeDays: 7
+      },
       askTarget: {
         title: "完播率",
         moduleId: "content-diagnosis",
@@ -66,7 +78,13 @@ export const buildMetricCards = (diagnosis: DiagnosisResponse): MetricDefinition
       tone: "amber",
       trendLabel: metrics.interactionRate >= 0.06 ? "活跃" : "可提升",
       trend: metrics.interactionRate >= 0.06 ? "up" : "flat",
-      values: diagnosis.metrics.history.map((item) => item.interactionRate),
+      chartIntent: {
+        style: "mini-trend",
+        title: "互动率趋势",
+        metricKeys: ["interactionRate"],
+        unit: "percent",
+        timeRangeDays: 7
+      },
       askTarget: {
         title: "互动率",
         moduleId: "fan-operation",
@@ -83,7 +101,13 @@ export const buildMetricCards = (diagnosis: DiagnosisResponse): MetricDefinition
       tone: "rose",
       trendLabel: metrics.followerConversionRate >= 0.006 ? "承接中" : "弱承接",
       trend: metrics.followerConversionRate >= 0.006 ? "up" : "down",
-      values: diagnosis.metrics.history.map((item) => item.followersGained),
+      chartIntent: {
+        style: "mini-trend",
+        title: "新增粉丝趋势",
+        metricKeys: ["followersGained"],
+        unit: "count",
+        timeRangeDays: 7
+      },
       askTarget: {
         title: "7 日涨粉",
         moduleId: "fan-operation",
@@ -103,7 +127,13 @@ export const buildMetricCards = (diagnosis: DiagnosisResponse): MetricDefinition
       tone: "violet",
       trendLabel: "可优化",
       trend: "up",
-      values: diagnosis.metrics.history.map((item) => item.liveGmv ?? item.commerceConversionRate ?? 0),
+      chartIntent: {
+        style: "mini-trend",
+        title: "商业化承接趋势",
+        metricKeys: typeof metrics.liveGmv7d === "number" ? ["liveGmv"] : ["commerceConversionRate"],
+        unit: typeof metrics.liveGmv7d === "number" ? "currency" : "percent",
+        timeRangeDays: 7
+      },
       askTarget: {
         title: "商业化承接",
         moduleId: "commerce-optimizer",
@@ -117,6 +147,15 @@ export const buildMetricCards = (diagnosis: DiagnosisResponse): MetricDefinition
   return metricCards;
 };
 
+export const buildTrendComparisonChart = (): ChartIntent => ({
+  style: "multi-metric-trend",
+  title: "7 日趋势对照",
+  description: "播放、完播、互动和转粉趋势对照",
+  metricKeys: ["views", "completionRate", "interactionRate", "followerConversionRate"],
+  unit: "mixed",
+  timeRangeDays: 7
+});
+
 export const buildDashboardViewModel = (diagnosis: DiagnosisResponse): DashboardViewModel => ({
   activeModuleIds: diagnosis.modules.map((module) => module.id),
   actionQueue: diagnosis.insights
@@ -124,7 +163,9 @@ export const buildDashboardViewModel = (diagnosis: DiagnosisResponse): Dashboard
     .slice(0, 4),
   healthScore: calculateHealthScore(diagnosis),
   metricCards: buildMetricCards(diagnosis),
+  metrics: diagnosis.metrics,
   moduleById: new Map(diagnosis.modules.map((module) => [module.id, module])),
+  trendComparisonChart: buildTrendComparisonChart(),
   topContent: diagnosis.metrics.topContents[0],
   topInsight: diagnosis.insights.find((insight) => insight.severity === "warning") ?? diagnosis.insights[0]
 });
