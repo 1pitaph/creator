@@ -26,13 +26,13 @@ export const AgentFloatingButton = ({
   return (
     <div
       className={cn(
-        "group fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-[60] h-14 w-14 md:bottom-6 md:right-6",
+        "group fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-[60] isolate h-14 w-14 md:bottom-6 md:right-6",
         open && "pointer-events-none",
       )}
     >
       <div
         className={cn(
-          "pointer-events-none absolute right-[calc(100%+0.75rem)] top-1/2 hidden -translate-y-1/2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-xs shadow-[0_14px_40px_rgba(24,24,27,0.14)] transition duration-200 md:block",
+          "pointer-events-none absolute right-[calc(100%+0.75rem)] top-1/2 z-30 hidden -translate-y-1/2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-xs shadow-[0_14px_40px_rgba(24,24,27,0.14)] transition duration-200 md:block",
           open
             ? "opacity-0"
             : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
@@ -43,14 +43,15 @@ export const AgentFloatingButton = ({
         <p className="mt-0.5 whitespace-nowrap text-zinc-500">{statusText}</p>
       </div>
       <span
+        data-testid="agent-floating-ring"
         className={cn(
-          "pointer-events-none absolute left-1/2 top-[calc(100%+0.35rem)] h-px w-11 -translate-x-1/2 border-t border-dashed border-zinc-500/70 transition-opacity duration-200",
+          "pointer-events-none absolute inset-0 z-0 rounded-full border border-dashed border-zinc-500/70 transition-opacity duration-200",
           open ? "opacity-0" : "opacity-75",
         )}
         aria-hidden="true"
       />
       <MagneticButton
-        className="block h-14 w-14"
+        className="relative z-10 block h-14 w-14"
         disabled={open}
         strength={0.24}
       >

@@ -27,6 +27,29 @@ describe("AgentFloatingButton", () => {
     expect(screen.getByText("有操作等待确认")).toBeInTheDocument();
   });
 
+  it("renders a circular dashed anchor ring behind the magnetic button", () => {
+    render(<AgentFloatingButton open={false} onOpen={vi.fn()} />);
+
+    const ring = screen.getByTestId("agent-floating-ring");
+    const button = screen.getByTestId("agent-floating-button");
+
+    expect(ring).toHaveClass(
+      "pointer-events-none",
+      "inset-0",
+      "rounded-full",
+      "border",
+      "border-dashed",
+    );
+    expect(ring).not.toHaveClass(
+      "border-t",
+      "h-px",
+      "w-11",
+      "top-[calc(100%+0.35rem)]",
+    );
+    expect(button.parentElement?.parentElement).toContainElement(ring);
+    expect(button.parentElement).not.toContainElement(ring);
+  });
+
   it("collapses the launcher while the drawer is open", () => {
     render(<AgentFloatingButton open onOpen={vi.fn()} />);
 
@@ -37,5 +60,6 @@ describe("AgentFloatingButton", () => {
     expect(screen.getByTestId("agent-floating-button")).toHaveClass(
       "opacity-0",
     );
+    expect(screen.getByTestId("agent-floating-ring")).toHaveClass("opacity-0");
   });
 });
