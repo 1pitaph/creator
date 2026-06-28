@@ -61,7 +61,6 @@ const renderDashboard = () => {
     <DashboardPage
       creatorId={defaultCreatorId}
       diagnosis={diagnosis}
-      isLoadingDiagnosis={false}
       onAskAgent={vi.fn()}
       viewModel={viewModel}
     />,
@@ -125,12 +124,19 @@ describe("DashboardPage", () => {
   it("renders Visual, Board, and Table views", () => {
     renderDashboard();
 
+    expect(screen.getByTestId("aurora-background")).toBeInTheDocument();
     expect(screen.getByTestId("visual-grid")).toBeInTheDocument();
-    expect(screen.queryByLabelText("拖动卡片：AI 诊断摘要")).not.toBeInTheDocument();
+    expect(screen.queryByText("创作者 AI 数据面板")).not.toBeInTheDocument();
+    expect(screen.queryByText(/增长诊断台/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Board" }));
     expect(screen.getByText("今天")).toBeInTheDocument();
-    expect(screen.queryByLabelText("拖动卡片：AI 诊断摘要")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Table" }));
     expect(screen.getByText("名称")).toBeInTheDocument();
@@ -172,7 +178,9 @@ describe("DashboardPage", () => {
       "data-drag-enabled",
       "false",
     );
-    expect(screen.queryByLabelText("拖动卡片：AI 诊断摘要")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "编辑" }));
 

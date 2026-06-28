@@ -28,3 +28,132 @@ button,
 textarea {
   font: inherit;
 }
+
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(-3%, -2%, 0) rotate(-7deg) scale(1);
+  }
+
+  50% {
+    transform: translate3d(4%, 4%, 0) rotate(5deg) scale(1.06);
+  }
+
+  100% {
+    transform: translate3d(-1%, 7%, 0) rotate(-3deg) scale(1.03);
+  }
+}
+
+@keyframes aurora-bloom {
+  0%,
+  100% {
+    opacity: 0.52;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: translate3d(-2%, -5%, 0) scale(1.08);
+  }
+}
+
+.aurora-background__shader {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(250, 251, 252, 0.92) 0%,
+      rgba(245, 246, 248, 0.78) 42%,
+      rgba(245, 246, 248, 0.96) 100%
+    ),
+    radial-gradient(
+      circle at 78% 8%,
+      rgba(255, 255, 255, 0.92),
+      transparent 28%
+    );
+}
+
+.aurora-background__mesh {
+  animation: aurora-drift 19s ease-in-out infinite alternate;
+  background:
+    radial-gradient(
+      ellipse at 14% 42%,
+      rgba(37, 244, 238, 0.28),
+      transparent 36%
+    ),
+    radial-gradient(
+      ellipse at 44% 24%,
+      rgba(254, 44, 85, 0.18),
+      transparent 34%
+    ),
+    radial-gradient(
+      ellipse at 72% 42%,
+      rgba(56, 189, 248, 0.2),
+      transparent 35%
+    ),
+    linear-gradient(
+      118deg,
+      transparent 8%,
+      rgba(37, 244, 238, 0.12) 23%,
+      rgba(255, 255, 255, 0.58) 34%,
+      rgba(254, 44, 85, 0.12) 46%,
+      transparent 68%
+    );
+  filter: blur(34px) saturate(1.18);
+  mix-blend-mode: multiply;
+  opacity: 0.82;
+  transform-origin: center;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.92),
+    rgba(0, 0, 0, 0.62) 62%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.92),
+    rgba(0, 0, 0, 0.62) 62%,
+    transparent 100%
+  );
+}
+
+.aurora-background__bloom {
+  animation: aurora-bloom 16s ease-in-out infinite;
+  background:
+    radial-gradient(
+      ellipse at 82% 26%,
+      rgba(254, 44, 85, 0.1),
+      transparent 42%
+    ),
+    radial-gradient(
+      ellipse at 26% 54%,
+      rgba(37, 244, 238, 0.14),
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse at 56% 68%,
+      rgba(24, 24, 27, 0.045),
+      transparent 42%
+    );
+  filter: blur(46px);
+}
+
+.aurora-background__veil {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(245, 246, 248, 0.78),
+      rgba(245, 246, 248, 0.12) 38%,
+      rgba(245, 246, 248, 0.68)
+    ),
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(255, 255, 255, 0.7),
+      transparent 46%
+    );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-background__mesh,
+  .aurora-background__bloom {
+    animation: none;
+  }
+}

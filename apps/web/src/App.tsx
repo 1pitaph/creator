@@ -50,7 +50,6 @@ export const App = () => {
         <DashboardPage
           creatorId={selectedCreatorId}
           diagnosis={diagnosis}
-          isLoadingDiagnosis={isLoadingDiagnosis}
           onAskAgent={askAgent}
           viewModel={viewModel}
         />
