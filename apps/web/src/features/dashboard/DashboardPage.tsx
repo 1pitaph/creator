@@ -75,12 +75,16 @@ export const DashboardPage = memo(function DashboardPage({
                       ? "bg-zinc-950 text-white"
                       : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
                   )}
-                  onClick={() =>
+                  onClick={() => {
+                    if (value !== "board") {
+                      setEditing(false);
+                    }
+
                     updatePreferences((current) => ({
                       ...current,
                       selectedView: value,
-                    }))
-                  }
+                    }));
+                  }}
                 >
                   <Icon className="h-4 w-4" weight={phosphorIconWeight} />
                   {label}
@@ -100,24 +104,26 @@ export const DashboardPage = memo(function DashboardPage({
                 />
                 重置
               </Button>
-              <Button
-                type="button"
-                variant={editing ? "primary" : "secondary"}
-                onClick={() => setEditing((value) => !value)}
-              >
-                {editing ? (
-                  <FloppyDisk
-                    className="h-4 w-4"
-                    weight={phosphorIconWeight}
-                  />
-                ) : (
-                  <PencilSimpleLine
-                    className="h-4 w-4"
-                    weight={phosphorIconWeight}
-                  />
-                )}
-                {editing ? "完成" : "编辑"}
-              </Button>
+              {preferences.selectedView === "board" ? (
+                <Button
+                  type="button"
+                  variant={editing ? "primary" : "secondary"}
+                  onClick={() => setEditing((value) => !value)}
+                >
+                  {editing ? (
+                    <FloppyDisk
+                      className="h-4 w-4"
+                      weight={phosphorIconWeight}
+                    />
+                  ) : (
+                    <PencilSimpleLine
+                      className="h-4 w-4"
+                      weight={phosphorIconWeight}
+                    />
+                  )}
+                  {editing ? "完成" : "编辑"}
+                </Button>
+              ) : null}
             </div>
           </div>
 
@@ -126,7 +132,6 @@ export const DashboardPage = memo(function DashboardPage({
               actions={actions}
               cards={cards}
               diagnosis={diagnosis}
-              editing={editing}
               onAsk={onAskAgent}
               preferences={preferences}
               updatePreferences={updatePreferences}

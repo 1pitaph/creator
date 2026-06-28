@@ -12,6 +12,7 @@ vi.mock("react-grid-layout", () => ({
     children,
     dragConfig,
     onLayoutChange,
+    resizeConfig,
   }: {
     children: ReactNode;
     dragConfig?: {
@@ -23,12 +24,18 @@ vi.mock("react-grid-layout", () => ({
       layout: unknown[],
       layouts: Record<string, unknown[]>,
     ) => void;
+    resizeConfig?: {
+      enabled?: boolean;
+      handles?: string[];
+    };
   }) => (
     <div
       data-testid="visual-grid"
       data-drag-enabled={String(dragConfig?.enabled)}
       data-drag-handle={dragConfig?.handle ?? ""}
       data-drag-cancel={dragConfig?.cancel ?? ""}
+      data-resize-enabled={String(resizeConfig?.enabled)}
+      data-resize-handles={(resizeConfig?.handles ?? []).join(",")}
     >
       <button
         type="button"
@@ -46,6 +53,18 @@ vi.mock("react-grid-layout", () => ({
       {children}
     </div>
   ),
+  moveElement: (
+    layout: Array<{ i: string; x: number; y: number }>,
+    item: { i: string; x: number; y: number },
+    x: number,
+    y: number,
+  ) =>
+    layout.map((layoutItem) =>
+      layoutItem.i === item.i ? { ...layoutItem, x, y } : layoutItem,
+    ),
+  verticalCompactor: {
+    compact: (layout: unknown[]) => layout,
+  },
   useContainerWidth: () => ({
     containerRef: { current: null },
     mounted: true,
@@ -56,15 +75,21 @@ vi.mock("react-grid-layout", () => ({
 const renderDashboard = () => {
   const diagnosis = localDiagnosis(defaultCreatorId);
   const viewModel = buildDashboardViewModel(diagnosis);
+  const onAskAgent = vi.fn();
 
   render(
     <DashboardPage
       creatorId={defaultCreatorId}
       diagnosis={diagnosis}
-      onAskAgent={vi.fn()}
+      onAskAgent={onAskAgent}
       viewModel={viewModel}
     />,
   );
+
+  return {
+    diagnosis,
+    onAskAgent,
+  };
 };
 
 const readStoredPreferences = () => {
@@ -129,8 +154,9 @@ describe("DashboardPage", () => {
     expect(screen.queryByText("创作者 AI 数据面板")).not.toBeInTheDocument();
     expect(screen.queryByText(/增长诊断台/)).not.toBeInTheDocument();
     expect(
-      screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
-    ).not.toBeInTheDocument();
+      screen.getByLabelText("拖动卡片：AI 诊断摘要"),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "编辑" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Board" }));
     expect(screen.getByText("今天")).toBeInTheDocument();
@@ -141,6 +167,9 @@ describe("DashboardPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Table" }));
     expect(screen.getByText("名称")).toBeInTheDocument();
     expect(screen.getByText("AI 诊断摘要")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
+    ).not.toBeInTheDocument();
   });
 
   it("hides a card from Table and removes it from Visual", async () => {
@@ -157,10 +186,9 @@ describe("DashboardPage", () => {
     });
   });
 
-  it("saves Visual layout changes while editing", async () => {
+  it("saves Visual layout changes without entering edit mode", async () => {
     renderDashboard();
 
-    fireEvent.click(screen.getByRole("button", { name: "编辑" }));
     fireEvent.click(screen.getByRole("button", { name: "mock layout change" }));
 
     await waitFor(() => {
@@ -172,40 +200,45 @@ describe("DashboardPage", () => {
   });
 
   it("uses the six-dot handle as the only Visual drag start target", () => {
-    renderDashboard();
-
-    expect(screen.getByTestId("visual-grid")).toHaveAttribute(
-      "data-drag-enabled",
-      "false",
-    );
-    expect(
-      screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
-    ).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "编辑" }));
+    const { onAskAgent } = renderDashboard();
 
     const grid = screen.getByTestId("visual-grid");
     const handle = screen.getByLabelText("拖动卡片：AI 诊断摘要");
+    const askButton = screen.getByLabelText("询问 AI Agent：AI 诊断摘要");
 
     expect(grid).toHaveAttribute("data-drag-enabled", "true");
+    expect(grid).toHaveAttribute("data-resize-enabled", "true");
+    expect(grid).toHaveAttribute("data-resize-handles", "se");
     expect(grid).toHaveAttribute(
       "data-drag-handle",
       ".dashboard-card-drag-handle",
     );
     expect(handle.matches(grid.dataset.dragHandle ?? "")).toBe(true);
     expect(handle.matches(grid.dataset.dragCancel ?? "")).toBe(false);
+    expect(askButton.matches(grid.dataset.dragHandle ?? "")).toBe(false);
+    expect(askButton.matches(grid.dataset.dragCancel ?? "")).toBe(true);
+
+    fireEvent.click(askButton);
+
+    expect(onAskAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "AI 诊断摘要" }),
+    );
   });
 
-  it("ignores Visual layout changes outside edit mode", async () => {
-    renderDashboard();
+  it("keeps Board drag behavior behind the Board edit mode", () => {
+    const { diagnosis } = renderDashboard();
+    const firstActionLabel = diagnosis.insights.flatMap((insight) => insight.actions)[0]?.label;
 
-    fireEvent.click(screen.getByRole("button", { name: "mock layout change" }));
+    expect(firstActionLabel).toBeTruthy();
 
-    await waitFor(() => {
-      expect(readStoredPreferences()?.visual.layouts.lg[0]).not.toMatchObject({
-        i: "summary",
-        x: 1,
-      });
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Board" }));
+
+    expect(screen.getByRole("button", { name: "编辑" })).toBeInTheDocument();
+    expect(screen.getByText(firstActionLabel as string).closest("article")).not.toHaveClass("cursor-grab");
+
+    fireEvent.click(screen.getByRole("button", { name: "编辑" }));
+
+    expect(screen.getByRole("button", { name: "完成" })).toBeInTheDocument();
+    expect(screen.getByText(firstActionLabel as string).closest("article")).toHaveClass("cursor-grab");
   });
 });

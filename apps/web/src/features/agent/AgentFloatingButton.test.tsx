@@ -17,6 +17,7 @@ describe("AgentFloatingButton", () => {
 
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(screen.getByText("随时唤起数据助手")).toBeInTheDocument();
+    expect(screen.getByTestId("agent-floating-icon")).toBeInTheDocument();
   });
 
   it("shows pending approval status", () => {

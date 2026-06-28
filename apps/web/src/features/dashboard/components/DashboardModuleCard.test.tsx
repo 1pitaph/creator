@@ -18,7 +18,11 @@ describe("DashboardModuleCard", () => {
       </DashboardModuleCard>
     );
 
-    fireEvent.click(screen.getByLabelText("询问 AI Agent：AI 诊断摘要"));
+    const askButton = screen.getByLabelText("询问 AI Agent：AI 诊断摘要");
+
+    expect(askButton).toHaveClass("h-[34px]");
+
+    fireEvent.click(askButton);
 
     expect(onAsk).toHaveBeenCalledWith(target);
   });
@@ -53,6 +57,13 @@ describe("DashboardModuleCard", () => {
     const handle = screen.getByLabelText("拖动卡片：AI 诊断摘要");
 
     expect(handle).toHaveClass("dashboard-card-drag-handle");
+    expect(handle).toHaveClass("left-2.5");
+    expect(handle).toHaveClass("top-4");
+    expect(handle).toHaveClass("opacity-0");
+    expect(handle).toHaveClass("group-hover:opacity-100");
+    expect(handle).toHaveClass("group-focus-within:opacity-100");
+    expect(handle).toHaveClass("cursor-grab");
+    expect(handle).toHaveClass("touch-none");
     expect(handle).toHaveAttribute("data-dashboard-card-drag-handle", "true");
 
     fireEvent.pointerDown(handle);

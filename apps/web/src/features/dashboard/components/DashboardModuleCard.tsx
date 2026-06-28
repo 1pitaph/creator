@@ -55,7 +55,7 @@ const DashboardCardDragHandle = ({
 }) => (
   <button
     type="button"
-    className="dashboard-card-drag-handle absolute left-3 top-5 z-20 inline-flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-md text-zinc-400 opacity-0 transition duration-150 hover:bg-zinc-100 hover:text-zinc-600 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 active:cursor-grabbing active:text-zinc-700 group-hover:opacity-100 group-focus-within:opacity-100"
+    className="dashboard-card-drag-handle absolute left-2.5 top-4 z-20 inline-flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-md text-zinc-400 opacity-0 transition duration-150 hover:bg-zinc-100 hover:text-zinc-600 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 active:cursor-grabbing active:text-zinc-700 group-hover:opacity-100 group-focus-within:opacity-100"
     aria-label={label}
     data-dashboard-card-drag-handle="true"
     onPointerDown={onPointerDown}
