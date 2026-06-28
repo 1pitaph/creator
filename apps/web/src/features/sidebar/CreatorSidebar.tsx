@@ -4,6 +4,7 @@ import { List } from "@phosphor-icons/react/List";
 import { X } from "@phosphor-icons/react/X";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import * as Select from "@radix-ui/react-select";
+import Avatar from "boring-avatars";
 import { type ReactNode, useState } from "react";
 
 import type { DiagnosisResponse } from "@creator/data-contracts";
@@ -15,6 +16,8 @@ import { agentNavIcon, sidebarNavItems } from "./navItems";
 
 const douyinLogoPath =
   "M12.53.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z";
+
+const creatorAvatarColors = ["#25f4ee", "#fe2c55", "#18181b", "#e5e7eb", "#38bdf8"];
 
 export const CreatorSidebar = ({
   selectedCreatorId,
@@ -284,9 +287,7 @@ const SidebarFooter = ({
       )}
       title={collapsed ? diagnosis.creator.displayName : undefined}
     >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-xs font-semibold text-white">
-        {diagnosis.creator.displayName.slice(0, 1)}
-      </div>
+      <SidebarFooterAvatar seed={diagnosis.creator.id} />
       <div className={cn("min-w-0 flex-1", collapsed && "hidden")}>
         <p className="truncate text-sm font-medium text-neutral-800 transition duration-150 group-hover/sidebar:translate-x-1">
           {diagnosis.creator.displayName}
@@ -297,6 +298,28 @@ const SidebarFooter = ({
       </div>
     </div>
   </div>
+);
+
+const SidebarFooterAvatar = ({ seed }: { seed: string }) => (
+  <span
+    aria-hidden="true"
+    className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-neutral-300/80"
+    data-testid="sidebar-footer-avatar"
+  >
+    <Avatar
+      aria-hidden="true"
+      className="block h-8 w-8"
+      colors={creatorAvatarColors}
+      data-avatar-seed={seed}
+      data-testid="sidebar-footer-avatar-svg"
+      focusable="false"
+      name={seed}
+      role="presentation"
+      size={32}
+      title={false}
+      variant="beam"
+    />
+  </span>
 );
 
 const SidebarNav = ({ collapsed = false, onOpenAgent, onNavigate }: { collapsed?: boolean; onOpenAgent: () => void; onNavigate?: () => void }) => (

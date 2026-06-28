@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { defaultCreatorId } from "../creator-diagnosis/creatorOptions";
+import { creatorOptions, defaultCreatorId } from "../creator-diagnosis/creatorOptions";
 import { localDiagnosis } from "../creator-diagnosis/api";
 import { CreatorSidebar } from "./CreatorSidebar";
 
@@ -86,5 +86,47 @@ describe("CreatorSidebar", () => {
     fireEvent.click(within(sidebar).getByRole("button", { name: "AI Agent" }));
 
     expect(onOpenAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the footer avatar with a stable boring avatar seed", () => {
+    const firstDiagnosis = localDiagnosis(defaultCreatorId);
+    const secondCreatorId = creatorOptions.find((creator) => creator.id !== defaultCreatorId)?.id ?? defaultCreatorId;
+    const secondDiagnosis = localDiagnosis(secondCreatorId);
+    const { rerender } = render(
+      <CreatorSidebar
+        selectedCreatorId={defaultCreatorId}
+        onSelectCreator={vi.fn()}
+        diagnosis={firstDiagnosis}
+        isLoadingDiagnosis={false}
+        onOpenAgent={vi.fn()}
+      />
+    );
+
+    const desktopSidebar = screen.getByTestId("creator-sidebar-desktop");
+    const avatarShell = within(desktopSidebar).getByTestId("sidebar-footer-avatar");
+    const avatarSvg = within(desktopSidebar).getByTestId("sidebar-footer-avatar-svg");
+
+    expect(avatarShell.textContent).toBe("");
+    expect(avatarShell).toHaveAttribute("aria-hidden", "true");
+    expect(avatarSvg.tagName.toLowerCase()).toBe("svg");
+    expect(avatarSvg).toHaveAttribute("data-avatar-seed", firstDiagnosis.creator.id);
+    expect(avatarSvg).toHaveAttribute("width", "32");
+    expect(avatarSvg).toHaveAttribute("height", "32");
+    expect(avatarSvg).toHaveAttribute("focusable", "false");
+
+    rerender(
+      <CreatorSidebar
+        selectedCreatorId={secondCreatorId}
+        onSelectCreator={vi.fn()}
+        diagnosis={secondDiagnosis}
+        isLoadingDiagnosis={false}
+        onOpenAgent={vi.fn()}
+      />
+    );
+
+    expect(within(screen.getByTestId("creator-sidebar-desktop")).getByTestId("sidebar-footer-avatar-svg")).toHaveAttribute(
+      "data-avatar-seed",
+      secondDiagnosis.creator.id
+    );
   });
 });
