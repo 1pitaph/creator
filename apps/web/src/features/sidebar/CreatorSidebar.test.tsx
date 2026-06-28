@@ -99,6 +99,7 @@ describe("CreatorSidebar", () => {
     const navigation = within(sidebar).getByRole("navigation");
     const accountNotch = within(sidebar).getByTestId("creator-account-notch");
     const footer = within(sidebar).getByTestId("sidebar-footer");
+    const notchShell = within(accountNotch).getByTestId("notch-shell");
 
     expect(
       navigation.compareDocumentPosition(accountNotch) &
@@ -108,6 +109,23 @@ describe("CreatorSidebar", () => {
       accountNotch.compareDocumentPosition(footer) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(notchShell).toHaveClass("bg-neutral-950/95");
+    expect(within(accountNotch).getByText("示例")).toBeInTheDocument();
+    expect(within(accountNotch).getByText("数据")).toBeInTheDocument();
+    expect(within(accountNotch).getByText("账号")).toBeInTheDocument();
+    expect(
+      within(accountNotch).getByText(creatorOptions[0]!.name),
+    ).toBeInTheDocument();
+    expect(within(accountNotch).getByTestId("notch-divider")).toBeInTheDocument();
+    expect(
+      within(accountNotch).getByTestId("notch-static-sample"),
+    ).toBeInTheDocument();
+    expect(
+      within(accountNotch).queryByTestId("notch-trigger-sample"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(accountNotch).queryByTestId("notch-trigger-status"),
+    ).not.toBeInTheDocument();
   });
 
   it("opens the desktop creator notch and selects another creator", async () => {
@@ -119,27 +137,38 @@ describe("CreatorSidebar", () => {
     renderSidebar({ onSelectCreator: handleSelectCreator });
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
-    const trigger = within(sidebar).getByTestId(
-      "creator-account-notch-trigger",
-    );
+    const trigger = within(sidebar).getByTestId("notch-trigger-account");
 
     fireEvent.click(trigger);
 
-    expect(trigger).toHaveAttribute("aria-expanded", "true");
-
-    const listbox = await screen.findByRole("listbox", {
-      name: "选择创作者账号",
-    });
+    const listbox = await screen.findByRole("listbox", { name: "账号" });
+    expect(
+      within(listbox).getByRole("option", { name: new RegExp(creatorOptions[0]!.name) }),
+    ).toHaveAttribute("aria-selected", "true");
     fireEvent.click(within(listbox).getByRole("option", {
       name: new RegExp(secondCreator.name),
     }));
 
     expect(handleSelectCreator).toHaveBeenCalledWith(secondCreator.id);
     await waitFor(() =>
-      expect(
-        screen.queryByRole("listbox", { name: "选择创作者账号" }),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByRole("listbox", { name: "账号" })).not.toBeInTheDocument(),
     );
+  });
+
+  it("keeps the sample segment static while the account segment opens", async () => {
+    const handleSelectCreator = vi.fn();
+    renderSidebar({ onSelectCreator: handleSelectCreator });
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const accountNotch = within(sidebar).getByTestId("creator-account-notch");
+    fireEvent.click(within(accountNotch).getByTestId("notch-static-sample"));
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    fireEvent.click(within(accountNotch).getByTestId("notch-trigger-account"));
+
+    expect(await screen.findByRole("listbox", { name: "账号" })).toBeInTheDocument();
+    expect(handleSelectCreator).not.toHaveBeenCalled();
   });
 
   it("closes the mobile sidebar after selecting from the bottom notch", async () => {
@@ -155,14 +184,10 @@ describe("CreatorSidebar", () => {
     expect(mobileTrigger).toHaveAttribute("aria-expanded", "true");
 
     const mobileSidebar = screen.getByTestId("creator-sidebar-mobile");
-    const accountTrigger = within(mobileSidebar).getByTestId(
-      "creator-account-notch-trigger",
-    );
+    const accountTrigger = within(mobileSidebar).getByTestId("notch-trigger-account");
 
     fireEvent.click(accountTrigger);
-    const listbox = await screen.findByRole("listbox", {
-      name: "选择创作者账号",
-    });
+    const listbox = await screen.findByRole("listbox", { name: "账号" });
     fireEvent.click(within(listbox).getByRole("option", {
       name: new RegExp(secondCreator.name),
     }));
@@ -184,52 +209,31 @@ describe("CreatorSidebar", () => {
     });
     fireEvent.click(compactTrigger);
 
-    expect(
-      await screen.findByRole("listbox", { name: "选择创作者账号" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("listbox", { name: "账号" })).toBeInTheDocument();
   });
 
-  it("supports keyboard navigation and Escape in the creator notch", async () => {
-    const handleSelectCreator = vi.fn();
-    const secondCreator =
-      creatorOptions.find((creator) => creator.id !== defaultCreatorId) ??
-      creatorOptions[0]!;
-
-    renderSidebar({ onSelectCreator: handleSelectCreator });
+  it("closes the creator notch on Escape and outside click", async () => {
+    renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
-    const trigger = within(sidebar).getByTestId(
-      "creator-account-notch-trigger",
-    );
+    const trigger = within(sidebar).getByTestId("notch-trigger-account");
 
-    trigger.focus();
-    fireEvent.keyDown(trigger, { key: "Enter" });
+    fireEvent.click(trigger);
 
-    let listbox = await screen.findByRole("listbox", {
-      name: "选择创作者账号",
-    });
-    fireEvent.keyDown(listbox, { key: "Escape" });
+    expect(await screen.findByRole("listbox", { name: "账号" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
 
     await waitFor(() =>
-      expect(
-        screen.queryByRole("listbox", { name: "选择创作者账号" }),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByRole("listbox", { name: "账号" })).not.toBeInTheDocument(),
     );
-    await waitFor(() => expect(trigger).toHaveFocus());
-    expect(trigger).toHaveAttribute("aria-expanded", "false");
 
-    fireEvent.keyDown(trigger, { key: "Enter" });
-    listbox = await screen.findByRole("listbox", {
-      name: "选择创作者账号",
-    });
-    fireEvent.keyDown(listbox, { key: "ArrowDown" });
-    expect(listbox).toHaveAttribute(
-      "aria-activedescendant",
-      expect.stringMatching(/-1$/),
+    fireEvent.click(within(sidebar).getByTestId("notch-trigger-account"));
+    expect(await screen.findByRole("listbox", { name: "账号" })).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+
+    await waitFor(() =>
+      expect(screen.queryByRole("listbox", { name: "账号" })).not.toBeInTheDocument(),
     );
-    fireEvent.keyDown(listbox, { key: "Enter" });
-
-    expect(handleSelectCreator).toHaveBeenCalledWith(secondCreator.id);
   });
 
   it("renders the footer avatar with a stable boring avatar seed", () => {

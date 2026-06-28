@@ -182,7 +182,7 @@ const SidebarContent = ({
 }) => (
   <div
     className={cn(
-      "flex h-full w-full flex-col overflow-hidden py-4",
+      "flex h-full w-full flex-col overflow-visible py-4",
       collapsed ? "px-2" : "px-4",
       className,
     )}
@@ -190,7 +190,7 @@ const SidebarContent = ({
     {showBrand ? <SidebarBrand collapsed={collapsed} /> : null}
 
     <ScrollArea.Root
-      className={cn("min-h-0 flex-1", showBrand ? "mt-7" : "mt-0")}
+      className={cn("min-h-0 flex-1 overflow-hidden", showBrand ? "mt-7" : "mt-0")}
     >
       <ScrollArea.Viewport
         className={cn("h-full", collapsed ? "pr-0" : "pr-1")}
