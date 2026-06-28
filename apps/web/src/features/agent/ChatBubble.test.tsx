@@ -46,4 +46,25 @@ describe("ChatBubble", () => {
       "Kernel unavailable.",
     );
   });
+
+  it("shows degraded mode notices above assistant content", () => {
+    render(
+      <ChatBubble
+        message={{
+          id: "message-notice",
+          role: "assistant",
+          content: "这里是本地诊断。",
+          notice: {
+            label: "云端 AI 暂不可用，已切换为本地诊断结果。",
+            tone: "warning",
+          },
+        }}
+        moduleById={new Map()}
+      />,
+    );
+
+    expect(
+      screen.getByText("云端 AI 暂不可用，已切换为本地诊断结果。"),
+    ).toBeInTheDocument();
+  });
 });

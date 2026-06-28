@@ -136,6 +136,7 @@ describe("useAgentChat", () => {
     await waitFor(() => expect(latestAssistantRun()?.mode).toBe("local"));
     const fallback = latestAssistantRun();
     expect(fallback?.content).toContain("本次调用模块");
+    expect(fallback?.notice?.label).toContain("云端 AI 暂不可用");
     expect(fallback?.agentRun?.toolCalls.length).toBeGreaterThan(0);
   });
 

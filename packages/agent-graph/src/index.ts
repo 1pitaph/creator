@@ -158,8 +158,6 @@ export const resetAgentGraphRuntimeForTests = () => {
   aiConfigByThread.clear();
 };
 
-const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
-
 const includesAny = (text: string, keywords: string[]) =>
   keywords.some((keyword) =>
     text.toLowerCase().includes(keyword.toLowerCase()),
@@ -677,7 +675,8 @@ export async function* streamAgentGraphEvents(
     streamMode: "updates",
   });
 
-  for await (const _update of stream) {
+  for await (const update of stream) {
+    void update;
     // Drain LangGraph updates for execution/checkpointing, but keep framework
     // node names out of the stable AgentRun/stream business protocol.
   }

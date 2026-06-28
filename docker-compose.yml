@@ -51,6 +51,8 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_PROVIDER_NAME: ${LLM_PROVIDER_NAME:-openai-compatible}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-30000}
     ports:
       - "${API_PORT:-8787}:8787"
     init: true
@@ -88,6 +90,8 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_PROVIDER_NAME: ${LLM_PROVIDER_NAME:-openai-compatible}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-30000}
     ports:
       - "${API_MEMORY_PORT:-8788}:8787"
     init: true

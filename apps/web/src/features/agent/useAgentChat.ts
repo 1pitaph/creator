@@ -47,6 +47,10 @@ type UseAgentChatOptions = {
 
 const defaultIdFactory = () => crypto.randomUUID();
 const createThreadId = () => `thread-${crypto.randomUUID()}`;
+const fallbackNotice = {
+  label: "云端 AI 暂不可用，已切换为本地诊断结果。",
+  tone: "warning",
+} as const;
 
 const createInitialWelcomeMessage = (idFactory: () => string): UiMessage => ({
   id: idFactory(),
@@ -185,6 +189,7 @@ export const useAgentChat = ({
           content: fallbackRun.answer,
           localOnly: true,
           mode: "local",
+          notice: fallbackNotice,
           usedModules: fallbackRun.usedModules,
           agentRun: fallbackRun,
         },
@@ -250,6 +255,7 @@ export const useAgentChat = ({
             content: fallbackRun.answer,
             localOnly: true,
             mode: "local",
+            notice: fallbackNotice,
             usedModules: fallbackRun.usedModules,
             agentRun: fallbackRun,
           },
@@ -380,6 +386,7 @@ export const useAgentChat = ({
     openAgent: () => setOpen(true),
     approveApproval: () => resumeApproval("approve"),
     setDraft,
+    stopGeneration: () => void chat.stop(),
     threadId,
   };
 };

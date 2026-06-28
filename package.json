@@ -6,10 +6,12 @@
   "packageManager": "pnpm@11.7.0",
   "scripts": {
     "dev": "turbo dev --filter=@creator/web --filter=@creator/api",
+    "dev:kernel": "pnpm --filter @creator/data-kernel dev",
     "dev:desktop": "turbo dev --filter=@creator/desktop",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test --filter=!@creator/data-kernel",
+    "test:ai-smoke": "RUN_DATA_KERNEL_SMOKE=1 pnpm --filter @creator/api test:kernel-smoke",
     "test:python": "pnpm --filter @creator/data-kernel test",
     "typecheck": "turbo typecheck",
     "format": "prettier --write ."

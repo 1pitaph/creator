@@ -30,6 +30,16 @@ export const ChatBubble = memo(function ChatBubble({
           isAssistant ? "bg-zinc-100 text-zinc-800" : "bg-zinc-950 text-white",
         )}
       >
+        {message.notice ? (
+          <p
+            className={cn(
+              "mb-2 rounded-lg border px-3 py-2 text-xs font-medium",
+              noticeToneClass[message.notice.tone],
+            )}
+          >
+            {message.notice.label}
+          </p>
+        ) : null}
         <p className="whitespace-pre-wrap">{message.content}</p>
         {isAssistant && message.agentRun ? (
           <AgentRunPanel run={message.agentRun} />
@@ -85,6 +95,15 @@ const confidenceLabel: Record<AgentRun["facts"][number]["confidence"], string> =
     medium: "中置信",
     low: "低置信",
   };
+
+const noticeToneClass: Record<
+  NonNullable<UiMessage["notice"]>["tone"],
+  string
+> = {
+  error: "border-red-100 bg-red-50 text-red-800",
+  info: "border-sky-100 bg-sky-50 text-sky-800",
+  warning: "border-amber-100 bg-amber-50 text-amber-800",
+};
 
 const AgentRunPanel = ({ run }: { run: AgentRun }) => (
   <div className="mt-4 space-y-3 border-t border-zinc-200/80 pt-3 text-xs leading-5">

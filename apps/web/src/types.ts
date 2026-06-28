@@ -1,4 +1,14 @@
-import type { AgentApprovalRequest, AgentMessage, AgentRun, AiModuleMetadata, ChartIntent, CreatorMetrics, DiagnosisResponse, InsightAction, TopContent } from "@creator/data-contracts";
+import type {
+  AgentApprovalRequest,
+  AgentMessage,
+  AgentRun,
+  AiModuleMetadata,
+  ChartIntent,
+  CreatorMetrics,
+  DiagnosisResponse,
+  InsightAction,
+  TopContent,
+} from "@creator/data-contracts";
 
 export type UiMessage = AgentMessage & {
   id: string;
@@ -7,6 +17,10 @@ export type UiMessage = AgentMessage & {
   agentRun?: AgentRun;
   approval?: AgentApprovalRequest;
   threadId?: string;
+  notice?: {
+    label: string;
+    tone: "info" | "warning" | "error";
+  };
 };
 
 export type AskTarget = {

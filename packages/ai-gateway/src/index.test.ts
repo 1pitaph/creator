@@ -1,7 +1,11 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { generateGatewayText, streamGatewayText } from "./index";
+import {
+  generateGatewayText,
+  getAiGatewayConfig,
+  streamGatewayText,
+} from "./index";
 
 const readBody = async (request: IncomingMessage) =>
   new Promise<Record<string, unknown>>((resolve, reject) => {
@@ -23,6 +27,12 @@ afterEach(() => {
 });
 
 describe("ai gateway", () => {
+  it("reads LLM timeout configuration from the environment", () => {
+    vi.stubEnv("LLM_TIMEOUT_MS", "12000");
+
+    expect(getAiGatewayConfig().timeoutMs).toBe(12_000);
+  });
+
   it("returns null when no LLM key is configured", async () => {
     vi.stubEnv("LLM_API_KEY", "");
 

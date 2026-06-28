@@ -3,6 +3,7 @@ import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
 import { PaperPlaneTilt } from "@phosphor-icons/react/PaperPlaneTilt";
 import { Robot } from "@phosphor-icons/react/Robot";
 import { Sparkle } from "@phosphor-icons/react/Sparkle";
+import { StopCircle } from "@phosphor-icons/react/StopCircle";
 import { X } from "@phosphor-icons/react/X";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import type { FormEvent, RefObject } from "react";
@@ -27,6 +28,7 @@ export const AgentDrawer = ({
   onDraftChange,
   onSubmit,
   onAskPreset,
+  onStopGeneration,
   approval,
   onApproveApproval,
   onDenyApproval,
@@ -43,6 +45,7 @@ export const AgentDrawer = ({
   onDraftChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onAskPreset: (question: string) => void;
+  onStopGeneration: () => void;
   approval?: AgentApprovalRequest;
   onApproveApproval: () => void;
   onDenyApproval: () => void;
@@ -136,12 +139,27 @@ export const AgentDrawer = ({
             />
           ))}
           {isChatting ? (
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <CircleNotch
-                className="h-3.5 w-3.5 animate-spin"
-                weight={phosphorIconWeight}
-              />
-              Agent 正在调用分析模块
+            <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
+              <div className="flex items-center gap-2">
+                <CircleNotch
+                  className="h-3.5 w-3.5 animate-spin"
+                  weight={phosphorIconWeight}
+                />
+                Agent 正在调用分析模块
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={onStopGeneration}
+                aria-label="停止生成"
+              >
+                <StopCircle
+                  className="h-3.5 w-3.5"
+                  weight={phosphorIconWeight}
+                />
+                停止
+              </Button>
             </div>
           ) : null}
           <div ref={endRef} />

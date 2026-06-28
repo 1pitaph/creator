@@ -55,6 +55,7 @@ export const AgentDrawerContainer = ({
         onDraftChange={chat.setDraft}
         onSubmit={chat.handleSubmit}
         onAskPreset={chat.askPreset}
+        onStopGeneration={chat.stopGeneration}
         approval={chat.currentApproval}
         onApproveApproval={chat.approveApproval}
         onDenyApproval={chat.denyApproval}

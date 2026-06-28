@@ -69,8 +69,7 @@ const stopProcess = async (processRef: ChildProcessWithoutNullStreams) => {
   });
 };
 
-const smokeIt =
-  process.env.RUN_DATA_KERNEL_SMOKE === "1" ? it : it.skip;
+const smokeIt = process.env.RUN_DATA_KERNEL_SMOKE === "1" ? it : it.skip;
 
 beforeEach(async () => {
   vi.stubEnv("AGENT_CHECKPOINT_URL", "");
@@ -88,7 +87,7 @@ afterEach(async () => {
 
 describe("data kernel smoke", () => {
   smokeIt(
-    "streams through the API into a real FastAPI data-kernel process",
+    "streams through the API, a fake LLM, and a real FastAPI data-kernel process",
     async () => {
       const python =
         process.env.DATA_KERNEL_PYTHON ??
@@ -115,6 +114,52 @@ describe("data kernel smoke", () => {
           },
         },
       );
+      const llm = createServer((request, response) => {
+        if (request.url !== "/chat/completions") {
+          response.writeHead(404).end();
+          return;
+        }
+
+        response.writeHead(200, {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          connection: "keep-alive",
+        });
+        response.write(
+          `data: ${JSON.stringify({
+            id: "chunk-1",
+            object: "chat.completion.chunk",
+            created: 0,
+            model: "smoke-model",
+            choices: [
+              {
+                index: 0,
+                delta: { content: "LLM smoke " },
+                finish_reason: null,
+              },
+            ],
+          })}\n\n`,
+        );
+        response.write(
+          `data: ${JSON.stringify({
+            id: "chunk-2",
+            object: "chat.completion.chunk",
+            created: 0,
+            model: "smoke-model",
+            choices: [
+              {
+                index: 0,
+                delta: { content: "回答" },
+                finish_reason: null,
+              },
+            ],
+          })}\n\n`,
+        );
+        response.end("data: [DONE]\n\n");
+      });
+      await new Promise<void>((resolveListen) =>
+        llm.listen(0, "127.0.0.1", resolveListen),
+      );
 
       let stderr = "";
       kernel.stderr.on("data", (chunk) => {
@@ -125,8 +170,17 @@ describe("data kernel smoke", () => {
         await waitForHealth(kernelUrl);
         vi.stubEnv("DATA_KERNEL_URL", kernelUrl);
         vi.stubEnv("DATA_KERNEL_TOKEN", token);
+        const llmAddress = llm.address() as AddressInfo;
+        vi.stubEnv("LLM_API_KEY", "smoke-key");
+        vi.stubEnv("LLM_BASE_URL", `http://127.0.0.1:${llmAddress.port}`);
+        vi.stubEnv("LLM_MODEL", "smoke-model");
+        vi.stubEnv("LLM_TIMEOUT_MS", "5000");
         process.env.DATA_KERNEL_URL = kernelUrl;
         process.env.DATA_KERNEL_TOKEN = token;
+        process.env.LLM_API_KEY = "smoke-key";
+        process.env.LLM_BASE_URL = `http://127.0.0.1:${llmAddress.port}`;
+        process.env.LLM_MODEL = "smoke-model";
+        process.env.LLM_TIMEOUT_MS = "5000";
         resetAgentGraphRuntimeForTests();
 
         app = await buildApiApp();
@@ -143,16 +197,25 @@ describe("data kernel smoke", () => {
           },
         });
         const chunks = parseSseChunks(response.payload);
-        const agentRun = chunks.find(
-          (chunk) => chunk.type === "data-agent-run",
-        )?.data as
+        const agentRun = chunks.find((chunk) => chunk.type === "data-agent-run")
+          ?.data as
           | {
+              answer?: string;
               evidence?: Array<{ sourceType?: string }>;
+              mode?: string;
               toolCalls?: Array<{ name?: string; status?: string }>;
             }
           | undefined;
 
         expect(response.statusCode).toBe(200);
+        expect(
+          chunks
+            .filter((chunk) => chunk.type === "text-delta")
+            .map((chunk) => chunk.delta)
+            .join(""),
+        ).toBe("LLM smoke 回答");
+        expect(agentRun?.mode).toBe("llm-assisted");
+        expect(agentRun?.answer).toBe("LLM smoke 回答");
         expect(chunks.map((chunk) => chunk.type)).toContain(
           "data-agent-tool-call",
         );
@@ -170,7 +233,9 @@ describe("data kernel smoke", () => {
           if (!toolSummaryText.includes(expectedTool)) {
             const errorSummary = (agentRun?.toolCalls ?? [])
               .filter((tool) => tool.status === "error")
-              .map((tool) => `${tool.name}: ${tool.error ?? tool.outputSummary}`)
+              .map(
+                (tool) => `${tool.name}: ${tool.error ?? tool.outputSummary}`,
+              )
               .join("\n");
             throw new Error(
               `Missing ${expectedTool}.\nTools:\n${toolSummaryText}\nErrors:\n${errorSummary}\nChunk types:\n${chunks
@@ -189,6 +254,9 @@ describe("data kernel smoke", () => {
           `${error instanceof Error ? error.message : String(error)}\n${stderr}`,
         );
       } finally {
+        await new Promise<void>((resolveClose) =>
+          llm.close(() => resolveClose()),
+        );
         await stopProcess(kernel);
       }
     },
