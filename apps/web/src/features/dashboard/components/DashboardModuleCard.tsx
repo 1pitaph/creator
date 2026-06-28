@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@creator/ui";
+import { Card, CardContent, CardHeader, CardTitle, cn } from "@creator/ui";
 
 import { HoverBorderGradientButton } from "../../../components/effects/AskAgentButton";
 import { GlowingPanel } from "../../../components/effects/GlowingPanel";
@@ -12,6 +12,8 @@ export const DashboardModuleCard = ({
   askTarget,
   onAsk,
   className,
+  contentClassName,
+  fill = false,
   children
 }: {
   title: string;
@@ -19,16 +21,18 @@ export const DashboardModuleCard = ({
   askTarget: AskTarget;
   onAsk: (target: AskTarget) => void;
   className?: string;
+  contentClassName?: string;
+  fill?: boolean;
   children: ReactNode;
 }) => (
   <GlowingPanel className={className}>
-    <Card className="relative z-10 h-full overflow-visible rounded-[19px] border-0 bg-white shadow-none">
+    <Card className={cn("relative z-10 overflow-visible rounded-[19px] border-0 bg-white shadow-none", fill && "flex h-full flex-col")}>
       <AskAgentToolbar target={askTarget} onAsk={onAsk} />
       <CardHeader className="relative z-10 border-b border-zinc-100/80 !py-5 !pl-6 !pr-28">
         <CardTitle className="text-[15px] font-semibold text-zinc-900">{title}</CardTitle>
         {description ? <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">{description}</p> : null}
       </CardHeader>
-      <CardContent className="relative z-10 !px-6 !py-5">{children}</CardContent>
+      <CardContent className={cn("relative z-10 !px-6 !py-5", fill && "min-h-0 flex-1", contentClassName)}>{children}</CardContent>
     </Card>
   </GlowingPanel>
 );

@@ -159,6 +159,71 @@ export const DiagnosisResponseSchema = z.object({
   insights: z.array(InsightSchema),
 });
 
+export const DashboardViewSchema = z.enum(["visual", "board", "table"]);
+export const DashboardCardSizeSchema = z.enum([
+  "sm",
+  "md",
+  "wide",
+  "tall",
+  "hero",
+]);
+export const DashboardBreakpointSchema = z.enum(["lg", "md", "sm", "xs"]);
+export const DashboardBoardColumnSchema = z.enum([
+  "today",
+  "next",
+  "this_week",
+  "done",
+]);
+export const DashboardTableSortFieldSchema = z.enum([
+  "priority",
+  "title",
+  "type",
+  "size",
+  "visible",
+]);
+export const DashboardSortDirectionSchema = z.enum(["asc", "desc"]);
+
+export const DashboardCardPreferenceSchema = z.object({
+  visible: z.boolean(),
+  size: DashboardCardSizeSchema,
+});
+
+export const DashboardGridItemSchema = z.object({
+  i: z.string(),
+  x: z.number().int().nonnegative(),
+  y: z.number().int().nonnegative(),
+  w: z.number().int().positive(),
+  h: z.number().int().positive(),
+  minW: z.number().int().positive().optional(),
+  minH: z.number().int().positive().optional(),
+  maxW: z.number().int().positive().optional(),
+  maxH: z.number().int().positive().optional(),
+});
+
+export const DashboardPreferencesV1Schema = z.object({
+  version: z.literal(1),
+  creatorId: z.string(),
+  selectedView: DashboardViewSchema,
+  updatedAt: z.string(),
+  cards: z.record(z.string(), DashboardCardPreferenceSchema),
+  visual: z.object({
+    layouts: z.record(DashboardBreakpointSchema, z.array(DashboardGridItemSchema)),
+  }),
+  board: z.object({
+    columns: z.record(DashboardBoardColumnSchema, z.array(z.string())),
+  }),
+  table: z.object({
+    sort: z.object({
+      field: DashboardTableSortFieldSchema,
+      direction: DashboardSortDirectionSchema,
+    }),
+  }),
+});
+
+export const DashboardPreferencesResponseSchema = z.object({
+  preferences: DashboardPreferencesV1Schema.nullable(),
+});
+
 export const AgentMessageSchema = z.object({
   id: z.string().optional(),
   role: z.enum(["system", "user", "assistant"]),
@@ -491,6 +556,28 @@ export type AiModuleMetadata = z.infer<typeof AiModuleMetadataSchema>;
 export type InsightAction = z.infer<typeof InsightActionSchema>;
 export type Insight = z.infer<typeof InsightSchema>;
 export type DiagnosisResponse = z.infer<typeof DiagnosisResponseSchema>;
+export type DashboardView = z.infer<typeof DashboardViewSchema>;
+export type DashboardCardSize = z.infer<typeof DashboardCardSizeSchema>;
+export type DashboardBreakpoint = z.infer<typeof DashboardBreakpointSchema>;
+export type DashboardBoardColumn = z.infer<
+  typeof DashboardBoardColumnSchema
+>;
+export type DashboardTableSortField = z.infer<
+  typeof DashboardTableSortFieldSchema
+>;
+export type DashboardSortDirection = z.infer<
+  typeof DashboardSortDirectionSchema
+>;
+export type DashboardCardPreference = z.infer<
+  typeof DashboardCardPreferenceSchema
+>;
+export type DashboardGridItem = z.infer<typeof DashboardGridItemSchema>;
+export type DashboardPreferencesV1 = z.infer<
+  typeof DashboardPreferencesV1Schema
+>;
+export type DashboardPreferencesResponse = z.infer<
+  typeof DashboardPreferencesResponseSchema
+>;
 export type AgentMessage = z.infer<typeof AgentMessageSchema>;
 export type AgentEvidenceSourceType = z.infer<
   typeof AgentEvidenceSourceTypeSchema

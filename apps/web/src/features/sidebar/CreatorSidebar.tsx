@@ -12,34 +12,34 @@ import { Badge, cn } from "@creator/ui";
 
 import { lifecycleLabels, phosphorIconWeight } from "../../constants";
 import { creatorOptions } from "../creator-diagnosis/creatorOptions";
-import { agentNavIcon, sidebarNavItems } from "./navItems";
+import { sidebarNavItems } from "./navItems";
 
 const douyinLogoPath =
   "M12.53.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z";
 
-const creatorAvatarColors = ["#25f4ee", "#fe2c55", "#18181b", "#e5e7eb", "#38bdf8"];
+const creatorAvatarColors = [
+  "#25f4ee",
+  "#fe2c55",
+  "#18181b",
+  "#e5e7eb",
+  "#38bdf8",
+];
 
 export const CreatorSidebar = ({
   selectedCreatorId,
   onSelectCreator,
   diagnosis,
   isLoadingDiagnosis,
-  onOpenAgent
 }: {
   selectedCreatorId: string;
   onSelectCreator: (creatorId: string) => void;
   diagnosis: DiagnosisResponse;
   isLoadingDiagnosis: boolean;
-  onOpenAgent: () => void;
 }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
 
   const closeMobileSidebar = () => setIsMobileOpen(false);
-  const openAgentFromSidebar = () => {
-    closeMobileSidebar();
-    onOpenAgent();
-  };
 
   return (
     <>
@@ -59,8 +59,8 @@ export const CreatorSidebar = ({
 
       <aside
         className={cn(
-          "group/sidebar-shell sticky top-0 z-40 hidden h-screen shrink-0 border-r border-neutral-200 bg-neutral-100 transition-[width] duration-300 ease-in-out md:flex",
-          isDesktopCollapsed ? "w-[72px]" : "w-[260px]"
+          "group/sidebar-shell sticky top-0 z-40 hidden h-screen shrink-0 border-r border-neutral-200 bg-neutral-100 shadow-[6px_0_18px_rgba(15,23,42,0.04)] transition-[width] duration-300 ease-in-out md:flex",
+          isDesktopCollapsed ? "w-[72px]" : "w-[260px]",
         )}
         data-collapsed={isDesktopCollapsed}
         data-testid="creator-sidebar-desktop"
@@ -73,7 +73,13 @@ export const CreatorSidebar = ({
           title={isDesktopCollapsed ? "展开侧边栏" : "收起侧边栏"}
           onClick={() => setIsDesktopCollapsed((collapsed) => !collapsed)}
         >
-          <CaretLeft className={cn("h-4 w-4 transition-transform duration-300", isDesktopCollapsed && "rotate-180")} weight={phosphorIconWeight} />
+          <CaretLeft
+            className={cn(
+              "h-4 w-4 transition-transform duration-300",
+              isDesktopCollapsed && "rotate-180",
+            )}
+            weight={phosphorIconWeight}
+          />
         </button>
         <SidebarContent
           collapsed={isDesktopCollapsed}
@@ -81,14 +87,15 @@ export const CreatorSidebar = ({
           onSelectCreator={onSelectCreator}
           diagnosis={diagnosis}
           isLoadingDiagnosis={isLoadingDiagnosis}
-          onOpenAgent={onOpenAgent}
         />
       </aside>
 
       <div
         className={cn(
           "fixed inset-0 z-[70] bg-zinc-950/25 transition duration-300 md:hidden",
-          isMobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+          isMobileOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0",
         )}
         aria-hidden={!isMobileOpen}
         onPointerDown={(event) => {
@@ -105,7 +112,9 @@ export const CreatorSidebar = ({
         <div
           className={cn(
             "relative z-10 flex h-dvh w-[min(330px,calc(100vw-28px))] transform flex-col border-r border-neutral-200 bg-neutral-100 shadow-2xl transition duration-300",
-            isMobileOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"
+            isMobileOpen
+              ? "translate-x-0 opacity-100"
+              : "-translate-x-full opacity-0",
           )}
           data-testid="creator-sidebar-mobile"
         >
@@ -117,7 +126,10 @@ export const CreatorSidebar = ({
               aria-label="关闭侧边栏"
               onClick={closeMobileSidebar}
             >
-              <X className="pointer-events-none h-4 w-4" weight={phosphorIconWeight} />
+              <X
+                className="pointer-events-none h-4 w-4"
+                weight={phosphorIconWeight}
+              />
             </button>
           </div>
           <SidebarContent
@@ -130,7 +142,6 @@ export const CreatorSidebar = ({
             }}
             diagnosis={diagnosis}
             isLoadingDiagnosis={isLoadingDiagnosis}
-            onOpenAgent={openAgentFromSidebar}
             onNavigate={closeMobileSidebar}
           />
         </div>
@@ -147,8 +158,7 @@ const SidebarContent = ({
   onSelectCreator,
   diagnosis,
   isLoadingDiagnosis,
-  onOpenAgent,
-  onNavigate
+  onNavigate,
 }: {
   className?: string;
   collapsed?: boolean;
@@ -157,47 +167,89 @@ const SidebarContent = ({
   onSelectCreator: (creatorId: string) => void;
   diagnosis: DiagnosisResponse;
   isLoadingDiagnosis: boolean;
-  onOpenAgent: () => void;
   onNavigate?: () => void;
 }) => (
-  <div className={cn("flex h-full w-full flex-col overflow-hidden py-4", collapsed ? "px-2" : "px-4", className)}>
+  <div
+    className={cn(
+      "flex h-full w-full flex-col overflow-hidden py-4",
+      collapsed ? "px-2" : "px-4",
+      className,
+    )}
+  >
     {showBrand ? <SidebarBrand collapsed={collapsed} /> : null}
 
-    <ScrollArea.Root className={cn("min-h-0 flex-1", showBrand ? "mt-7" : "mt-0")}>
-      <ScrollArea.Viewport className={cn("h-full", collapsed ? "pr-0" : "pr-1")}>
-        {collapsed ? null : <CreatorAccountSelect selectedCreatorId={selectedCreatorId} onSelectCreator={onSelectCreator} />}
+    <ScrollArea.Root
+      className={cn("min-h-0 flex-1", showBrand ? "mt-7" : "mt-0")}
+    >
+      <ScrollArea.Viewport
+        className={cn("h-full", collapsed ? "pr-0" : "pr-1")}
+      >
+        {collapsed ? null : (
+          <CreatorAccountSelect
+            selectedCreatorId={selectedCreatorId}
+            onSelectCreator={onSelectCreator}
+          />
+        )}
 
         <div className={collapsed ? "mt-0" : "mt-6"}>
-          <SidebarNav collapsed={collapsed} onOpenAgent={onOpenAgent} onNavigate={onNavigate} />
+          <SidebarNav collapsed={collapsed} onNavigate={onNavigate} />
         </div>
 
         {collapsed ? null : <SidebarDivider />}
 
         {collapsed ? null : <CreatorMiniCard diagnosis={diagnosis} />}
       </ScrollArea.Viewport>
-      <ScrollArea.Scrollbar className="flex w-2.5 touch-none select-none bg-transparent p-0.5" orientation="vertical">
+      <ScrollArea.Scrollbar
+        className="flex w-2.5 touch-none select-none bg-transparent p-0.5"
+        orientation="vertical"
+      >
         <ScrollArea.Thumb className="relative flex-1 rounded-full bg-neutral-300" />
       </ScrollArea.Scrollbar>
     </ScrollArea.Root>
 
-    <SidebarFooter collapsed={collapsed} diagnosis={diagnosis} isLoadingDiagnosis={isLoadingDiagnosis} />
+    <SidebarFooter
+      collapsed={collapsed}
+      diagnosis={diagnosis}
+      isLoadingDiagnosis={isLoadingDiagnosis}
+    />
   </div>
 );
 
-const SidebarBrand = ({ className, collapsed = false }: { className?: string; collapsed?: boolean }) => (
-  <div className={cn("relative z-20 flex items-center gap-2 py-1 text-sm text-neutral-950", collapsed ? "justify-center px-0" : "px-4", className)}>
+const SidebarBrand = ({
+  className,
+  collapsed = false,
+}: {
+  className?: string;
+  collapsed?: boolean;
+}) => (
+  <div
+    className={cn(
+      "relative z-20 flex items-center gap-2 py-1 text-sm text-neutral-950",
+      collapsed ? "justify-center px-0" : "px-4",
+      className,
+    )}
+  >
     <div className="flex h-7 w-8 shrink-0 items-center justify-center rounded-bl-sm rounded-br-lg rounded-tl-lg rounded-tr-sm bg-black text-white">
       <DouyinLogoMark />
     </div>
     <div className={cn("min-w-0", collapsed && "hidden")}>
-      <p className="truncate font-medium leading-5 text-neutral-950">Creator AI</p>
-      <p className="truncate text-xs leading-4 text-neutral-500">抖音创作者中心 Demo</p>
+      <p className="truncate font-medium leading-5 text-neutral-950">
+        Creator AI
+      </p>
+      <p className="truncate text-xs leading-4 text-neutral-500">
+        抖音创作者中心 Demo
+      </p>
     </div>
   </div>
 );
 
 const DouyinLogoMark = () => (
-  <svg aria-hidden="true" className="h-5 w-5 overflow-visible" focusable="false" viewBox="0 0 24 24">
+  <svg
+    aria-hidden="true"
+    className="h-5 w-5 overflow-visible"
+    focusable="false"
+    viewBox="0 0 24 24"
+  >
     <path d={douyinLogoPath} fill="#25f4ee" transform="translate(-1 1)" />
     <path d={douyinLogoPath} fill="#fe2c55" transform="translate(1 -1)" />
     <path d={douyinLogoPath} fill="currentColor" />
@@ -206,18 +258,23 @@ const DouyinLogoMark = () => (
 
 const CreatorAccountSelect = ({
   selectedCreatorId,
-  onSelectCreator
+  onSelectCreator,
 }: {
   selectedCreatorId: string;
   onSelectCreator: (creatorId: string) => void;
 }) => (
   <div className="px-1">
-    <p className="mb-2 px-3 text-xs font-semibold text-neutral-500">创作者账号</p>
+    <p className="mb-2 px-3 text-xs font-semibold text-neutral-500">
+      创作者账号
+    </p>
     <Select.Root value={selectedCreatorId} onValueChange={onSelectCreator}>
       <Select.Trigger className="flex h-11 w-full items-center justify-between rounded-lg border border-neutral-200 bg-white/80 px-3 text-sm font-medium text-neutral-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] outline-none transition hover:bg-white focus:ring-2 focus:ring-neutral-300">
         <Select.Value />
         <Select.Icon>
-          <CaretDown className="h-4 w-4 text-neutral-500" weight={phosphorIconWeight} />
+          <CaretDown
+            className="h-4 w-4 text-neutral-500"
+            weight={phosphorIconWeight}
+          />
         </Select.Icon>
       </Select.Trigger>
       <Select.Portal>
@@ -255,8 +312,12 @@ const CreatorMiniCard = ({ diagnosis }: { diagnosis: DiagnosisResponse }) => (
         {diagnosis.creator.displayName.slice(0, 2)}
       </div>
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-neutral-950">{diagnosis.creator.displayName}</p>
-        <p className="truncate text-xs text-neutral-500">{diagnosis.creator.handle}</p>
+        <p className="truncate text-sm font-semibold text-neutral-950">
+          {diagnosis.creator.displayName}
+        </p>
+        <p className="truncate text-xs text-neutral-500">
+          {diagnosis.creator.handle}
+        </p>
       </div>
     </div>
     <div className="mt-3 flex flex-wrap gap-1.5">
@@ -273,17 +334,22 @@ const CreatorMiniCard = ({ diagnosis }: { diagnosis: DiagnosisResponse }) => (
 const SidebarFooter = ({
   collapsed = false,
   diagnosis,
-  isLoadingDiagnosis
+  isLoadingDiagnosis,
 }: {
   collapsed?: boolean;
   diagnosis: DiagnosisResponse;
   isLoadingDiagnosis: boolean;
 }) => (
-  <div className={cn("mt-4 border-t border-neutral-200 pt-4", collapsed && "flex justify-center")}>
+  <div
+    className={cn(
+      "mt-4 border-t border-neutral-200 pt-4",
+      collapsed && "flex justify-center",
+    )}
+  >
     <div
       className={cn(
         "group/sidebar flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-neutral-200/80",
-        collapsed && "h-11 justify-center px-0"
+        collapsed && "h-11 justify-center px-0",
       )}
       title={collapsed ? diagnosis.creator.displayName : undefined}
     >
@@ -293,7 +359,8 @@ const SidebarFooter = ({
           {diagnosis.creator.displayName}
         </p>
         <p className="truncate text-xs text-neutral-500">
-          {isLoadingDiagnosis ? "画像同步中" : "AI 模块在线"} · {diagnosis.modules.length} tools
+          {isLoadingDiagnosis ? "画像同步中" : "AI 模块在线"} ·{" "}
+          {diagnosis.modules.length} tools
         </p>
       </div>
     </div>
@@ -322,12 +389,24 @@ const SidebarFooterAvatar = ({ seed }: { seed: string }) => (
   </span>
 );
 
-const SidebarNav = ({ collapsed = false, onOpenAgent, onNavigate }: { collapsed?: boolean; onOpenAgent: () => void; onNavigate?: () => void }) => (
+const SidebarNav = ({
+  collapsed = false,
+  onNavigate,
+}: {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}) => (
   <nav className="flex flex-col gap-1">
     {sidebarNavItems.map((item) => (
-      <SidebarLinkItem key={item.label} collapsed={collapsed} label={item.label} active={item.active} icon={item.icon} onClick={onNavigate} />
+      <SidebarLinkItem
+        key={item.label}
+        collapsed={collapsed}
+        label={item.label}
+        active={item.active}
+        icon={item.icon}
+        onClick={onNavigate}
+      />
     ))}
-    <SidebarLinkItem collapsed={collapsed} label="AI Agent" icon={agentNavIcon} onClick={onOpenAgent} />
   </nav>
 );
 
@@ -336,7 +415,7 @@ const SidebarLinkItem = ({
   label,
   icon,
   active,
-  onClick
+  onClick,
 }: {
   collapsed?: boolean;
   label: string;
@@ -352,7 +431,7 @@ const SidebarLinkItem = ({
       aria-current={active ? "page" : undefined}
       className={cn(
         "group/sidebar relative w-full py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
-        collapsed ? "px-0 text-center" : "px-4 text-left"
+        collapsed ? "px-0 text-center" : "px-4 text-left",
       )}
       title={collapsed ? label : undefined}
       onClick={onClick}
@@ -367,17 +446,26 @@ const SidebarLinkItem = ({
       <span
         className={cn(
           "pointer-events-none absolute inset-0 z-10 rounded-lg bg-neutral-200 transition-opacity duration-150 ease-out",
-          active || isIntent ? "opacity-100" : "opacity-0 group-focus/sidebar:opacity-100 group-hover/sidebar:opacity-100"
+          active || isIntent
+            ? "opacity-100"
+            : "opacity-0 group-focus/sidebar:opacity-100 group-hover/sidebar:opacity-100",
         )}
       />
-      <span className={cn("relative z-20 flex items-center gap-2 py-2", collapsed ? "justify-center" : "justify-start")}>
-        <span className="shrink-0 text-neutral-700 transition-colors duration-150">{icon}</span>
+      <span
+        className={cn(
+          "relative z-20 flex items-center gap-2 py-2",
+          collapsed ? "justify-center" : "justify-start",
+        )}
+      >
+        <span className="shrink-0 text-neutral-700 transition-colors duration-150">
+          {icon}
+        </span>
         <span
           className={cn(
             "inline-block whitespace-pre text-sm font-medium transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
             isIntent && "translate-x-1",
             "text-neutral-700",
-            collapsed && "sr-only"
+            collapsed && "sr-only",
           )}
         >
           {label}

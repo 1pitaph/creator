@@ -9,7 +9,9 @@ import { createDiagnosis } from "@creator/ai-modules";
 import {
   AgentResumeRequestSchema,
   ChatRequestSchema,
+  DashboardPreferencesV1Schema,
   type AgentChatMetadata,
+  type DashboardPreferencesV1,
   type AgentRunPatch,
   type AgentStreamEvent,
 } from "@creator/data-contracts";
@@ -41,6 +43,10 @@ export const buildApiApp = async () => {
   const app = Fastify({
     logger: process.env.NODE_ENV === "test" ? false : true,
   });
+  const dashboardPreferencesByCreator = new Map<
+    string,
+    DashboardPreferencesV1
+  >();
 
   await app.register(cors, {
     origin: process.env.WEB_ORIGIN ?? true,
@@ -64,6 +70,32 @@ export const buildApiApp = async () => {
   app.get("/api/creator/:id/diagnosis", async (request) => {
     const { id } = request.params as { id: string };
     return getDiagnosisForCreator(id);
+  });
+
+  app.get("/api/creator/:id/dashboard-preferences", async (request) => {
+    const { id } = request.params as { id: string };
+
+    return {
+      preferences: dashboardPreferencesByCreator.get(id) ?? null,
+    };
+  });
+
+  app.put("/api/creator/:id/dashboard-preferences", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const parsed = DashboardPreferencesV1Schema.safeParse(request.body);
+
+    if (!parsed.success || parsed.data.creatorId !== id) {
+      return reply.status(400).send({
+        error: "Invalid dashboard preferences",
+        issues: parsed.success ? [] : parsed.error.issues,
+      });
+    }
+
+    dashboardPreferencesByCreator.set(id, parsed.data);
+
+    return {
+      preferences: parsed.data,
+    };
   });
 
   app.post("/api/chat", async (request, reply) => {

@@ -11,24 +11,25 @@ import type { AgentCommand, AskTarget } from "./types";
 const createAgentCommandId = () => crypto.randomUUID();
 
 export const App = () => {
-  const { selectedCreatorId, setSelectedCreatorId, diagnosis, isLoadingDiagnosis } = useCreatorDiagnosis({
-    initialCreatorId: defaultCreatorId
+  const {
+    selectedCreatorId,
+    setSelectedCreatorId,
+    diagnosis,
+    isLoadingDiagnosis,
+  } = useCreatorDiagnosis({
+    initialCreatorId: defaultCreatorId,
   });
-  const viewModel = useMemo(() => buildDashboardViewModel(diagnosis), [diagnosis]);
+  const viewModel = useMemo(
+    () => buildDashboardViewModel(diagnosis),
+    [diagnosis],
+  );
   const [agentCommand, setAgentCommand] = useState<AgentCommand | null>(null);
-
-  const openAgent = useCallback(() => {
-    setAgentCommand({
-      id: createAgentCommandId(),
-      type: "open"
-    });
-  }, []);
 
   const askAgent = useCallback((target: AskTarget) => {
     setAgentCommand({
       id: createAgentCommandId(),
       type: "ask",
-      target
+      target,
     });
   }, []);
 
@@ -40,19 +41,23 @@ export const App = () => {
           onSelectCreator={setSelectedCreatorId}
           diagnosis={diagnosis}
           isLoadingDiagnosis={isLoadingDiagnosis}
-          onOpenAgent={openAgent}
         />
 
         <DashboardPage
+          creatorId={selectedCreatorId}
           diagnosis={diagnosis}
           isLoadingDiagnosis={isLoadingDiagnosis}
           onAskAgent={askAgent}
-          onOpenAgent={openAgent}
           viewModel={viewModel}
         />
       </div>
 
-      <AgentDrawerContainer activeModuleIds={viewModel.activeModuleIds} command={agentCommand} creatorId={selectedCreatorId} diagnosis={diagnosis} />
+      <AgentDrawerContainer
+        activeModuleIds={viewModel.activeModuleIds}
+        command={agentCommand}
+        creatorId={selectedCreatorId}
+        diagnosis={diagnosis}
+      />
     </main>
   );
 };

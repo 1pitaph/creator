@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { resetAgentGraphRuntimeForTests } from "@creator/agent-graph";
+import type { DashboardPreferencesV1 } from "@creator/data-contracts";
 import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildApiApp } from "./server";
@@ -26,6 +26,40 @@ const withTimeout = async <T,>(promise: Promise<T>, ms: number) =>
     ),
   ]);
 
+const createDashboardPreferences = (
+  creatorId = "starter-food",
+): DashboardPreferencesV1 => ({
+  version: 1,
+  creatorId,
+  selectedView: "visual",
+  updatedAt: "2026-06-28T00:00:00.000Z",
+  cards: {
+    summary: { visible: true, size: "wide" },
+  },
+  visual: {
+    layouts: {
+      lg: [{ i: "summary", x: 0, y: 0, w: 6, h: 6, minW: 3, minH: 4 }],
+      md: [{ i: "summary", x: 0, y: 0, w: 4, h: 6, minW: 2, minH: 4 }],
+      sm: [{ i: "summary", x: 0, y: 0, w: 4, h: 6, minW: 2, minH: 4 }],
+      xs: [{ i: "summary", x: 0, y: 0, w: 2, h: 6, minW: 2, minH: 4 }],
+    },
+  },
+  board: {
+    columns: {
+      today: ["action-1"],
+      next: [],
+      this_week: [],
+      done: [],
+    },
+  },
+  table: {
+    sort: {
+      field: "priority",
+      direction: "asc",
+    },
+  },
+});
+
 beforeEach(async () => {
   vi.stubEnv("AGENT_CHECKPOINT_URL", "");
   vi.stubEnv("DATA_KERNEL_URL", "");
@@ -41,6 +75,47 @@ afterEach(async () => {
 });
 
 describe("creator API", () => {
+  it("returns null when dashboard preferences have not been saved", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/creator/starter-food/dashboard-preferences",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ preferences: null });
+  });
+
+  it("saves and returns dashboard preferences", async () => {
+    const preferences = createDashboardPreferences();
+    const saved = await app.inject({
+      method: "PUT",
+      url: "/api/creator/starter-food/dashboard-preferences",
+      payload: preferences,
+    });
+    const loaded = await app.inject({
+      method: "GET",
+      url: "/api/creator/starter-food/dashboard-preferences",
+    });
+
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json()).toEqual({ preferences });
+    expect(loaded.json()).toEqual({ preferences });
+  });
+
+  it("rejects invalid dashboard preferences", async () => {
+    const response = await app.inject({
+      method: "PUT",
+      url: "/api/creator/starter-food/dashboard-preferences",
+      payload: {
+        ...createDashboardPreferences("other-creator"),
+        selectedView: "canvas",
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error).toBe("Invalid dashboard preferences");
+  });
+
   it("keeps /api/chat legacy JSON response shape while invoking the graph", async () => {
     const response = await app.inject({
       method: "POST",

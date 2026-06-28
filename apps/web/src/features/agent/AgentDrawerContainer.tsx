@@ -4,13 +4,14 @@ import type { DiagnosisResponse } from "@creator/data-contracts";
 
 import type { AgentCommand } from "../../types";
 import { AgentDrawer } from "./AgentDrawer";
+import { AgentFloatingButton } from "./AgentFloatingButton";
 import { useAgentChat } from "./useAgentChat";
 
 export const AgentDrawerContainer = ({
   activeModuleIds,
   command,
   creatorId,
-  diagnosis
+  diagnosis,
 }: {
   activeModuleIds: string[];
   command: AgentCommand | null;
@@ -18,11 +19,14 @@ export const AgentDrawerContainer = ({
   diagnosis: DiagnosisResponse;
 }) => {
   const processedCommandIdRef = useRef<string | null>(null);
-  const moduleById = useMemo(() => new Map(diagnosis.modules.map((module) => [module.id, module])), [diagnosis.modules]);
+  const moduleById = useMemo(
+    () => new Map(diagnosis.modules.map((module) => [module.id, module])),
+    [diagnosis.modules],
+  );
   const chat = useAgentChat({
     activeModuleIds,
     creatorId,
-    diagnosis
+    diagnosis,
   });
 
   useEffect(() => {
@@ -41,22 +45,30 @@ export const AgentDrawerContainer = ({
   }, [chat, command]);
 
   return (
-    <AgentDrawer
-      open={chat.open}
-      onClose={chat.close}
-      messages={chat.messages}
-      draft={chat.draft}
-      isChatting={chat.isChatting}
-      onDraftChange={chat.setDraft}
-      onSubmit={chat.handleSubmit}
-      onAskPreset={chat.askPreset}
-      approval={chat.currentApproval}
-      onApproveApproval={chat.approveApproval}
-      onDenyApproval={chat.denyApproval}
-      isResumingApproval={chat.isResumingApproval}
-      moduleById={moduleById}
-      endRef={chat.endRef}
-      focus={chat.focus}
-    />
+    <>
+      <AgentDrawer
+        open={chat.open}
+        onClose={chat.close}
+        messages={chat.messages}
+        draft={chat.draft}
+        isChatting={chat.isChatting}
+        onDraftChange={chat.setDraft}
+        onSubmit={chat.handleSubmit}
+        onAskPreset={chat.askPreset}
+        approval={chat.currentApproval}
+        onApproveApproval={chat.approveApproval}
+        onDenyApproval={chat.denyApproval}
+        isResumingApproval={chat.isResumingApproval}
+        moduleById={moduleById}
+        endRef={chat.endRef}
+        focus={chat.focus}
+      />
+      <AgentFloatingButton
+        hasPendingApproval={Boolean(chat.currentApproval)}
+        isChatting={chat.isChatting}
+        open={chat.open}
+        onOpen={chat.openAgent}
+      />
+    </>
   );
 };

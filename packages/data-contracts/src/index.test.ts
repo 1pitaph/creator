@@ -8,6 +8,7 @@ import {
   AgentStreamEventSchema,
   AgentToolResultSchema,
   ChatResponseSchema,
+  DashboardPreferencesV1Schema,
   DataKernelRequestSchema,
   DataKernelResponseSchema,
 } from "./index";
@@ -83,6 +84,43 @@ const dataset = {
 };
 
 describe("data contracts", () => {
+  it("parses dashboard preferences", () => {
+    const parsed = DashboardPreferencesV1Schema.parse({
+      version: 1,
+      creatorId: "starter-food",
+      selectedView: "visual",
+      updatedAt: "2026-06-28T00:00:00.000Z",
+      cards: {
+        summary: { visible: true, size: "wide" },
+      },
+      visual: {
+        layouts: {
+          lg: [{ i: "summary", x: 0, y: 0, w: 6, h: 6 }],
+          md: [{ i: "summary", x: 0, y: 0, w: 4, h: 6 }],
+          sm: [{ i: "summary", x: 0, y: 0, w: 4, h: 6 }],
+          xs: [{ i: "summary", x: 0, y: 0, w: 2, h: 6 }],
+        },
+      },
+      board: {
+        columns: {
+          today: ["action-1"],
+          next: [],
+          this_week: [],
+          done: [],
+        },
+      },
+      table: {
+        sort: {
+          field: "priority",
+          direction: "asc",
+        },
+      },
+    });
+
+    expect(parsed.selectedView).toBe("visual");
+    expect(parsed.cards.summary?.size).toBe("wide");
+  });
+
   it("parses legacy ChatResponse with AgentRun and thread metadata", () => {
     const parsed = ChatResponseSchema.parse({
       reply: agentRun.answer,
