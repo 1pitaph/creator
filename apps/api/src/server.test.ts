@@ -34,7 +34,7 @@ const createDashboardPreferences = (
   selectedView: "visual",
   updatedAt: "2026-06-28T00:00:00.000Z",
   cards: {
-    summary: { visible: true, size: "large" },
+    summary: { visible: true, width: "large", height: "medium" },
   },
   visual: {
     layouts: {

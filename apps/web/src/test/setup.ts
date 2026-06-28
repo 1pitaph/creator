@@ -14,3 +14,11 @@ Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
 if (!window.PointerEvent) {
   window.PointerEvent = MouseEvent as typeof PointerEvent;
 }
+
+if (!window.ResizeObserver) {
+  window.ResizeObserver = class TestResizeObserver implements ResizeObserver {
+    disconnect = vi.fn();
+    observe = vi.fn();
+    unobserve = vi.fn();
+  };
+}

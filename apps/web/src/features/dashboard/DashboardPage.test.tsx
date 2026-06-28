@@ -56,20 +56,20 @@ vi.mock("react-grid-layout", async () => {
           onClick={() =>
             onLayoutChange?.([], {
               lg: [
-                { i: "insights", x: 0, y: 0, w: 4, h: 9 },
-                { i: "summary", x: 4, y: 0, w: 8, h: 9 },
+                { i: "insights", x: 0, y: 0, w: 4, h: 8 },
+                { i: "summary", x: 4, y: 0, w: 8, h: 11 },
               ],
               md: [
-                { i: "insights", x: 0, y: 0, w: 4, h: 9 },
-                { i: "summary", x: 4, y: 0, w: 8, h: 9 },
+                { i: "insights", x: 0, y: 0, w: 4, h: 8 },
+                { i: "summary", x: 4, y: 0, w: 8, h: 10 },
               ],
               sm: [
-                { i: "insights", x: 0, y: 0, w: 4, h: 8 },
-                { i: "summary", x: 0, y: 8, w: 4, h: 9 },
+                { i: "insights", x: 0, y: 0, w: 3, h: 7 },
+                { i: "summary", x: 0, y: 7, w: 4, h: 9 },
               ],
               xs: [
-                { i: "insights", x: 0, y: 0, w: 2, h: 8 },
-                { i: "summary", x: 0, y: 8, w: 2, h: 8 },
+                { i: "insights", x: 0, y: 0, w: 2, h: 7 },
+                { i: "summary", x: 0, y: 7, w: 2, h: 8 },
               ],
             })
           }
@@ -172,7 +172,7 @@ const readStoredPreferences = () => {
   );
   return raw
     ? (JSON.parse(raw) as {
-        cards: Record<string, { size: string; visible: boolean }>;
+        cards: Record<string, { height: string; visible: boolean; width: string }>;
         visual: { layouts: { lg: Array<{ h: number; i: string; maxH?: number; maxW?: number; minH?: number; minW?: number; w: number; x: number }> } };
       })
     : null;
@@ -259,9 +259,9 @@ describe("DashboardPage", () => {
 
     expect(screen.getByTestId("aurora-background")).toBeInTheDocument();
     expect(screen.getByTestId("dashboard-mode-indicator")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "少而准" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "覆盖完整" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "动态阈值" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "标准" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "完整" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "动态" })).toBeInTheDocument();
     expect(screen.getByTestId("visual-grid")).toBeInTheDocument();
     expect(screen.queryByText("创作者 AI 数据面板")).not.toBeInTheDocument();
     expect(screen.queryByText(/增长诊断台/)).not.toBeInTheDocument();
@@ -269,8 +269,11 @@ describe("DashboardPage", () => {
       screen.getByLabelText("拖动卡片：AI 诊断摘要"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByTestId("visual-resize-handle-summary-e"),
-    ).not.toBeInTheDocument();
+      screen.getByTestId("visual-resize-handle-summary-e"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("visual-resize-handle-summary-s"),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑" })).not.toBeInTheDocument();
 
     rerenderPanel("board");
@@ -297,8 +300,8 @@ describe("DashboardPage", () => {
     const { onModuleLoadModeChange, rerenderMode } = renderDashboard();
 
     const indicator = screen.getByTestId("dashboard-mode-indicator");
-    const completeButton = screen.getByRole("button", { name: "覆盖完整" });
-    const adaptiveButton = screen.getByRole("button", { name: "动态阈值" });
+    const completeButton = screen.getByRole("button", { name: "完整" });
+    const adaptiveButton = screen.getByRole("button", { name: "动态" });
 
     setButtonMetrics(completeButton, { offsetLeft: 88, offsetWidth: 87 });
     setButtonMetrics(adaptiveButton, { offsetLeft: 175, offsetWidth: 83 });
@@ -315,7 +318,7 @@ describe("DashboardPage", () => {
     });
 
     const nextIndicator = screen.getByTestId("dashboard-mode-indicator");
-    const nextAdaptiveButton = screen.getByRole("button", { name: "动态阈值" });
+    const nextAdaptiveButton = screen.getByRole("button", { name: "动态" });
     setButtonMetrics(nextAdaptiveButton, { offsetLeft: 175, offsetWidth: 83 });
     fireEvent.click(nextAdaptiveButton);
     expect(onModuleLoadModeChange).toHaveBeenCalledWith("adaptive");
@@ -345,30 +348,54 @@ describe("DashboardPage", () => {
     });
   });
 
-  it("uses large/medium/small Table sizing and syncs preset dimensions", async () => {
+  it("uses independent Table width and height sizing", async () => {
     renderDashboard({ panel: "table" });
 
-    expect(screen.getAllByRole("option", { name: "小" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("option", { name: "中" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("option", { name: "大" }).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("option", { name: "宽" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: "高" })).not.toBeInTheDocument();
+    expect(screen.getByText("宽度")).toBeInTheDocument();
+    expect(screen.getByText("高度")).toBeInTheDocument();
+    expect(screen.getAllByRole("option", { name: "窄" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("option", { name: "标准" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("option", { name: "宽" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("option", { name: "矮" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("option", { name: "高" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("option", { name: "重点" })).not.toBeInTheDocument();
 
-    const summarySizeSelect = screen.getAllByRole("combobox")[0];
-    expect(summarySizeSelect).toBeDefined();
+    const summaryWidthSelect = screen.getByLabelText("设置「AI 诊断摘要」宽度");
+    const summaryHeightSelect = screen.getByLabelText("设置「AI 诊断摘要」高度");
 
-    fireEvent.change(summarySizeSelect as HTMLElement, {
+    fireEvent.change(summaryWidthSelect, {
       target: { value: "medium" },
     });
 
     await waitFor(() => {
-      expect(readStoredPreferences()?.cards.summary?.size).toBe("medium");
+      expect(readStoredPreferences()?.cards.summary).toMatchObject({
+        width: "medium",
+        height: "large",
+      });
       expect(readStoredLayoutItem("summary")).toMatchObject({
-        h: 9,
-        maxH: 9,
+        h: 11,
+        maxH: 11,
         maxW: 4,
-        minH: 9,
+        minH: 11,
+        minW: 4,
+        w: 4,
+      });
+    });
+
+    fireEvent.change(summaryHeightSelect, {
+      target: { value: "medium" },
+    });
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards.summary).toMatchObject({
+        width: "medium",
+        height: "medium",
+      });
+      expect(readStoredLayoutItem("summary")).toMatchObject({
+        h: 8,
+        maxH: 8,
+        maxW: 4,
+        minH: 8,
         minW: 4,
         w: 4,
       });
@@ -386,30 +413,35 @@ describe("DashboardPage", () => {
         x: 0,
         y: 0,
         w: 4,
-        h: 9,
+        h: 8,
       });
     });
   });
 
-  it("uses the six-dot handle as the only Visual drag start target", () => {
+  it("keeps resize handles separate from the Visual drag start target", () => {
     const { onAskAgent } = renderDashboard();
 
     const grid = screen.getByTestId("visual-grid");
     const handle = screen.getByLabelText("拖动卡片：AI 诊断摘要");
+    const rightResizeHandle = screen.getByTestId("visual-resize-handle-summary-e");
+    const bottomResizeHandle = screen.getByTestId("visual-resize-handle-summary-s");
     const askButton = screen.getByLabelText("询问 AI Agent：AI 诊断摘要");
     const resizeHandles = grid.dataset.resizeHandles?.split(",").filter(Boolean) ?? [];
 
     expect(grid).toHaveAttribute("data-drag-enabled", "true");
-    expect(grid).toHaveAttribute("data-resize-enabled", "false");
-    expect(resizeHandles).toEqual([]);
-    expect(screen.queryByTestId("visual-resize-handle-summary-e")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("visual-resize-handle-summary-s")).not.toBeInTheDocument();
+    expect(grid).toHaveAttribute("data-resize-enabled", "true");
+    expect(resizeHandles).toEqual(expect.arrayContaining(["e", "s"]));
+    expect(resizeHandles).not.toContain("se");
     expect(grid).toHaveAttribute(
       "data-drag-handle",
       ".dashboard-card-drag-handle",
     );
     expect(handle.matches(grid.dataset.dragHandle ?? "")).toBe(true);
     expect(handle.matches(grid.dataset.dragCancel ?? "")).toBe(false);
+    expect(rightResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
+    expect(rightResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
+    expect(bottomResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
+    expect(bottomResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
     expect(askButton.matches(grid.dataset.dragHandle ?? "")).toBe(false);
     expect(askButton.matches(grid.dataset.dragCancel ?? "")).toBe(true);
 
@@ -425,12 +457,166 @@ describe("DashboardPage", () => {
 
     await waitFor(() => {
       expect(readStoredLayoutItem("summary")).toMatchObject({
-        h: 9,
-        maxH: 9,
+        h: 11,
+        maxH: 11,
         maxW: 8,
-        minH: 9,
+        minH: 11,
         minW: 8,
         w: 8,
+      });
+    });
+  });
+
+  it("snaps right-edge resizing between width presets without changing height", async () => {
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards.summary).toMatchObject({
+        width: "large",
+        height: "large",
+      });
+    });
+
+    const rightResizeHandle = screen.getByTestId("visual-resize-handle-summary-e");
+
+    fireEvent.pointerDown(rightResizeHandle, {
+      button: 0,
+      clientX: 220,
+      clientY: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(rightResizeHandle, {
+      clientX: 100,
+      clientY: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(rightResizeHandle, {
+      clientX: 100,
+      clientY: 0,
+      pointerId: 1,
+    });
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards.summary).toMatchObject({
+        width: "medium",
+        height: "large",
+      });
+      expect(readStoredLayoutItem("summary")).toMatchObject({
+        h: 11,
+        maxH: 11,
+        maxW: 4,
+        minH: 11,
+        minW: 4,
+        w: 4,
+      });
+    });
+
+    fireEvent.pointerDown(rightResizeHandle, {
+      button: 0,
+      clientX: 220,
+      clientY: 0,
+      pointerId: 2,
+    });
+    fireEvent.pointerMove(rightResizeHandle, {
+      clientX: 100,
+      clientY: 0,
+      pointerId: 2,
+    });
+    fireEvent.pointerUp(rightResizeHandle, {
+      clientX: 100,
+      clientY: 0,
+      pointerId: 2,
+    });
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards.summary).toMatchObject({
+        width: "small",
+        height: "large",
+      });
+      expect(readStoredLayoutItem("summary")).toMatchObject({
+        h: 11,
+        maxH: 11,
+        maxW: 3,
+        minH: 11,
+        minW: 3,
+        w: 3,
+      });
+    });
+  });
+
+  it("snaps bottom-edge resizing between height presets without changing width", async () => {
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards["metric:views7d"]).toMatchObject({
+        width: "small",
+        height: "small",
+      });
+    });
+
+    const bottomResizeHandle = screen.getByTestId("visual-resize-handle-metric:views7d-s");
+
+    fireEvent.pointerDown(bottomResizeHandle, {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(bottomResizeHandle, {
+      clientX: 0,
+      clientY: 60,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(bottomResizeHandle, {
+      clientX: 0,
+      clientY: 60,
+      pointerId: 1,
+    });
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards["metric:views7d"]).toMatchObject({
+        width: "small",
+        height: "medium",
+      });
+      expect(readStoredLayoutItem("metric:views7d")).toMatchObject({
+        h: 8,
+        maxH: 8,
+        maxW: 3,
+        minH: 8,
+        minW: 3,
+        w: 3,
+      });
+    });
+
+    fireEvent.pointerDown(bottomResizeHandle, {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+      pointerId: 2,
+    });
+    fireEvent.pointerMove(bottomResizeHandle, {
+      clientX: 0,
+      clientY: 60,
+      pointerId: 2,
+    });
+    fireEvent.pointerUp(bottomResizeHandle, {
+      clientX: 0,
+      clientY: 60,
+      pointerId: 2,
+    });
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards["metric:views7d"]).toMatchObject({
+        width: "small",
+        height: "large",
+      });
+      expect(readStoredLayoutItem("metric:views7d")).toMatchObject({
+        h: 11,
+        maxH: 11,
+        maxW: 3,
+        minH: 11,
+        minW: 3,
+        w: 3,
       });
     });
   });

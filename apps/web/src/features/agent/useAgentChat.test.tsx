@@ -247,9 +247,6 @@ describe("useAgentChat", () => {
     act(() => {
       result.current.askPreset("把建议写入行动计划");
     });
-    await act(async () => {
-      await result.current.handleSubmit({ preventDefault: vi.fn() } as never);
-    });
 
     await waitFor(() =>
       expect(result.current.currentApproval?.id).toBe(approval.id),

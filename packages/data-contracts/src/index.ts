@@ -190,15 +190,33 @@ export const DashboardTableSortFieldSchema = z.enum([
   "priority",
   "title",
   "type",
+  "width",
+  "height",
   "size",
   "visible",
 ]);
 export const DashboardSortDirectionSchema = z.enum(["asc", "desc"]);
 
-export const DashboardCardPreferenceSchema = z.object({
-  visible: z.boolean(),
-  size: DashboardCardSizeSchema,
-});
+export const DashboardCardPreferenceSchema = z.preprocess(
+  (value) => {
+    if (!value || typeof value !== "object") {
+      return value;
+    }
+
+    const preference = value as { height?: unknown; size?: unknown; width?: unknown };
+
+    return {
+      ...preference,
+      width: preference.width ?? preference.size,
+      height: preference.height ?? preference.size,
+    };
+  },
+  z.object({
+    visible: z.boolean(),
+    width: DashboardCardSizeSchema,
+    height: DashboardCardSizeSchema,
+  }),
+);
 
 export const DashboardGridItemSchema = z.object({
   i: z.string(),

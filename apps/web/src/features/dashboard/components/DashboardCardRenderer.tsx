@@ -1,8 +1,10 @@
-import type { PointerEventHandler, ReactNode } from "react";
+import { useEffect, useState, type PointerEventHandler, type ReactNode } from "react";
 
 import { ChartSlot } from "@creator/charts";
 import type { DiagnosisResponse } from "@creator/data-contracts";
-import { Badge, cn } from "@creator/ui";
+import { Badge, Button, cn } from "@creator/ui";
+import { CaretLeft } from "@phosphor-icons/react/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/CaretRight";
 import { TrendUp } from "@phosphor-icons/react/TrendUp";
 
 import { creatorTypeLabels, goalLabels, lifecycleLabels, phosphorIconWeight, severityTone, toneClass } from "../../../constants";
@@ -77,7 +79,7 @@ const CardBody = ({
     case "trend":
       return <TrendCardBody fill={fill} size={size} viewModel={viewModel} />;
     case "insights":
-      return <Scrollable fill={fill}>{diagnosis.insights.map((insight) => <InsightRow key={insight.id} insight={insight} module={viewModel.moduleById.get(insight.moduleId)} onAsk={onAsk} />)}</Scrollable>;
+      return <PaginatedInsightsBody fill={fill} insights={diagnosis.insights} moduleById={viewModel.moduleById} onAsk={onAsk} />;
     case "top-content":
       return <Scrollable fill={fill}>{diagnosis.metrics.topContents.map((content) => <TopContentTile key={content.id} content={content} onAsk={onAsk} />)}</Scrollable>;
     case "modules":
@@ -90,6 +92,74 @@ const CardBody = ({
 const Scrollable = ({ children, fill }: { children: ReactNode; fill: boolean }) => (
   <div className={cn("space-y-3", fill && "h-full overflow-auto pr-1")}>{children}</div>
 );
+
+const PaginatedInsightsBody = ({
+  fill,
+  insights,
+  moduleById,
+  onAsk
+}: {
+  fill: boolean;
+  insights: DiagnosisResponse["insights"];
+  moduleById: DashboardViewModel["moduleById"];
+  onAsk: (target: AskTarget) => void;
+}) => {
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageCount = insights.length;
+  const maxPageIndex = Math.max(0, pageCount - 1);
+  const visiblePageIndex = Math.min(pageIndex, maxPageIndex);
+
+  useEffect(() => {
+    setPageIndex((current) => Math.min(current, maxPageIndex));
+  }, [maxPageIndex]);
+
+  const currentInsight = insights[visiblePageIndex] ?? insights[0];
+
+  if (!currentInsight) {
+    return <p className="rounded-xl bg-white p-4 text-sm text-zinc-500">暂无诊断结果。</p>;
+  }
+
+  const canGoPrevious = visiblePageIndex > 0;
+  const canGoNext = visiblePageIndex < maxPageIndex;
+
+  return (
+    <div className={cn("flex min-h-0 flex-col overflow-hidden", fill ? "h-full" : "min-h-[340px]")}>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <InsightRow compact={fill} insight={currentInsight} module={moduleById.get(currentInsight.moduleId)} onAsk={onAsk} />
+      </div>
+
+      {pageCount > 1 ? (
+        <nav className="mt-3 flex h-11 shrink-0 items-center justify-between border-t border-zinc-100/80 pt-3" aria-label="AI 诊断优先级分页" data-no-drag="true">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="上一条 AI 诊断优先级"
+            disabled={!canGoPrevious}
+            onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+          >
+            <CaretLeft className="h-4 w-4" weight={phosphorIconWeight} />
+          </Button>
+
+          <span className="text-xs font-medium text-zinc-500" role="status" aria-live="polite">
+            第 {visiblePageIndex + 1} / {pageCount} 条
+          </span>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="下一条 AI 诊断优先级"
+            disabled={!canGoNext}
+            onClick={() => setPageIndex((current) => Math.min(maxPageIndex, current + 1))}
+          >
+            <CaretRight className="h-4 w-4" weight={phosphorIconWeight} />
+          </Button>
+        </nav>
+      ) : null}
+    </div>
+  );
+};
 
 const SummaryCardBody = ({
   diagnosis,

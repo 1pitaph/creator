@@ -50,10 +50,13 @@ export const AgentDrawerContainer = ({
         open={chat.open}
         onClose={chat.close}
         messages={chat.messages}
-        draft={chat.draft}
         isChatting={chat.isChatting}
-        onDraftChange={chat.setDraft}
-        onSubmit={chat.handleSubmit}
+        onSendMessage={(question) =>
+          chat.submitQuestion(
+            question,
+            chat.focus?.moduleId ? [chat.focus.moduleId] : activeModuleIds,
+          )
+        }
         onAskPreset={chat.askPreset}
         onStopGeneration={chat.stopGeneration}
         approval={chat.currentApproval}
@@ -61,7 +64,6 @@ export const AgentDrawerContainer = ({
         onDenyApproval={chat.denyApproval}
         isResumingApproval={chat.isResumingApproval}
         moduleById={moduleById}
-        endRef={chat.endRef}
         focus={chat.focus}
       />
       <AgentFloatingButton

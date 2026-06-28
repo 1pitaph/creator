@@ -17,9 +17,9 @@ export const creatorTypeLabels = {
 } as const;
 
 export const moduleLoadModeLabels = {
-  focused: "少而准",
-  complete: "覆盖完整",
-  adaptive: "动态阈值"
+  focused: "标准",
+  complete: "完整",
+  adaptive: "动态"
 } as const;
 
 export const moduleLoadModeDescriptions = {

@@ -92,7 +92,8 @@ describe("data contracts", () => {
       selectedView: "visual",
       updatedAt: "2026-06-28T00:00:00.000Z",
       cards: {
-        summary: { visible: true, size: "large" },
+        summary: { visible: true, width: "large", height: "medium" },
+        insights: { visible: true, size: "medium" },
       },
       visual: {
         layouts: {
@@ -119,7 +120,16 @@ describe("data contracts", () => {
     });
 
     expect(parsed.selectedView).toBe("visual");
-    expect(parsed.cards.summary?.size).toBe("large");
+    expect(parsed.cards.summary).toMatchObject({
+      visible: true,
+      width: "large",
+      height: "medium",
+    });
+    expect(parsed.cards.insights).toMatchObject({
+      visible: true,
+      width: "medium",
+      height: "medium",
+    });
     expect(() =>
       DashboardPreferencesV1Schema.parse({
         ...parsed,

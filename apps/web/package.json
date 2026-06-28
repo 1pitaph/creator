@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "4.0.5",
+    "@assistant-ui/react": "0.14.24",
     "@creator/ai-modules": "workspace:*",
     "@creator/charts": "workspace:*",
     "@creator/data-agent": "workspace:*",
@@ -26,6 +27,7 @@
     "@dnd-kit/utilities": "3.2.2",
     "@gsap/react": "^2.1.2",
     "@phosphor-icons/react": "^2.1.10",
+    "@radix-ui/react-dialog": "^1.1.17",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "ai": "7.0.4",
     "boring-avatars": "2.0.4",

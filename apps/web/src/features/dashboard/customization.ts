@@ -41,9 +41,9 @@ export const dashboardColumnCounts: Record<DashboardBreakpoint, number> = {
   xs: 2
 };
 
-type DashboardGridPreset = {
-  w: number;
-  h: number;
+export type DashboardCardDimensions = {
+  width: DashboardCardSize;
+  height: DashboardCardSize;
 };
 
 export const dashboardCardSizeOrder: DashboardCardSize[] = ["small", "medium", "large"];
@@ -56,24 +56,53 @@ const legacySizeMap: Record<string, DashboardCardSize> = {
   hero: "large"
 };
 
-const sizeGrid: Record<DashboardCardSize, Record<DashboardBreakpoint, DashboardGridPreset>> = {
+const legacyDimensionMap: Record<string, DashboardCardDimensions> = {
+  sm: { width: "small", height: "small" },
+  md: { width: "medium", height: "medium" },
+  wide: { width: "large", height: "medium" },
+  tall: { width: "medium", height: "large" },
+  hero: { width: "large", height: "large" }
+};
+
+const widthGrid: Record<DashboardCardSize, Record<DashboardBreakpoint, number>> = {
   small: {
-    lg: { w: 3, h: 5 },
-    md: { w: 4, h: 5 },
-    sm: { w: 2, h: 5 },
-    xs: { w: 2, h: 5 }
+    lg: 3,
+    md: 3,
+    sm: 2,
+    xs: 2
   },
   medium: {
-    lg: { w: 4, h: 9 },
-    md: { w: 4, h: 9 },
-    sm: { w: 4, h: 8 },
-    xs: { w: 2, h: 8 }
+    lg: 4,
+    md: 4,
+    sm: 3,
+    xs: 2
   },
   large: {
-    lg: { w: 8, h: 9 },
-    md: { w: 8, h: 9 },
-    sm: { w: 4, h: 9 },
-    xs: { w: 2, h: 8 }
+    lg: 8,
+    md: 8,
+    sm: 4,
+    xs: 2
+  }
+};
+
+const heightGrid: Record<DashboardCardSize, Record<DashboardBreakpoint, number>> = {
+  small: {
+    lg: 5,
+    md: 5,
+    sm: 5,
+    xs: 5
+  },
+  medium: {
+    lg: 8,
+    md: 8,
+    sm: 7,
+    xs: 7
+  },
+  large: {
+    lg: 11,
+    md: 10,
+    sm: 9,
+    xs: 8
   }
 };
 
@@ -93,6 +122,45 @@ export const normalizeDashboardCardSize = (value: unknown, fallback: DashboardCa
   }
 
   return legacySizeMap[value] ?? fallback;
+};
+
+const defaultDimensionsForSize = (size: DashboardCardSize): DashboardCardDimensions => ({
+  width: size,
+  height: size
+});
+
+export const normalizeDashboardCardDimensions = (
+  value: unknown,
+  fallbackSize: DashboardCardSize = "medium"
+): DashboardCardDimensions => {
+  const fallback = defaultDimensionsForSize(fallbackSize);
+
+  if (typeof value === "string") {
+    return legacyDimensionMap[value] ?? defaultDimensionsForSize(normalizeDashboardCardSize(value, fallbackSize));
+  }
+
+  if (!value || typeof value !== "object") {
+    return fallback;
+  }
+
+  const preference = value as { height?: unknown; size?: unknown; width?: unknown };
+  const legacyDimensions =
+    typeof preference.size === "string"
+      ? legacyDimensionMap[preference.size] ?? defaultDimensionsForSize(normalizeDashboardCardSize(preference.size, fallbackSize))
+      : undefined;
+
+  return {
+    width: normalizeDashboardCardSize(preference.width, legacyDimensions?.width ?? fallback.width),
+    height: normalizeDashboardCardSize(preference.height, legacyDimensions?.height ?? fallback.height)
+  };
+};
+
+export const getDashboardCardContentSize = ({ height, width }: DashboardCardDimensions): DashboardCardSize => {
+  const widthIndex = dashboardCardSizeOrder.indexOf(width);
+  const heightIndex = dashboardCardSizeOrder.indexOf(height);
+  const contentIndex = Math.min(widthIndex, heightIndex);
+
+  return dashboardCardSizeOrder[contentIndex] ?? "medium";
 };
 
 export const createActionCardId = (insightId: string, index: number) => `action:${insightId}:${index}`;
@@ -209,13 +277,12 @@ export const buildDashboardActionCards = (diagnosis: DiagnosisResponse): Dashboa
     }))
   );
 
-const getGridPreset = (size: DashboardCardSize, breakpoint: DashboardBreakpoint) => {
+const getGridPreset = (dimensions: DashboardCardDimensions, breakpoint: DashboardBreakpoint) => {
   const cols = dashboardColumnCounts[breakpoint];
-  const preset = sizeGrid[size][breakpoint];
 
   return {
-    w: Math.min(preset.w, cols),
-    h: preset.h
+    w: Math.min(widthGrid[dimensions.width][breakpoint], cols),
+    h: heightGrid[dimensions.height][breakpoint]
   };
 };
 
@@ -224,9 +291,9 @@ export const createDashboardGridItem = (
   breakpoint: DashboardBreakpoint,
   x: number,
   y: number,
-  size: DashboardCardSize = card.defaultSize
+  dimensions: DashboardCardDimensions = defaultDimensionsForSize(card.defaultSize)
 ): DashboardGridItem => {
-  const preset = getGridPreset(size, breakpoint);
+  const preset = getGridPreset(dimensions, breakpoint);
 
   return {
     i: card.id,
@@ -277,8 +344,8 @@ export const createDashboardLayout = (
   let rowHeight = 0;
 
   return cards.map((card) => {
-    const size = normalizeDashboardCardSize(cardPreferences[card.id]?.size, card.defaultSize);
-    const preset = getGridPreset(size, breakpoint);
+    const dimensions = normalizeDashboardCardDimensions(cardPreferences[card.id], card.defaultSize);
+    const preset = getGridPreset(dimensions, breakpoint);
 
     if (cursorX + preset.w > cols) {
       cursorX = 0;
@@ -286,7 +353,7 @@ export const createDashboardLayout = (
       rowHeight = 0;
     }
 
-    const item = createDashboardGridItem(card, breakpoint, cursorX, cursorY, size);
+    const item = createDashboardGridItem(card, breakpoint, cursorX, cursorY, dimensions);
     cursorX += preset.w;
     rowHeight = Math.max(rowHeight, item.h);
 
@@ -337,7 +404,15 @@ export const buildDefaultDashboardPreferences = (
   actions: DashboardActionCard[],
   now = new Date().toISOString()
 ): DashboardPreferencesV1 => {
-  const defaultCards = Object.fromEntries(cards.map((card) => [card.id, { visible: true, size: card.defaultSize }])) as DashboardPreferencesV1["cards"];
+  const defaultCards = Object.fromEntries(
+    cards.map((card) => [
+      card.id,
+      {
+        visible: true,
+        ...defaultDimensionsForSize(card.defaultSize)
+      }
+    ])
+  ) as DashboardPreferencesV1["cards"];
 
   return {
     version: 1,
@@ -374,7 +449,15 @@ export const reconcileDashboardPreferences = (
   const reconciledCards = Object.fromEntries(
     cards.map((card) => {
       const saved = preferences.cards[card.id];
-      return [card.id, saved ? { visible: saved.visible, size: normalizeDashboardCardSize(saved.size, card.defaultSize) } : defaults.cards[card.id]];
+      return [
+        card.id,
+        saved
+          ? {
+              visible: saved.visible,
+              ...normalizeDashboardCardDimensions(saved, card.defaultSize)
+            }
+          : defaults.cards[card.id]
+      ];
     })
   ) as DashboardPreferencesV1["cards"];
 
@@ -382,6 +465,7 @@ export const reconcileDashboardPreferences = (
     dashboardBreakpoints.map((breakpoint) => [breakpoint, (preferences.visual.layouts[breakpoint] ?? []).filter((item) => cardIds.has(item.i))])
   ) as DashboardPreferencesV1["visual"]["layouts"];
   const layouts = createDashboardLayouts(cards, reconciledCards, sourceLayouts);
+  const tableSortField = preferences.table.sort.field === "size" ? "width" : preferences.table.sort.field;
 
   const assignedActions = new Set<string>();
   const columns = Object.fromEntries(
@@ -432,7 +516,10 @@ export const reconcileDashboardPreferences = (
       columns
     },
     table: {
-      sort: preferences.table.sort
+      sort: {
+        ...preferences.table.sort,
+        field: tableSortField
+      }
     }
   };
 };
@@ -454,13 +541,14 @@ const migrateDashboardPreferencesInput = (value: unknown) => {
         return [cardId, preference];
       }
 
-      const cardPreference = preference as { size?: unknown; visible?: unknown };
+      const cardPreference = preference as { height?: unknown; size?: unknown; visible?: unknown; width?: unknown };
+      const dimensions = normalizeDashboardCardDimensions(cardPreference);
 
       return [
         cardId,
         {
           ...cardPreference,
-          size: normalizeDashboardCardSize(cardPreference.size)
+          ...dimensions
         }
       ];
     })

@@ -28,14 +28,30 @@ describe("dashboard customization", () => {
 
     expect(preferences.selectedView).toBe("visual");
     expect(Object.keys(preferences.cards)).toEqual(cards.map((card) => card.id));
-    expect(preferences.cards.summary?.size).toBe("large");
-    expect(preferences.cards.insights?.size).toBe("medium");
-    expect(preferences.cards["trend-comparison"]?.size).toBe("large");
+    expect(preferences.cards.summary).toMatchObject({ width: "large", height: "large" });
+    expect(preferences.cards.insights).toMatchObject({ width: "medium", height: "medium" });
+    expect(preferences.cards["trend-comparison"]).toMatchObject({ width: "large", height: "large" });
     expect(preferences.visual.layouts.lg.map((item) => item.i)).toEqual(cards.map((card) => card.id));
     expect(preferences.visual.layouts.lg.slice(0, 2)).toMatchObject([
-      { i: "summary", x: 0, y: 0, w: 8, h: 9, minW: 8, minH: 9, maxW: 8, maxH: 9 },
-      { i: "insights", x: 8, y: 0, w: 4, h: 9, minW: 4, minH: 9, maxW: 4, maxH: 9 }
+      { i: "summary", x: 0, y: 0, w: 8, h: 11, minW: 8, minH: 11, maxW: 8, maxH: 11 },
+      { i: "insights", x: 8, y: 0, w: 4, h: 8, minW: 4, minH: 8, maxW: 4, maxH: 8 }
     ]);
+    expect(preferences.visual.layouts.md.find((item) => item.i === "metric:views7d")).toMatchObject({
+      w: 3,
+      h: 5,
+      minW: 3,
+      minH: 5,
+      maxW: 3,
+      maxH: 5
+    });
+    expect(preferences.visual.layouts.sm.find((item) => item.i === "insights")).toMatchObject({
+      w: 3,
+      h: 7,
+      minW: 3,
+      minH: 7,
+      maxW: 3,
+      maxH: 7
+    });
     expect(preferences.board.columns.today.length).toBeGreaterThan(0);
   });
 
@@ -75,13 +91,42 @@ describe("dashboard customization", () => {
       }
     });
 
-    expect(parsed?.cards.summary?.size).toBe("large");
-    expect(parsed?.cards.insights?.size).toBe("medium");
-    expect(parsed?.cards["metric:views"]?.size).toBe("small");
+    expect(parsed?.cards.summary).toMatchObject({ width: "large", height: "medium" });
+    expect(parsed?.cards.insights).toMatchObject({ width: "medium", height: "large" });
+    expect(parsed?.cards["metric:views"]).toMatchObject({ width: "small", height: "small" });
 
     const reconciled = reconcileDashboardPreferences(parsed ?? preferences, defaultCreatorId, cards, actions, "2026-06-29T00:00:00.000Z");
 
-    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({ h: 9, w: 8, minH: 9, minW: 8 });
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({ h: 8, w: 8, minH: 8, minW: 8 });
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "insights")).toMatchObject({ h: 11, w: 4, minH: 11, minW: 4 });
+  });
+
+  it("combines independent width and height presets", () => {
+    const { actions, cards } = buildFixture();
+    const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
+    const reconciled = reconcileDashboardPreferences(
+      {
+        ...preferences,
+        cards: {
+          ...preferences.cards,
+          summary: { visible: true, width: "small", height: "large" }
+        }
+      },
+      defaultCreatorId,
+      cards,
+      actions,
+      "2026-06-29T00:00:00.000Z"
+    );
+
+    expect(reconciled.cards.summary).toMatchObject({ width: "small", height: "large" });
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({
+      h: 11,
+      maxH: 11,
+      maxW: 3,
+      minH: 11,
+      minW: 3,
+      w: 3
+    });
   });
 
   it("reconciles removed and newly available cards and actions", () => {
@@ -91,7 +136,7 @@ describe("dashboard customization", () => {
       ...preferences,
       cards: {
         ...preferences.cards,
-        unknown: { visible: true, size: "small" as const }
+        unknown: { visible: true, width: "small" as const, height: "small" as const }
       },
       visual: {
         layouts: {

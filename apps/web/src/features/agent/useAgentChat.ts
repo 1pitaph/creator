@@ -276,15 +276,17 @@ export const useAgentChat = ({
     [sendQuestion],
   );
 
-  const askPreset = useCallback((question: string) => {
-    setFocus({
-      title: "自由追问",
-      prompt: question,
-      summary: "从当前创作者画像、指标面板和已加载 AI 模块中综合回答。",
-    });
-    setDraft(question);
-    setOpen(true);
-  }, []);
+  const askPreset = useCallback(
+    (question: string) => {
+      setFocus({
+        title: "自由追问",
+        prompt: question,
+        summary: "从当前创作者画像、指标面板和已加载 AI 模块中综合回答。",
+      });
+      void sendQuestion(question, activeModuleIdsRef.current);
+    },
+    [sendQuestion],
+  );
 
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -386,6 +388,7 @@ export const useAgentChat = ({
     openAgent: () => setOpen(true),
     approveApproval: () => resumeApproval("approve"),
     setDraft,
+    submitQuestion: sendQuestion,
     stopGeneration: () => void chat.stop(),
     threadId,
   };
