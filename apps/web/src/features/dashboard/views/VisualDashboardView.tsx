@@ -42,13 +42,13 @@ const DashboardResizeHandles = ({ allowHorizontalResize, cardId }: { allowHorizo
   return (
     <>
       {handles.map((axis) => (
-	        <span
-	          key={axis}
-	          aria-hidden="true"
-	          className={`react-resizable-handle react-resizable-handle-${axis} dashboard-card-resize-handle dashboard-card-resize-edge dashboard-card-resize-edge--${axis}`}
-	          data-dashboard-resize-axis={axis}
-	          data-testid={`visual-resize-handle-${cardId}-${axis}`}
-	        />
+        <span
+          key={axis}
+          aria-hidden="true"
+          className={`react-resizable-handle react-resizable-handle-${axis} dashboard-card-resize-handle dashboard-card-resize-edge dashboard-card-resize-edge--${axis}`}
+          data-dashboard-resize-axis={axis}
+          data-testid={`visual-resize-handle-${cardId}-${axis}`}
+        />
       ))}
     </>
   );
@@ -322,8 +322,8 @@ export const VisualDashboardView = ({
         return;
       }
 
-	      const currentLayout = preferences.visual.layouts[breakpoint];
-	      const startItem = activeLayoutById.get(cardId) ?? currentLayout.find((item) => item.i === cardId);
+      const currentLayout = preferences.visual.layouts[breakpoint];
+      const startItem = activeLayoutById.get(cardId) ?? currentLayout.find((item) => item.i === cardId);
 
       if (!startItem) {
         return;
@@ -370,21 +370,21 @@ export const VisualDashboardView = ({
         updatePreferences((current) => {
           const currentVisibleCards = cards.filter((card) => current.cards[card.id]?.visible !== false);
           const currentVisibleIds = new Set(currentVisibleCards.map((card) => card.id));
-	          const currentVisibleLayout = current.visual.layouts[breakpoint].filter((item) => currentVisibleIds.has(item.i));
-	          const currentHiddenLayout = current.visual.layouts[breakpoint].filter((item) => !currentVisibleIds.has(item.i));
-	          const resizeSourceLayout = currentVisibleLayout.some((item) => item.i === cardId)
-	            ? currentVisibleLayout
-	            : [...currentVisibleLayout, startItem];
-	          const nextLayout = resizeDashboardGridItem({
-	            breakpoint,
-	            cardId,
-	            cardPreferences: current.cards,
-	            cards: currentVisibleCards,
-	            cols: activeCols,
-	            h: nextH,
-	            layout: resizeSourceLayout,
-	            w: nextW
-	          });
+          const currentVisibleLayout = current.visual.layouts[breakpoint].filter((item) => currentVisibleIds.has(item.i));
+          const currentHiddenLayout = current.visual.layouts[breakpoint].filter((item) => !currentVisibleIds.has(item.i));
+          const resizeSourceLayout = currentVisibleLayout.some((item) => item.i === cardId)
+            ? currentVisibleLayout
+            : [...currentVisibleLayout, startItem];
+          const nextLayout = resizeDashboardGridItem({
+            breakpoint,
+            cardId,
+            cardPreferences: current.cards,
+            cards: currentVisibleCards,
+            cols: activeCols,
+            h: nextH,
+            layout: resizeSourceLayout,
+            w: nextW
+          });
           const nextLayouts = {
             ...current.visual.layouts,
             [breakpoint]: [...nextLayout, ...currentHiddenLayout]
@@ -421,8 +421,8 @@ export const VisualDashboardView = ({
       resizeHandle.addEventListener("pointerup", stopResizing);
       resizeHandle.addEventListener("pointercancel", stopResizing);
     },
-	    [activeCols, activeLayoutById, allowHorizontalResize, breakpoint, cards, measuredWidth, preferences.visual.layouts, updatePreferences]
-	  );
+    [activeCols, activeLayoutById, allowHorizontalResize, breakpoint, cards, measuredWidth, preferences.visual.layouts, updatePreferences]
+  );
 
   return (
     <div

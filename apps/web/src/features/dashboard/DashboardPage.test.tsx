@@ -1,13 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ModuleLoadMode } from "@creator/data-contracts";
+import type { DashboardPreferencesV1, ModuleLoadMode } from "@creator/data-contracts";
 
 import { defaultCreatorId } from "../creator-diagnosis/creatorOptions";
 import { localDiagnosis } from "../creator-diagnosis/api";
 import { buildDashboardActionCards, buildDashboardCards, buildDefaultDashboardPreferences } from "./customization";
 import { buildDashboardViewModel } from "./model";
 import { DashboardPage } from "./DashboardPage";
+import { VisualDashboardView } from "./views/VisualDashboardView";
 
 const containerWidthMock = vi.hoisted(() => ({
   mounted: true,
@@ -627,8 +628,18 @@ describe("DashboardPage", () => {
     );
     expect(handle.matches(grid.dataset.dragHandle ?? "")).toBe(true);
     expect(handle.matches(grid.dataset.dragCancel ?? "")).toBe(false);
+    expect(rightResizeHandle).toHaveClass(
+      "react-resizable-handle",
+      "dashboard-card-resize-handle",
+      "dashboard-card-resize-edge--e",
+    );
     expect(rightResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
     expect(rightResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
+    expect(bottomResizeHandle).toHaveClass(
+      "react-resizable-handle",
+      "dashboard-card-resize-handle",
+      "dashboard-card-resize-edge--s",
+    );
     expect(bottomResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
     expect(bottomResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
     expect(askButton.matches(grid.dataset.dragHandle ?? "")).toBe(false);
@@ -653,6 +664,73 @@ describe("DashboardPage", () => {
         minW: 3,
         w: 8,
       });
+    });
+  });
+
+  it("resizes cards whose Visual layout is filled at render time", async () => {
+    const diagnosis = localDiagnosis(defaultCreatorId, "focused");
+    const viewModel = buildDashboardViewModel(diagnosis);
+    const cards = buildDashboardCards(diagnosis, viewModel);
+    const actions = buildDashboardActionCards(diagnosis);
+    const defaultPreferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2099-01-01T00:00:00.000Z");
+    let preferences: DashboardPreferencesV1 = {
+      ...defaultPreferences,
+      visual: {
+        layouts: {
+          ...defaultPreferences.visual.layouts,
+          lg: defaultPreferences.visual.layouts.lg.filter((item) => item.i !== "summary"),
+        },
+      },
+    };
+    const updatePreferences = vi.fn((updater: (current: DashboardPreferencesV1) => DashboardPreferencesV1) => {
+      preferences = updater(preferences);
+    });
+
+    render(
+      <VisualDashboardView
+        actions={actions}
+        cards={cards}
+        diagnosis={diagnosis}
+        onAsk={vi.fn()}
+        preferences={preferences}
+        updatePreferences={updatePreferences}
+        viewModel={viewModel}
+      />,
+    );
+
+    expect(preferences.visual.layouts.lg.some((item) => item.i === "summary")).toBe(false);
+
+    const rightResizeHandle = screen.getByTestId("visual-resize-handle-summary-e");
+
+    fireEvent.pointerDown(rightResizeHandle, {
+      button: 0,
+      clientX: 220,
+      clientY: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(rightResizeHandle, {
+      clientX: 100,
+      clientY: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(rightResizeHandle, {
+      clientX: 100,
+      clientY: 0,
+      pointerId: 1,
+    });
+
+    expect(updatePreferences).toHaveBeenCalled();
+    expect(preferences.cards.summary).toMatchObject({
+      width: "large",
+      height: "large",
+    });
+    expect(preferences.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({
+      h: 7,
+      maxH: 16,
+      maxW: 12,
+      minH: 6,
+      minW: 3,
+      w: 7,
     });
   });
 
