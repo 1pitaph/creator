@@ -1,23 +1,57 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-type InitialLoaderPhase = "waiting" | "active" | "exiting" | "done";
+type InitialLoaderPhase = "active" | "exiting" | "done";
 
-export const useInitialLoaderState = (isLoading: boolean) => {
-  const [phase, setPhase] = useState<InitialLoaderPhase>("waiting");
+type UseInitialLoaderStateOptions = {
+  minimumVisibleMs?: number;
+};
+
+export const useInitialLoaderState = (isLoading: boolean, { minimumVisibleMs = 900 }: UseInitialLoaderStateOptions = {}) => {
+  const [phase, setPhase] = useState<InitialLoaderPhase>("active");
+  const [hasObservedInitialLoad, setHasObservedInitialLoad] = useState(isLoading);
+  const shownAtRef = useRef(Date.now());
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearExitTimer = useCallback(() => {
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
-    setPhase((currentPhase) => {
-      if (currentPhase === "waiting" && isLoading) {
-        return "active";
-      }
+    return clearExitTimer;
+  }, [clearExitTimer]);
 
-      if (currentPhase === "active" && !isLoading) {
-        return "exiting";
-      }
+  useEffect(() => {
+    if (phase !== "active") {
+      return;
+    }
 
-      return currentPhase;
-    });
-  }, [isLoading]);
+    if (isLoading) {
+      clearExitTimer();
+      setHasObservedInitialLoad(true);
+      return;
+    }
+
+    if (!hasObservedInitialLoad) {
+      return;
+    }
+
+    const visibleForMs = Date.now() - shownAtRef.current;
+    const remainingMs = Math.max(0, minimumVisibleMs - visibleForMs);
+
+    if (remainingMs === 0) {
+      setPhase("exiting");
+      return;
+    }
+
+    clearExitTimer();
+    exitTimerRef.current = setTimeout(() => {
+      exitTimerRef.current = null;
+      setPhase((currentPhase) => (currentPhase === "active" ? "exiting" : currentPhase));
+    }, remainingMs);
+  }, [clearExitTimer, hasObservedInitialLoad, isLoading, minimumVisibleMs, phase]);
 
   const completeInitialLoader = useCallback(() => {
     setPhase((currentPhase) => (currentPhase === "exiting" ? "done" : currentPhase));

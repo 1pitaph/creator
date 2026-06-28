@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useEffect } from "react";
 
 import { PixelLogoLoader } from "./PixelLogoLoader";
 
@@ -8,6 +8,10 @@ type InitialLoadingOverlayProps = {
 };
 
 export const InitialLoadingOverlay = memo(function InitialLoadingOverlay({ active, onExitComplete }: InitialLoadingOverlayProps) {
+  useEffect(() => {
+    document.getElementById("instant-splash")?.remove();
+  }, []);
+
   return (
     <div
       aria-label="正在加载创作者画像"

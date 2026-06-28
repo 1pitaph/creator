@@ -62,6 +62,7 @@ const installMatchMediaMock = (matches: boolean) => {
 
 describe("InitialLoadingOverlay", () => {
   beforeEach(() => {
+    document.getElementById("instant-splash")?.remove();
     gsapMocks.killTweensOf.mockClear();
     gsapMocks.registerPlugin.mockClear();
     gsapMocks.set.mockClear();
@@ -96,6 +97,14 @@ describe("InitialLoadingOverlay", () => {
         return vars?.stagger?.grid?.[0] === GRID_SIZE && vars.stagger.grid[1] === GRID_SIZE;
       }),
     ).toBe(true);
+  });
+
+  it("removes the instant HTML splash after React takes over", () => {
+    document.body.insertAdjacentHTML("afterbegin", '<div id="instant-splash"></div>');
+
+    render(<InitialLoadingOverlay active onExitComplete={vi.fn()} />);
+
+    expect(document.getElementById("instant-splash")).not.toBeInTheDocument();
   });
 
   it("uses the reduced motion branch when the user prefers less motion", () => {
