@@ -44,6 +44,7 @@ vi.mock("@gsap/react", async () => {
 });
 
 import { InitialLoadingOverlay } from "./InitialLoadingOverlay";
+import { GRID_SIZE } from "./pixelLogoGeometry";
 
 const installMatchMediaMock = (matches: boolean) => {
   Object.defineProperty(window, "matchMedia", {
@@ -70,8 +71,9 @@ describe("InitialLoadingOverlay", () => {
     installMatchMediaMock(false);
   });
 
-  it("renders a centered status overlay and active pixel logo", () => {
-    render(<InitialLoadingOverlay active onExitComplete={vi.fn()} />);
+  it("renders a centered status overlay and active silhouette pixel logo", () => {
+    const { container } = render(<InitialLoadingOverlay active onExitComplete={vi.fn()} />);
+    const pixels = container.querySelectorAll(".pixel-logo-loader__pixel");
 
     expect(
       screen.getByRole("status", { name: "正在加载创作者画像" }),
@@ -84,7 +86,16 @@ describe("InitialLoadingOverlay", () => {
       "data-active",
       "true",
     );
+    expect(pixels.length).toBeGreaterThan(0);
+    expect(pixels.length).toBeLessThan(GRID_SIZE * GRID_SIZE);
     expect(gsapMocks.timeline).toHaveBeenCalledTimes(1);
+    expect(
+      gsapMocks.timelines[0]?.to.mock.calls.some((call) => {
+        const vars = call[1] as { stagger?: { grid?: number[] } } | undefined;
+
+        return vars?.stagger?.grid?.[0] === GRID_SIZE && vars.stagger.grid[1] === GRID_SIZE;
+      }),
+    ).toBe(true);
   });
 
   it("uses the reduced motion branch when the user prefers less motion", () => {
