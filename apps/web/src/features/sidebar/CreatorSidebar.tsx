@@ -1,7 +1,6 @@
 import { CaretLeft } from "@phosphor-icons/react/CaretLeft";
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { List } from "@phosphor-icons/react/List";
-import { Sparkle } from "@phosphor-icons/react/Sparkle";
 import { X } from "@phosphor-icons/react/X";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import * as Select from "@radix-ui/react-select";
@@ -13,6 +12,9 @@ import { Badge, cn } from "@creator/ui";
 import { lifecycleLabels, phosphorIconWeight } from "../../constants";
 import { creatorOptions } from "../creator-diagnosis/creatorOptions";
 import { agentNavIcon, sidebarNavItems } from "./navItems";
+
+const douyinLogoPath =
+  "M12.53.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z";
 
 export const CreatorSidebar = ({
   selectedCreatorId,
@@ -55,7 +57,7 @@ export const CreatorSidebar = ({
       <aside
         className={cn(
           "group/sidebar-shell sticky top-0 z-40 hidden h-screen shrink-0 border-r border-neutral-200 bg-neutral-100 transition-[width] duration-300 ease-in-out md:flex",
-          isDesktopCollapsed ? "w-[72px]" : "w-[300px]"
+          isDesktopCollapsed ? "w-[72px]" : "w-[260px]"
         )}
         data-collapsed={isDesktopCollapsed}
         data-testid="creator-sidebar-desktop"
@@ -182,13 +184,21 @@ const SidebarContent = ({
 const SidebarBrand = ({ className, collapsed = false }: { className?: string; collapsed?: boolean }) => (
   <div className={cn("relative z-20 flex items-center gap-2 py-1 text-sm text-neutral-950", collapsed ? "justify-center px-0" : "px-4", className)}>
     <div className="flex h-7 w-8 shrink-0 items-center justify-center rounded-bl-sm rounded-br-lg rounded-tl-lg rounded-tr-sm bg-black text-white">
-      <Sparkle className="h-3.5 w-3.5" weight={phosphorIconWeight} />
+      <DouyinLogoMark />
     </div>
     <div className={cn("min-w-0", collapsed && "hidden")}>
       <p className="truncate font-medium leading-5 text-neutral-950">Creator AI</p>
       <p className="truncate text-xs leading-4 text-neutral-500">抖音创作者中心 Demo</p>
     </div>
   </div>
+);
+
+const DouyinLogoMark = () => (
+  <svg aria-hidden="true" className="h-5 w-5 overflow-visible" focusable="false" viewBox="0 0 24 24">
+    <path d={douyinLogoPath} fill="#25f4ee" transform="translate(-1 1)" />
+    <path d={douyinLogoPath} fill="#fe2c55" transform="translate(1 -1)" />
+    <path d={douyinLogoPath} fill="currentColor" />
+  </svg>
 );
 
 const CreatorAccountSelect = ({
