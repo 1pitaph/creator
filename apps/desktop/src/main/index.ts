@@ -1,48 +1,51 @@
-import { app, BrowserWindow, shell } from "electron";
-import { join, resolve } from "node:path";
+import { app, BrowserWindow, dialog } from "electron";
+import type { DesktopAppServer } from "./appServer.js";
+import { startDesktopAppServer } from "./appServer.js";
+import { createMainWindow } from "./window.js";
 
 const defaultDevUrl = "http://127.0.0.1:5174";
+let desktopAppServer: DesktopAppServer | null = null;
 
-const createWindow = () => {
-  const window = new BrowserWindow({
-    width: 1440,
-    height: 960,
-    minWidth: 1180,
-    minHeight: 760,
-    title: "抖音创作者中心 AI Demo",
-    backgroundColor: "#f4f4f5",
-    titleBarStyle: "hiddenInset",
-    webPreferences: {
-      preload: join(__dirname, "../preload/index.mjs"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false
-    }
-  });
-
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
-    return { action: "deny" };
-  });
-
+const resolveAppUrl = async () => {
   const devUrl = process.env.DESKTOP_WEB_URL ?? (!app.isPackaged ? defaultDevUrl : undefined);
 
   if (devUrl) {
-    void window.loadURL(devUrl);
-    return;
+    return devUrl;
   }
 
-  void window.loadFile(resolve(__dirname, "../../../web/dist/index.html"));
+  if (!desktopAppServer) {
+    desktopAppServer = await startDesktopAppServer();
+  }
+
+  return desktopAppServer.url;
+};
+
+const createWindow = async () => {
+  const appUrl = await resolveAppUrl();
+  return createMainWindow({
+    allowedAppUrls: [appUrl, defaultDevUrl],
+    appUrl
+  });
 };
 
 app.whenReady().then(() => {
-  createWindow();
+  void createWindow().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+
+    console.error(error);
+    dialog.showErrorBox("Desktop startup failed", message);
+    app.quit();
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      void createWindow();
     }
   });
+});
+
+app.on("before-quit", () => {
+  void desktopAppServer?.close();
 });
 
 app.on("window-all-closed", () => {

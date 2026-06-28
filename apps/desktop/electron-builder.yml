@@ -1,0 +1,29 @@
+appId: com.creator.ai.desktop
+productName: Douyin Creator AI
+artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
+asar: true
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: ../web/dist
+    to: web
+mac:
+  category: public.app-category.business
+  identity: null
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+linux:
+  target:
+    - AppImage
+publish:
+  provider: github
+  releaseType: draft

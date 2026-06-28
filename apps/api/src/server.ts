@@ -29,8 +29,23 @@ import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-config({ path: resolve(process.cwd(), "../../.env") });
-config();
+export type ApiEnvOptions = {
+  cwd?: string;
+  envPath?: string;
+};
+
+export type BuildApiAppOptions = {
+  env?: ApiEnvOptions | false;
+};
+
+export const loadApiEnv = ({ cwd = process.cwd(), envPath }: ApiEnvOptions = {}) => {
+  if (envPath) {
+    config({ path: envPath, quiet: true });
+  }
+
+  config({ path: resolve(cwd, "../../.env"), quiet: true });
+  config({ quiet: true });
+};
 
 const getDiagnosisForCreator = (creatorId: string, moduleLoadMode = "focused") => {
   const creator = getMockCreator(creatorId);
@@ -43,7 +58,11 @@ const getDiagnosisForCreator = (creatorId: string, moduleLoadMode = "focused") =
   });
 };
 
-export const buildApiApp = async () => {
+export const buildApiApp = async ({ env }: BuildApiAppOptions = {}) => {
+  if (env !== false) {
+    loadApiEnv(env);
+  }
+
   const app = Fastify({
     logger: process.env.NODE_ENV === "test" ? false : true,
   });

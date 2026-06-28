@@ -188,16 +188,18 @@ textarea {
   padding: 0;
   background: none;
   background-image: none;
-  opacity: 0.62;
-  pointer-events: auto;
+  opacity: 0;
+  pointer-events: none;
   touch-action: none;
   transform: none;
-  transition: opacity 150ms ease, transform 150ms ease;
+  transition: opacity 150ms ease;
 }
 
 .dashboard-visual-grid-shell .react-grid-item:hover > .dashboard-card-resize-handle.dashboard-card-resize-edge,
-.dashboard-visual-grid-shell .react-grid-item:focus-within > .dashboard-card-resize-handle.dashboard-card-resize-edge {
+.dashboard-visual-grid-shell .react-grid-item:focus-within > .dashboard-card-resize-handle.dashboard-card-resize-edge,
+.dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge:active {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge::after {
@@ -208,17 +210,16 @@ textarea {
   content: "";
   position: absolute;
   border-radius: 999px;
-  background: rgba(82, 82, 91, 0.36);
-  opacity: 0.9;
+  background: rgba(113, 113, 122, 0.32);
+  opacity: 1;
   transition:
     background-color 150ms ease,
-    opacity 150ms ease,
-    transform 150ms ease;
+    opacity 150ms ease;
 }
 
 .dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge:hover::before,
 .dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge:active::before {
-  background: rgba(63, 63, 70, 0.62);
+  background: rgba(82, 82, 91, 0.44);
   opacity: 1;
 }
 
@@ -235,11 +236,8 @@ textarea {
   bottom: 10px;
   left: 8px;
   width: 3px;
-}
-
-.dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge--e:hover::before,
-.dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge--e:active::before {
-  transform: scaleX(1.35);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
 }
 
 .dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge--s {
@@ -255,11 +253,8 @@ textarea {
   right: 10px;
   left: 10px;
   height: 3px;
-}
-
-.dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge--s:hover::before,
-.dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge--s:active::before {
-  transform: scaleY(1.35);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 18%, black 82%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 18%, black 82%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -14,8 +14,8 @@ export type TagListItem = {
 type TagListGap = "tight" | "normal";
 
 const tagListGapClass: Record<TagListGap, string> = {
-  tight: "gap-1.5",
-  normal: "gap-2"
+  tight: "gap-1",
+  normal: "gap-1.5"
 };
 
 export const TagList = ({

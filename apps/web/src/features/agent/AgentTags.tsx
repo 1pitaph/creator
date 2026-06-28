@@ -4,7 +4,7 @@ import { Badge, TagList, type BadgeTone, type TagListItem } from "@creator/ui";
 import type { UiMessage } from "../../types";
 
 const messageModeTone: Record<NonNullable<UiMessage["mode"]>, BadgeTone> = {
-  llm: "green",
+  llm: "neutral",
   local: "neutral",
   mock: "neutral"
 };
@@ -78,7 +78,7 @@ export const MessageContextTags = ({
     ...moduleNames.slice(0, 3).map((name) => ({
       id: `module-${name}`,
       label: name,
-      tone: "blue" as const
+      tone: "neutral" as const
     }))
   ];
 
@@ -86,11 +86,11 @@ export const MessageContextTags = ({
 };
 
 export const AgentRunModeTag = ({ mode }: { mode: AgentRun["mode"] }) => (
-  <Badge tone={mode === "llm-assisted" ? "green" : "neutral"}>{agentRunModeLabel[mode]}</Badge>
+  <Badge tone="neutral">{agentRunModeLabel[mode]}</Badge>
 );
 
 export const ActionTimeframeTag = ({ timeframe }: { timeframe: AgentAction["timeframe"] }) => (
-  <Badge tone="blue">{actionTimeframeLabel[timeframe]}</Badge>
+  <Badge tone="neutral">{actionTimeframeLabel[timeframe]}</Badge>
 );
 
 export const ToolCallTagList = ({ toolCalls }: { toolCalls: AgentToolCall[] }) => (

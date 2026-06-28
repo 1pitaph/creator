@@ -7,12 +7,18 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "build:bundle": "pnpm --filter @creator/web build && electron-vite build",
+    "pack": "pnpm run build:bundle && electron-builder --dir",
+    "dist": "pnpm run build:bundle && electron-builder",
+    "dist:mac": "pnpm run build:bundle && electron-builder --mac",
+    "publish:github": "pnpm run build:bundle && electron-builder --publish always",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "electron": "^39.2.6",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^4.0.0",
     "vite": "^7.2.4"
   }

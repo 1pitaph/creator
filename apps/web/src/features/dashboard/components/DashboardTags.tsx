@@ -1,7 +1,7 @@
 import type { CreatorProfile, DashboardBoardColumn, Insight, InsightAction } from "@creator/data-contracts";
-import { Badge, TagList, type BadgeTone, type TagListItem, cn } from "@creator/ui";
+import { Badge, TagList, type BadgeTone, type TagListItem } from "@creator/ui";
 
-import { creatorTypeLabels, lifecycleLabels, severityTone, toneClass } from "../../../constants";
+import { creatorTypeLabels, lifecycleLabels, severityTone } from "../../../constants";
 import type { MetricDefinition } from "../../../types";
 import type { DashboardCardKind } from "../customization";
 
@@ -17,22 +17,23 @@ export const dashboardCardKindLabels: Record<DashboardCardKind, string> = {
 };
 
 const actionEffortTone: Record<InsightAction["effort"], BadgeTone> = {
-  low: "green",
+  low: "neutral",
   medium: "amber",
   high: "red"
-};
-
-const boardColumnTones: Record<DashboardBoardColumn, BadgeTone> = {
-  today: "blue",
-  next: "amber",
-  this_week: "neutral",
-  done: "green"
 };
 
 const metricTrendTone: Record<MetricDefinition["trend"], BadgeTone> = {
   up: "green",
   down: "red",
   flat: "neutral"
+};
+
+const metricToneTagTone: Record<MetricDefinition["tone"], BadgeTone> = {
+  sky: "blue",
+  emerald: "green",
+  amber: "amber",
+  rose: "red",
+  violet: "neutral"
 };
 
 const summaryStateLabel = {
@@ -71,7 +72,7 @@ export const CreatorSummaryTags = ({
           {
             id: "creator-type",
             label: creatorTypeLabels[creator.creatorType],
-            tone: "green"
+            tone: "neutral"
           },
           {
             id: "summary-state",
@@ -83,17 +84,17 @@ export const CreatorSummaryTags = ({
           {
             id: "domain",
             label: creator.domain,
-            tone: "blue"
+            tone: "neutral"
           },
           {
             id: "creator-type",
             label: creatorTypeLabels[creator.creatorType],
-            tone: "green"
+            tone: "neutral"
           },
           {
             id: "lifecycle",
             label: lifecycleLabels[creator.lifecycle],
-            tone: "neutral"
+            tone: "blue"
           },
           {
             id: "summary-state",
@@ -109,8 +110,8 @@ export const ActionEffortTag = ({ effort }: { effort: InsightAction["effort"] })
   <Badge tone={actionEffortTone[effort]}>{effort}</Badge>
 );
 
-export const BoardColumnCountTag = ({ column, count }: { column: DashboardBoardColumn; count: number }) => (
-  <Badge tone={boardColumnTones[column]}>{count}</Badge>
+export const BoardColumnCountTag = ({ count }: { column: DashboardBoardColumn; count: number }) => (
+  <Badge tone="neutral">{count}</Badge>
 );
 
 export const DashboardCardKindTag = ({ kind }: { kind: DashboardCardKind }) => (
@@ -131,7 +132,7 @@ export const MetricToneTag = ({
 }: {
   label: string;
   tone: MetricDefinition["tone"];
-}) => <span className={cn("rounded-md px-2 py-1 text-xs font-medium", toneClass[tone].soft)}>{label}</span>;
+}) => <Badge tone={metricToneTagTone[tone]}>{label}</Badge>;
 
 export const MetricTrendTag = ({ metric }: { metric: Pick<MetricDefinition, "trend" | "trendLabel"> }) => (
   <Badge tone={metricTrendTone[metric.trend]}>{metric.trendLabel}</Badge>
