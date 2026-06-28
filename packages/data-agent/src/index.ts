@@ -86,7 +86,7 @@ const createKernelEvidence = (responses: DataKernelResponse[]): AgentEvidenceRef
       label: `${response.tool}: ${item.sourceTable}`,
       sourceType: "agent-tool" as const,
       sourceId: response.requestId,
-      metricKey: item.metricKey,
+      metricKey: item.metricKey ?? undefined,
       excerpt: item.excerpt
     }))
   );

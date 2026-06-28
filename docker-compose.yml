@@ -14,13 +14,14 @@ services:
       retries: 10
       start_period: 10s
     volumes:
-      - creator-postgres:/var/lib/postgresql/data
+      - creator-postgres:/var/lib/postgresql
 
   data-kernel:
     build:
       context: ./apps/data-kernel
     environment:
       DATA_KERNEL_TOKEN: ${DATA_KERNEL_TOKEN:-local-dev-token}
+      DATA_KERNEL_REQUIRE_TOKEN: "1"
       DATA_KERNEL_PORT: 8790
     expose:
       - "8790"
@@ -58,6 +59,41 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      data-kernel:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:'' + (process.env.PORT || 8787) + ''/health'').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  api-memory:
+    profiles:
+      - memory-checkpoint
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 8787
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:5174}
+      DATA_KERNEL_URL: http://data-kernel:8790
+      DATA_KERNEL_TOKEN: ${DATA_KERNEL_TOKEN:-local-dev-token}
+      AGENT_CHECKPOINT_URL: ""
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+    ports:
+      - "${API_MEMORY_PORT:-8788}:8787"
+    init: true
+    mem_limit: 768m
+    cpus: 1
+    depends_on:
       data-kernel:
         condition: service_healthy
     healthcheck:

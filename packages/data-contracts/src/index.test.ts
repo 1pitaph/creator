@@ -91,10 +91,17 @@ describe("data contracts", () => {
       agentRun,
       threadId: "thread-1",
       status: "completed",
+      checkpoint: {
+        threadId: "thread-1",
+        checkpointProvider: "memory",
+        status: "completed",
+        updatedAt: "2026-06-28T00:00:00.000Z",
+      },
     });
 
     expect(parsed.agentRun?.id).toBe("run-1");
     expect(parsed.threadId).toBe("thread-1");
+    expect(parsed.checkpoint?.checkpointProvider).toBe("memory");
   });
 
   it("parses stream events, patches, tool results, and checkpoint metadata", () => {
@@ -119,6 +126,19 @@ describe("data contracts", () => {
     expect(
       AgentStreamEventSchema.parse({ type: "text-delta", delta: "hi" }).type,
     ).toBe("text-delta");
+    expect(
+      AgentStreamEventSchema.parse({
+        type: "thread",
+        threadId: "thread-1",
+        status: "running",
+        checkpoint: {
+          threadId: "thread-1",
+          checkpointProvider: "postgres",
+          status: "running",
+          updatedAt: "2026-06-28T00:00:00.000Z",
+        },
+      }).checkpoint?.checkpointProvider,
+    ).toBe("postgres");
     expect(
       AgentStreamEventSchema.parse({
         type: "tool-result",
@@ -146,6 +166,27 @@ describe("data contracts", () => {
 
     expect(request.limits.maxRows).toBe(200);
     expect(response.evidence).toEqual([]);
+  });
+
+  it("accepts nullable fields emitted by the Python data kernel", () => {
+    const response = DataKernelResponseSchema.parse({
+      ok: true,
+      requestId: "kernel-1",
+      tool: "profile_dataset",
+      evidence: [
+        {
+          sourceTable: "history",
+          rowCount: 7,
+          columns: ["date", "views"],
+          excerpt: "history has 7 rows.",
+          metricKey: null,
+        },
+      ],
+      error: null,
+    });
+
+    expect(response.evidence[0]?.metricKey).toBeNull();
+    expect(response.error).toBeNull();
   });
 
   it("rejects kernel limits beyond the Python kernel bounds", () => {

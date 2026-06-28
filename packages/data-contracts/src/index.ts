@@ -333,6 +333,7 @@ export const AgentStreamEventSchema = z.discriminatedUnion("type", [
     type: z.literal("thread"),
     threadId: z.string(),
     status: AgentThreadStatusSchema,
+    checkpoint: AgentCheckpointSchema.optional(),
   }),
   z.object({
     type: z.literal("text-delta"),
@@ -376,6 +377,7 @@ export const AgentChatMetadataSchema = z.object({
   mode: z.enum(["mock", "llm", "local"]).optional(),
   usedModules: z.array(z.string()).optional(),
   threadId: z.string().optional(),
+  checkpoint: AgentCheckpointSchema.optional(),
   finishReason: z.string().optional(),
   localOnly: z.boolean().optional(),
 });
@@ -420,7 +422,7 @@ export const DataKernelEvidenceSchema = z.object({
   rowCount: z.number().int().nonnegative(),
   columns: z.array(z.string()),
   excerpt: z.string(),
-  metricKey: z.string().optional(),
+  metricKey: z.string().nullable().optional(),
 });
 
 export const DataKernelArtifactSchema = z.object({
@@ -433,7 +435,7 @@ export const DataKernelArtifactSchema = z.object({
 export const DataKernelErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
-  detail: z.string().optional(),
+  detail: z.string().nullable().optional(),
 });
 
 export const DataKernelResponseSchema = z.object({
@@ -445,7 +447,7 @@ export const DataKernelResponseSchema = z.object({
   artifacts: z.array(DataKernelArtifactSchema).default([]),
   stats: JsonRecordSchema.default({}),
   warnings: z.array(z.string()).default([]),
-  error: DataKernelErrorSchema.optional(),
+  error: DataKernelErrorSchema.nullable().optional(),
 });
 
 export const ChatRequestSchema = z.object({
@@ -468,6 +470,7 @@ export const ChatResponseSchema = z.object({
   agentRun: AgentRunSchema.optional(),
   threadId: z.string().optional(),
   status: AgentThreadStatusSchema.optional(),
+  checkpoint: AgentCheckpointSchema.optional(),
   approval: AgentApprovalRequestSchema.optional(),
 });
 

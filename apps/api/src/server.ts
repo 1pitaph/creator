@@ -149,6 +149,7 @@ export const buildApiApp = async () => {
       mode: "mock",
     };
     let textStarted = false;
+    const abortController = new AbortController();
 
     const stream = createUIMessageStream<UIMessage>({
       execute: async ({ writer }) => {
@@ -160,11 +161,13 @@ export const buildApiApp = async () => {
         for await (const event of streamAgentGraphEvents({
           request: parsed.data,
           diagnosis,
+          abortSignal: abortController.signal,
         })) {
           switch (event.type) {
             case "thread":
               finalMetadata = {
                 ...finalMetadata,
+                checkpoint: event.checkpoint,
                 threadId: event.threadId,
               };
               writeDataChunk(writer, "agent-thread", event, event.threadId);
@@ -263,6 +266,11 @@ export const buildApiApp = async () => {
     });
 
     reply.hijack();
+    reply.raw.on("close", () => {
+      if (!reply.raw.writableEnded) {
+        abortController.abort();
+      }
+    });
     pipeUIMessageStreamToResponse({
       response: reply.raw,
       stream,

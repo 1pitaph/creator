@@ -44,7 +44,8 @@ describe("agent graph", () => {
     });
 
     expect(result.threadId).toBe("thread-test");
-    expect(result.checkpoint.checkpointKind).toBe("memory");
+    expect(result.checkpoint.checkpointProvider).toBe("memory");
+    expect(result.metadata.checkpoint?.checkpointProvider).toBe("memory");
     expect(result.usedModules).toEqual(["content-diagnosis"]);
     expect(result.agentRun.toolCalls.map((tool) => tool.name)).toContain(
       "rank_priority_insight",
@@ -97,7 +98,7 @@ describe("agent graph", () => {
         "postgresql://creator:creator@postgres:5432/creator_agent",
       );
       expect(postgresLikeSaver.setup).toHaveBeenCalled();
-      expect(result.checkpoint.checkpointKind).toBe("postgres");
+      expect(result.checkpoint.checkpointProvider).toBe("postgres");
     } finally {
       fromConnString.mockRestore();
     }
@@ -128,7 +129,7 @@ describe("agent graph", () => {
       });
 
       expect(fromConnString).toHaveBeenCalled();
-      expect(result.checkpoint.checkpointKind).toBe("memory");
+      expect(result.checkpoint.checkpointProvider).toBe("memory");
     } finally {
       fromConnString.mockRestore();
     }
@@ -302,6 +303,18 @@ describe("agent graph", () => {
         .map((event) => event.delta)
         .join(""),
     ).toContain("本次调用模块");
+    const streamedToolNames = events
+      .filter((event) => event.type === "tool-call")
+      .map((event) => event.toolCall.name);
+    expect(streamedToolNames).toContain("rank_priority_insight");
+    expect(streamedToolNames).not.toEqual(
+      expect.arrayContaining([
+        "hydrate_request",
+        "select_active_context",
+        "build_evidence",
+        "finalize_agent_run",
+      ]),
+    );
   });
 
   it("streams data-kernel tool errors as business tool-call events", async () => {
@@ -488,6 +501,34 @@ describe("agent graph", () => {
     expect(response.agentRun?.toolCalls.at(-1)?.name).toBe("approval_resume");
     expect(response.agentRun?.actions.map((action) => action.status)).toContain(
       "accepted",
+    );
+
+    const replay = await resumeAgentGraph({
+      request: {
+        threadId: "thread-resume-checkpoint",
+        approvalId: pending.approval!.id,
+        decision: "deny",
+      },
+    });
+
+    expect(replay.status).toBe("error");
+    expect(replay.agentRun?.toolCalls.at(-1)?.error).toBe(
+      "APPROVAL_NOT_PENDING",
+    );
+  });
+
+  it("rejects resume requests without a pending approval checkpoint", async () => {
+    const response = await resumeAgentGraph({
+      request: {
+        threadId: "thread-without-approval",
+        approvalId: "approval-missing",
+        decision: "approve",
+      },
+    });
+
+    expect(response.status).toBe("error");
+    expect(response.agentRun?.toolCalls.at(-1)?.error).toBe(
+      "APPROVAL_NOT_PENDING",
     );
   });
 });

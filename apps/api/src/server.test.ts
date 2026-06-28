@@ -1,5 +1,7 @@
 import type { FastifyInstance } from "fastify";
+import { resetAgentGraphRuntimeForTests } from "@creator/agent-graph";
 import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildApiApp } from "./server";
@@ -16,10 +18,19 @@ const parseSseChunks = (payload: string) =>
       (line) => JSON.parse(line) as { type: string; [key: string]: unknown },
     );
 
+const withTimeout = async <T,>(promise: Promise<T>, ms: number) =>
+  Promise.race([
+    promise,
+    new Promise<never>((_resolve, reject) =>
+      setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms),
+    ),
+  ]);
+
 beforeEach(async () => {
   vi.stubEnv("AGENT_CHECKPOINT_URL", "");
   vi.stubEnv("DATA_KERNEL_URL", "");
   vi.stubEnv("LLM_API_KEY", "");
+  resetAgentGraphRuntimeForTests();
   app = await buildApiApp();
   await app.ready();
 });
@@ -52,6 +63,11 @@ describe("creator API", () => {
       threadId: "thread-json",
       status: "completed",
       usedModules: ["content-diagnosis"],
+      checkpoint: {
+        checkpointProvider: "memory",
+        status: "completed",
+        threadId: "thread-json",
+      },
     });
     expect(body.reply).toContain("本次调用模块");
     expect(
@@ -100,6 +116,15 @@ describe("creator API", () => {
         .map((chunk) => chunk.delta)
         .join(""),
     ).toContain("本次调用模块");
+    expect(
+      chunks.find((chunk) => chunk.type === "data-agent-thread")?.data,
+    ).toMatchObject({
+      checkpoint: {
+        checkpointProvider: "memory",
+        status: "running",
+        threadId: "thread-stream",
+      },
+    });
   });
 
   it("streams approval requests for side-effect actions", async () => {
@@ -186,13 +211,104 @@ describe("creator API", () => {
     }
   });
 
+  it("aborts upstream LLM streams when the client disconnects", async () => {
+    let upstreamStartedResolve: (() => void) | undefined;
+    let upstreamClosedResolve: (() => void) | undefined;
+    const upstreamStarted = new Promise<void>((resolve) => {
+      upstreamStartedResolve = resolve;
+    });
+    const upstreamClosed = new Promise<void>((resolve) => {
+      upstreamClosedResolve = resolve;
+    });
+    const llm = createServer((request, response) => {
+      upstreamStartedResolve?.();
+      request.on("close", () => upstreamClosedResolve?.());
+      response.writeHead(200, {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache",
+        connection: "keep-alive",
+      });
+      response.write(
+        `data: ${JSON.stringify({
+          id: "chunk-1",
+          object: "chat.completion.chunk",
+          created: 0,
+          model: "test-model",
+          choices: [
+            {
+              index: 0,
+              delta: { content: "slow " },
+              finish_reason: null,
+            },
+          ],
+        })}\n\n`,
+      );
+    });
+    await new Promise<void>((resolve) =>
+      llm.listen(0, "127.0.0.1", resolve),
+    );
+    const llmAddress = llm.address();
+    const apiAddress = await app.listen({ port: 0, host: "127.0.0.1" });
+
+    try {
+      if (!llmAddress || typeof llmAddress === "string") {
+        throw new Error("Test LLM server did not expose a port.");
+      }
+
+      vi.stubEnv("LLM_API_KEY", "test-key");
+      vi.stubEnv("LLM_BASE_URL", `http://127.0.0.1:${llmAddress.port}`);
+      vi.stubEnv("LLM_MODEL", "test-model");
+
+      const abortController = new AbortController();
+      const response = await fetch(`${apiAddress}/api/chat/stream`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          creatorId: "starter-food",
+          threadId: "thread-stream-abort",
+          activeModules: ["content-diagnosis"],
+          messages: [{ role: "user", content: "帮我分析完播率" }],
+        }),
+        signal: abortController.signal,
+      });
+
+      expect(response.status).toBe(200);
+      await withTimeout(upstreamStarted, 5_000);
+      abortController.abort();
+      await expect(withTimeout(upstreamClosed, 5_000)).resolves.toBeUndefined();
+    } finally {
+      if (apiAddress) {
+        await app.close();
+        app = await buildApiApp();
+        await app.ready();
+      }
+      await new Promise<void>((resolve) => llm.close(() => resolve()));
+    }
+  });
+
   it("resumes approvals", async () => {
+    const pending = await app.inject({
+      method: "POST",
+      url: "/api/chat/stream",
+      payload: {
+        creatorId: "starter-food",
+        threadId: "thread-approval",
+        activeModules: ["topic-opportunity"],
+        messages: [{ role: "user", content: "把建议写入行动计划" }],
+      },
+    });
+    const approval = parseSseChunks(pending.payload).find(
+      (chunk) => chunk.type === "data-agent-approval",
+    )?.data as { id?: string } | undefined;
+
+    expect(approval?.id).toBeTruthy();
+
     const response = await app.inject({
       method: "POST",
       url: "/api/chat/resume",
       payload: {
         threadId: "thread-approval",
-        approvalId: "approval-1",
+        approvalId: approval!.id,
         decision: "deny",
       },
     });
@@ -201,6 +317,18 @@ describe("creator API", () => {
     expect(response.statusCode).toBe(200);
     expect(body.status).toBe("completed");
     expect(body.agentRun.answer).toContain("已拒绝");
+
+    const replay = await app.inject({
+      method: "POST",
+      url: "/api/chat/resume",
+      payload: {
+        threadId: "thread-approval",
+        approvalId: approval!.id,
+        decision: "approve",
+      },
+    });
+
+    expect(replay.json().status).toBe("error");
   });
 
   it("rejects invalid chat, stream, and resume payloads", async () => {

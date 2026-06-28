@@ -24,7 +24,9 @@ export type GenerateTextInput = {
   temperature?: number;
 };
 
-export type StreamTextInput = GenerateTextInput;
+export type StreamTextInput = GenerateTextInput & {
+  abortSignal?: AbortSignal;
+};
 
 export type GatewayTextStream = AsyncIterable<string>;
 
@@ -106,6 +108,7 @@ export const streamGatewayText = (
   }
 
   const result = streamText({
+    abortSignal: input.abortSignal,
     model,
     system: getSystemPrompt(input),
     messages: toModelMessages(input.messages),

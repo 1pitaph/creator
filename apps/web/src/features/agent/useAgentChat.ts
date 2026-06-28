@@ -125,6 +125,9 @@ export const useAgentChat = ({
   const [focus, setFocus] = useState<AskTarget | null>(null);
   const [threadId, setThreadId] = useState(createThreadId);
   const [isResumingApproval, setIsResumingApproval] = useState(false);
+  const [resolvedApprovalIds, setResolvedApprovalIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const endRef = useRef<HTMLDivElement | null>(null);
   const activeModuleIdsRef = useRef(activeModuleIds);
   const creatorIdRef = useRef(creatorId);
@@ -199,7 +202,12 @@ export const useAgentChat = ({
     .find(
       (
         approval: AgentApprovalRequest | undefined,
-      ): approval is AgentApprovalRequest => Boolean(approval),
+      ): approval is AgentApprovalRequest => {
+        if (!approval) {
+          return false;
+        }
+        return !resolvedApprovalIds.has(approval.id);
+      },
     );
 
   const sendQuestion = useCallback(
@@ -298,6 +306,14 @@ export const useAgentChat = ({
           decision,
         });
 
+        if (response.status === "completed") {
+          setResolvedApprovalIds((current) => {
+            const next = new Set(current);
+            next.add(currentApproval.id);
+            return next;
+          });
+        }
+
         if (response.agentRun) {
           setLocalMessages((current) => [
             ...current,
@@ -317,7 +333,7 @@ export const useAgentChat = ({
         setIsResumingApproval(false);
       }
     },
-    [currentApproval, isResumingApproval, resumeFetcher],
+    [currentApproval, isResumingApproval, resolvedApprovalIds, resumeFetcher],
   );
 
   useEffect(() => {
@@ -325,6 +341,7 @@ export const useAgentChat = ({
     const nextThreadId = createThreadId();
     threadIdRef.current = nextThreadId;
     setThreadId(nextThreadId);
+    setResolvedApprovalIds(new Set());
     chat.setMessages([]);
   }, [creatorId]);
 
@@ -336,6 +353,7 @@ export const useAgentChat = ({
 
     setFocus(null);
     setDraft("");
+    setResolvedApprovalIds(new Set());
     setLocalMessages([
       createCreatorSwitchMessage(diagnosis, idFactoryRef.current),
     ]);

@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "start": "tsx src/server.ts",
     "test": "vitest run",
+    "test:kernel-smoke": "RUN_DATA_KERNEL_SMOKE=1 vitest run src/kernel-smoke.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

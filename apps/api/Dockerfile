@@ -6,7 +6,7 @@ ENV PNPM_HOME=/pnpm \
 
 WORKDIR /workspace
 
-RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+RUN npm install -g pnpm@11.7.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY apps ./apps

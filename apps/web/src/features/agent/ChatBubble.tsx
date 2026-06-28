@@ -64,6 +64,14 @@ const toolStatusTone: Record<
   skipped: "neutral",
 };
 
+const toolStatusLabel: Record<AgentToolCall["status"], string> = {
+  pending: "等待",
+  running: "运行中",
+  success: "完成",
+  error: "失败",
+  skipped: "跳过",
+};
+
 const actionTimeframeLabel: Record<AgentAction["timeframe"], string> = {
   today: "今天",
   tomorrow: "明天",
@@ -154,8 +162,12 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
       <p className="mb-2 font-semibold text-zinc-700">工具调用</p>
       <div className="flex flex-wrap gap-1.5">
         {run.toolCalls.map((tool) => (
-          <Badge key={tool.id} tone={toolStatusTone[tool.status]}>
-            {tool.name}
+          <Badge
+            key={tool.id}
+            tone={toolStatusTone[tool.status]}
+            title={tool.error ?? tool.outputSummary}
+          >
+            {tool.name} · {toolStatusLabel[tool.status]}
           </Badge>
         ))}
       </div>

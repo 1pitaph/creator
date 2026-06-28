@@ -12,9 +12,16 @@ from .tools import execute_tool
 app = FastAPI(title="Creator Data Kernel", version="0.1.0")
 
 
+def truthy(value: str | None) -> bool:
+    return (value or "").lower() in {"1", "true", "yes", "on"}
+
+
 def verify_token(authorization: Annotated[str | None, Header()] = None) -> None:
     expected = os.getenv("DATA_KERNEL_TOKEN")
+    token_required = truthy(os.getenv("DATA_KERNEL_REQUIRE_TOKEN"))
     if not expected:
+        if token_required:
+            raise HTTPException(status_code=503, detail="Data kernel token is required")
         return
     if authorization != f"Bearer {expected}":
         raise HTTPException(status_code=401, detail="Invalid data kernel token")

@@ -15,9 +15,11 @@ describe("production compose config", () => {
     expect(compose).toContain("  postgres:");
     expect(compose).toContain("  data-kernel:");
     expect(compose).toContain("  api:");
+    expect(compose).toContain("  api-memory:");
     expect(compose).toContain("dockerfile: ./apps/api/Dockerfile");
     expect(compose).toContain("DATA_KERNEL_URL: http://data-kernel:8790");
     expect(compose).toContain("AGENT_CHECKPOINT_URL:");
+    expect(compose).toContain("memory-checkpoint");
     expect(compose).toContain("condition: service_healthy");
     expect(compose).not.toContain("api-env:");
     expect(compose).not.toContain("echo AGENT_CHECKPOINT_URL");
@@ -26,6 +28,7 @@ describe("production compose config", () => {
   it("builds the API image from the pnpm workspace and exposes a healthcheck", () => {
     const dockerfile = readWorkspaceFile("apps/api/Dockerfile");
 
+    expect(dockerfile).toContain("npm install -g pnpm@11.7.0");
     expect(dockerfile).toContain("pnpm install --frozen-lockfile");
     expect(dockerfile).toContain("pnpm --filter @creator/api build");
     expect(dockerfile).toContain(

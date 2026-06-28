@@ -136,3 +136,8 @@ def test_tool_path_mismatch_and_token_auth(monkeypatch) -> None:
     authorized = client.post("/tools/profile_dataset", headers={"authorization": "Bearer secret"}, json=request("profile_dataset"))
     assert unauthorized.status_code == 401
     assert authorized.status_code == 200
+
+    monkeypatch.delenv("DATA_KERNEL_TOKEN")
+    monkeypatch.setenv("DATA_KERNEL_REQUIRE_TOKEN", "1")
+    missing_token = client.post("/tools/profile_dataset", json=request("profile_dataset"))
+    assert missing_token.status_code == 503

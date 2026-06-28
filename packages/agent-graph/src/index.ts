@@ -9,6 +9,7 @@ import {
   AgentResumeRequestSchema,
   type AgentApprovalRequest,
   type AgentChatMetadata,
+  type AgentCheckpoint,
   type AgentEvidenceRef,
   type AgentFact,
   type AgentMessage,
@@ -54,7 +55,7 @@ type AgentGraphRuntime = {
 type AgentGraphResult = {
   agentRun: AgentRun;
   approval?: AgentApprovalRequest;
-  checkpoint: AgentGraphRuntime;
+  checkpoint: AgentCheckpoint;
   mode: "mock" | "llm";
   metadata: AgentChatMetadata;
   status: AgentThreadStatus;
@@ -66,6 +67,7 @@ export type InvokeAgentGraphInput = {
   request: ChatRequest;
   diagnosis: DiagnosisResponse;
   aiConfig?: AiGatewayConfig;
+  abortSignal?: AbortSignal;
 };
 
 export type ResumeAgentGraphInput = {
@@ -164,6 +166,17 @@ const includesAny = (text: string, keywords: string[]) =>
   );
 
 const createThreadId = () => `thread-${randomUUID()}`;
+
+const createCheckpointMetadata = (
+  threadId: string,
+  checkpointKind: AgentGraphRuntime["checkpointKind"],
+  status: AgentThreadStatus,
+): AgentCheckpoint => ({
+  threadId,
+  checkpointProvider: checkpointKind,
+  status,
+  updatedAt: new Date().toISOString(),
+});
 
 const filterModelMessages = (messages: AgentMessage[]) =>
   messages.filter(
@@ -516,14 +529,20 @@ export const invokeAgentGraph = async (
   }
 
   const mode = result.agentRun.mode === "llm-assisted" ? "llm" : "mock";
+  const checkpointMetadata = createCheckpointMetadata(
+    result.threadId,
+    checkpoint.checkpointKind,
+    result.status,
+  );
 
   return {
     agentRun: result.agentRun,
     approval: result.approval,
-    checkpoint,
+    checkpoint: checkpointMetadata,
     mode,
     metadata: {
       agentRunId: result.agentRun.id,
+      checkpoint: checkpointMetadata,
       mode,
       threadId: result.threadId,
       usedModules: result.agentRun.usedModules,
@@ -543,36 +562,11 @@ export const toLegacyChatResponse = (
   agentRun: result.agentRun,
   threadId: result.threadId,
   status: result.status,
+  checkpoint: result.checkpoint,
   approval: result.approval,
 });
 
 const event = (value: AgentStreamEvent) => value;
-
-const graphNodeLabels: Record<string, string> = {
-  hydrate_request: "整理请求上下文",
-  select_active_context: "选择当前模块上下文",
-  infer_user_intent: "识别用户意图",
-  build_evidence: "构建数据证据",
-  rank_priority_insight: "排序优先洞察",
-  synthesize_facts_assumptions: "合成事实与假设",
-  synthesize_actions: "合成行动建议",
-  llm_or_deterministic_synthesis: "准备自然语言回答",
-  finalize_agent_run: "生成 AgentRun 审计记录",
-};
-
-const createGraphNodeToolCall = (
-  threadId: string,
-  nodeName: string,
-): AgentRun["toolCalls"][number] => ({
-  id: `${threadId}-${nodeName}`,
-  name: nodeName,
-  status: "success",
-  inputSummary: graphNodeLabels[nodeName] ?? nodeName,
-  outputSummary: `${graphNodeLabels[nodeName] ?? nodeName} 已完成。`,
-  evidenceIds: [],
-  startedAt: new Date().toISOString(),
-  finishedAt: new Date().toISOString(),
-});
 
 const streamTextChunks = async function* (
   text: string,
@@ -608,6 +602,7 @@ const getLlmTextStream = (
 ): ReturnType<typeof streamGatewayText> =>
   streamGatewayText(
     {
+      abortSignal: input.abortSignal,
       messages: buildGatewayPayload(state),
       temperature: 0.4,
     },
@@ -664,7 +659,16 @@ export async function* streamAgentGraphEvents(
     { deferLlmSynthesis: true },
   );
 
-  yield event({ type: "thread", threadId, status: "running" });
+  yield event({
+    type: "thread",
+    threadId,
+    status: "running",
+    checkpoint: createCheckpointMetadata(
+      threadId,
+      checkpoint.checkpointKind,
+      "running",
+    ),
+  });
 
   const stream = await graph.stream(initialState, {
     configurable: {
@@ -673,17 +677,9 @@ export async function* streamAgentGraphEvents(
     streamMode: "updates",
   });
 
-  for await (const update of stream) {
-    if (!update || typeof update !== "object") {
-      continue;
-    }
-
-    for (const nodeName of Object.keys(update as Record<string, unknown>)) {
-      yield event({
-        type: "tool-call",
-        toolCall: createGraphNodeToolCall(threadId, nodeName),
-      });
-    }
+  for await (const _update of stream) {
+    // Drain LangGraph updates for execution/checkpointing, but keep framework
+    // node names out of the stable AgentRun/stream business protocol.
   }
 
   const deferredState = await getGraphState(graph, threadId);
@@ -779,37 +775,59 @@ export const resumeAgentGraph = async ({
   }
   const previousRun = previousState?.agentRun;
   const previousApproval = previousState?.approval;
-  const approvalMatches =
-    previousApproval?.id === parsed.approvalId ||
-    previousRun?.answer.includes(parsed.approvalId);
 
-  if (previousApproval && !approvalMatches) {
+  const resumeError = (
+    answer: string,
+    outputSummary: string,
+    error: string,
+  ): AgentResumeResponse => ({
+    threadId: parsed.threadId,
+    status: "error",
+    agentRun: {
+      id: `resume-${Date.now()}`,
+      mode: "deterministic",
+      answer,
+      usedModules: previousRun?.usedModules ?? [],
+      toolCalls: [
+        {
+          id: `resume-tool-${randomUUID()}`,
+          name: "approval_resume",
+          status: "error",
+          inputSummary: `审批 ${parsed.approvalId}: ${parsed.decision}`,
+          outputSummary,
+          evidenceIds: [],
+          error,
+        },
+      ],
+      evidence: previousRun?.evidence ?? [],
+      facts: previousRun?.facts ?? [],
+      assumptions: previousRun?.assumptions ?? [],
+      actions: previousRun?.actions ?? [],
+      followUpQuestions: previousRun?.followUpQuestions ?? [],
+      createdAt: new Date().toISOString(),
+    },
+  });
+
+  if (
+    !previousState ||
+    previousState.status !== "awaiting_approval" ||
+    !previousApproval
+  ) {
+    return resumeError(
+      "没有待审批动作可恢复，本次不会写入行动计划。",
+      "当前线程没有待审批状态，可能已处理或 checkpoint 不存在。",
+      "APPROVAL_NOT_PENDING",
+    );
+  }
+
+  if (previousApproval.id !== parsed.approvalId) {
     return {
-      threadId: parsed.threadId,
-      status: "error",
-      agentRun: {
-        id: `resume-${Date.now()}`,
-        mode: "deterministic",
-        answer: "没有找到匹配的待审批动作，本次不会写入行动计划。",
-        usedModules: previousRun?.usedModules ?? [],
-        toolCalls: [
-          {
-            id: `resume-tool-${randomUUID()}`,
-            name: "approval_resume",
-            status: "error",
-            inputSummary: `审批 ${parsed.approvalId}: ${parsed.decision}`,
-            outputSummary: "审批 ID 与当前线程待审批项不匹配。",
-            evidenceIds: [],
-            error: "APPROVAL_NOT_FOUND",
-          },
-        ],
-        evidence: previousRun?.evidence ?? [],
-        facts: previousRun?.facts ?? [],
-        assumptions: previousRun?.assumptions ?? [],
-        actions: previousRun?.actions ?? [],
-        followUpQuestions: previousRun?.followUpQuestions ?? [],
-        createdAt: new Date().toISOString(),
-      },
+      ...resumeError(
+        "没有找到匹配的待审批动作，本次不会写入行动计划。",
+        "审批 ID 与当前线程待审批项不匹配。",
+        "APPROVAL_NOT_FOUND",
+      ),
+      approval: previousApproval,
     };
   }
 
@@ -847,20 +865,19 @@ export const resumeAgentGraph = async ({
     createdAt: new Date().toISOString(),
   };
 
-  if (previousState) {
-    await graph.updateState(
-      {
-        configurable: {
-          thread_id: parsed.threadId,
-        },
+  await graph.updateState(
+    {
+      configurable: {
+        thread_id: parsed.threadId,
       },
-      {
-        agentRun: resumedRun,
-        status: "completed",
-      },
-      "finalize_agent_run",
-    );
-  }
+    },
+    {
+      agentRun: resumedRun,
+      approval: undefined,
+      status: "completed",
+    },
+    "finalize_agent_run",
+  );
 
   return {
     threadId: parsed.threadId,

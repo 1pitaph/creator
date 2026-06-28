@@ -195,7 +195,7 @@ describe("useAgentChat", () => {
     );
   });
 
-  it("calls resume approval endpoint for approve and deny decisions", async () => {
+  it("calls resume approval endpoint once and hides resolved approvals", async () => {
     const diagnosis = localDiagnosis(defaultCreatorId);
     const approval: AgentApprovalRequest = {
       id: "approval-1",
@@ -264,14 +264,12 @@ describe("useAgentChat", () => {
       decision: "approve",
     });
 
+    await waitFor(() => expect(result.current.currentApproval).toBeUndefined());
+
     await act(async () => {
       await result.current.denyApproval();
     });
 
-    expect(resumeFetcher).toHaveBeenCalledWith({
-      threadId: approval.threadId,
-      approvalId: approval.id,
-      decision: "deny",
-    });
+    expect(resumeFetcher).toHaveBeenCalledTimes(1);
   });
 });
