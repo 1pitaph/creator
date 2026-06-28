@@ -43,14 +43,14 @@ def snapshot() -> dict:
     }
 
 
-def request(tool: str, input_data: dict | None = None) -> dict:
+def request(tool: str, input_data: dict | None = None, limits: dict | None = None) -> dict:
     return {
         "requestId": f"test-{tool}",
         "tool": tool,
         "creatorId": "starter-food",
         "dataset": snapshot(),
         "input": input_data or {},
-        "limits": {"maxRows": 3, "maxExecutionMs": 3000, "maxColumns": 10},
+        "limits": limits or {"maxRows": 3, "maxExecutionMs": 3000, "maxColumns": 10},
     }
 
 
@@ -88,3 +88,51 @@ def test_run_sql_allows_select_and_rejects_mutation() -> None:
     assert ok["result"]["truncated"] is True
     assert denied["ok"] is False
     assert denied["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_run_sql_allows_with_and_blocks_file_network_access() -> None:
+    client = TestClient(app)
+    ok = client.post("/tools/run_sql", json=request("run_sql", {"sql": "with ranked as (select date, views from history) select * from ranked"})).json()
+    file_denied = client.post("/tools/run_sql", json=request("run_sql", {"sql": "select * from read_csv_auto('/tmp/leak.csv')"})).json()
+    url_denied = client.post("/tools/run_sql", json=request("run_sql", {"sql": "select 'https://example.com/data.csv' as url"})).json()
+    multi_denied = client.post("/tools/run_sql", json=request("run_sql", {"sql": "select * from history; select * from profile"})).json()
+    assert ok["ok"] is True
+    assert file_denied["ok"] is False
+    assert url_denied["ok"] is False
+    assert multi_denied["ok"] is False
+
+
+def test_run_sql_enforces_max_columns() -> None:
+    client = TestClient(app)
+    payload = client.post(
+        "/tools/run_sql",
+        json=request("run_sql", {"sql": "select * from history"}, {"maxRows": 10, "maxExecutionMs": 3000, "maxColumns": 2}),
+    ).json()
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "TOO_MANY_COLUMNS"
+
+
+def test_run_sql_timeout() -> None:
+    client = TestClient(app)
+    payload = client.post(
+        "/tools/run_sql",
+        json=request(
+            "run_sql",
+            {"sql": "select sum(a.i * b.i) from range(10000000) a(i), range(10000000) b(i)"},
+            {"maxRows": 3, "maxExecutionMs": 100, "maxColumns": 10},
+        ),
+    ).json()
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "TIMEOUT"
+
+
+def test_tool_path_mismatch_and_token_auth(monkeypatch) -> None:
+    client = TestClient(app)
+    mismatch = client.post("/tools/profile_dataset", json=request("run_sql", {"sql": "select * from history"}))
+    assert mismatch.status_code == 400
+
+    monkeypatch.setenv("DATA_KERNEL_TOKEN", "secret")
+    unauthorized = client.post("/tools/profile_dataset", json=request("profile_dataset"))
+    authorized = client.post("/tools/profile_dataset", headers={"authorization": "Bearer secret"}, json=request("profile_dataset"))
+    assert unauthorized.status_code == 401
+    assert authorized.status_code == 200

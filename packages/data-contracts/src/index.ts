@@ -204,6 +204,16 @@ export const AgentToolCallSchema = z.object({
   finishedAt: z.string().optional()
 });
 
+export const AgentToolResultSchema = z.object({
+  toolCallId: z.string(),
+  name: z.string(),
+  status: AgentToolCallStatusSchema,
+  output: z.unknown().optional(),
+  outputSummary: z.string().optional(),
+  evidenceIds: z.array(z.string()).default([]),
+  error: z.string().optional()
+});
+
 export const AgentRunSchema = z.object({
   id: z.string(),
   mode: AgentRunModeSchema,
@@ -235,6 +245,14 @@ export const AgentRunPatchSchema = z.object({
 export const AgentThreadStatusSchema = z.enum(["idle", "running", "awaiting_approval", "completed", "error"]);
 
 export const AgentApprovalDecisionSchema = z.enum(["approve", "deny"]);
+
+export const AgentCheckpointSchema = z.object({
+  threadId: z.string(),
+  checkpointId: z.string().optional(),
+  checkpointProvider: z.enum(["postgres", "memory"]),
+  status: AgentThreadStatusSchema,
+  updatedAt: z.string()
+});
 
 export const AgentApprovalRequestSchema = z.object({
   id: z.string(),
@@ -273,6 +291,10 @@ export const AgentStreamEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("tool-call"),
     toolCall: AgentToolCallSchema
+  }),
+  z.object({
+    type: z.literal("tool-result"),
+    toolResult: AgentToolResultSchema
   }),
   z.object({
     type: z.literal("agent-run"),
@@ -323,13 +345,19 @@ export const DataKernelLimitsSchema = z.object({
   maxColumns: z.number().int().positive().default(40)
 });
 
+export const DEFAULT_DATA_KERNEL_LIMITS = {
+  maxRows: 200,
+  maxExecutionMs: 3000,
+  maxColumns: 40
+} as const;
+
 export const DataKernelRequestSchema = z.object({
   requestId: z.string(),
   tool: DataKernelToolNameSchema,
   creatorId: z.string(),
   dataset: DatasetSnapshotSchema,
   input: JsonRecordSchema.default({}),
-  limits: DataKernelLimitsSchema.default({})
+  limits: DataKernelLimitsSchema.default(DEFAULT_DATA_KERNEL_LIMITS)
 });
 
 export const DataKernelEvidenceSchema = z.object({
@@ -417,9 +445,11 @@ export type AgentFact = z.infer<typeof AgentFactSchema>;
 export type AgentAssumption = z.infer<typeof AgentAssumptionSchema>;
 export type AgentAction = z.infer<typeof AgentActionSchema>;
 export type AgentToolCall = z.infer<typeof AgentToolCallSchema>;
+export type AgentToolResult = z.infer<typeof AgentToolResultSchema>;
 export type AgentRun = z.infer<typeof AgentRunSchema>;
 export type AgentRunPatch = z.infer<typeof AgentRunPatchSchema>;
 export type AgentThreadStatus = z.infer<typeof AgentThreadStatusSchema>;
+export type AgentCheckpoint = z.infer<typeof AgentCheckpointSchema>;
 export type AgentApprovalDecision = z.infer<typeof AgentApprovalDecisionSchema>;
 export type AgentApprovalRequest = z.infer<typeof AgentApprovalRequestSchema>;
 export type AgentResumeRequest = z.infer<typeof AgentResumeRequestSchema>;

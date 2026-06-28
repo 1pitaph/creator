@@ -29,15 +29,12 @@ importers:
 
   apps/api:
     dependencies:
-      '@creator/agent-core':
+      '@creator/agent-graph':
         specifier: workspace:*
-        version: link:../../packages/agent-core
+        version: link:../../packages/agent-graph
       '@creator/ai-modules':
         specifier: workspace:*
         version: link:../../packages/ai-modules
-      '@creator/data-agent':
-        specifier: workspace:*
-        version: link:../../packages/data-agent
       '@creator/data-contracts':
         specifier: workspace:*
         version: link:../../packages/data-contracts
@@ -47,6 +44,9 @@ importers:
       '@fastify/cors':
         specifier: ^11.1.0
         version: 11.2.0
+      ai:
+        specifier: 7.0.4
+        version: 7.0.4(zod@4.4.3)
       dotenv:
         specifier: ^17.2.3
         version: 17.4.2
@@ -113,6 +113,9 @@ importers:
       '@radix-ui/react-select':
         specifier: ^2.2.6
         version: 2.3.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      ai:
+        specifier: 7.0.4
+        version: 7.0.4(zod@4.4.3)
       react:
         specifier: ^19.2.7
         version: 19.2.7
@@ -196,9 +199,18 @@ importers:
         specifier: 1.0.4
         version: 1.0.4(@langchain/core@1.2.1)(@langchain/langgraph-checkpoint@1.1.3(@langchain/core@1.2.1))
     devDependencies:
+      '@creator/ai-modules':
+        specifier: workspace:*
+        version: link:../ai-modules
+      '@creator/mock-data':
+        specifier: workspace:*
+        version: link:../mock-data
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@24.13.2)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@7.3.6(@types/node@24.13.2)(jiti@1.21.7)(tsx@4.22.4))
 
   packages/ai-gateway:
     dependencies:
@@ -208,6 +220,10 @@ importers:
       ai:
         specifier: 7.0.4
         version: 7.0.4(zod@4.4.3)
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.13.2
 
   packages/ai-modules:
     dependencies:
@@ -257,6 +273,10 @@ importers:
       '@creator/data-contracts':
         specifier: workspace:*
         version: link:../data-contracts
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.13.2
 
   packages/mock-data:
     dependencies:

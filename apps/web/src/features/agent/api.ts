@@ -1,4 +1,4 @@
-import type { AgentMessage, AgentRun } from "@creator/data-contracts";
+import type { AgentMessage, AgentResumeRequest, AgentResumeResponse, AgentRun } from "@creator/data-contracts";
 
 export type ChatRequestPayload = {
   activeModules: string[];
@@ -30,4 +30,22 @@ export const fetchAgentReply: ChatFetcher = async (payload, signal) => {
   }
 
   return (await response.json()) as ChatReplyPayload;
+};
+
+export type ResumeAgentApprovalFetcher = (payload: AgentResumeRequest) => Promise<AgentResumeResponse>;
+
+export const resumeAgentApproval: ResumeAgentApprovalFetcher = async (payload) => {
+  const response = await fetch("/api/chat/resume", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error("Agent resume request failed");
+  }
+
+  return (await response.json()) as AgentResumeResponse;
 };

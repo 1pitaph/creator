@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText, streamText, type CoreMessage, type LanguageModel } from "ai";
+import { generateText, streamText, type LanguageModel, type ModelMessage } from "ai";
 
 export type AiGatewayConfig = {
   apiKey?: string;
@@ -8,13 +8,20 @@ export type AiGatewayConfig = {
   providerName?: string;
 };
 
+export type AiGatewayMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
 export type GenerateTextInput = {
   system?: string;
-  messages: CoreMessage[];
+  messages: AiGatewayMessage[];
   temperature?: number;
 };
 
 export type StreamTextInput = GenerateTextInput;
+
+export type GatewayTextStream = AsyncIterable<string>;
 
 export const getAiGatewayConfig = (): AiGatewayConfig => ({
   apiKey: process.env.LLM_API_KEY,
@@ -25,15 +32,23 @@ export const getAiGatewayConfig = (): AiGatewayConfig => ({
 
 export const isLlmConfigured = (config: AiGatewayConfig = getAiGatewayConfig()) => Boolean(config.apiKey);
 
+const toModelMessages = (messages: AiGatewayMessage[]): ModelMessage[] =>
+  messages.map((message) => ({
+    role: message.role,
+    content: message.content
+  }));
+
 export const createGatewayModel = (config: AiGatewayConfig = getAiGatewayConfig()): LanguageModel | null => {
-  if (!isLlmConfigured(config)) {
+  const apiKey = config.apiKey;
+
+  if (!apiKey) {
     return null;
   }
 
   const provider = createOpenAICompatible({
     name: config.providerName ?? "openai-compatible",
-    apiKey: config.apiKey,
-    baseURL: config.baseUrl
+    apiKey,
+    baseURL: config.baseUrl ?? "https://api.openai.com/v1"
   });
 
   return provider(config.model ?? "gpt-4o-mini");
@@ -49,24 +64,26 @@ export const generateGatewayText = async (input: GenerateTextInput, config?: AiG
   const result = await generateText({
     model,
     system: input.system,
-    messages: input.messages,
+    messages: toModelMessages(input.messages),
     temperature: input.temperature ?? 0.4
   });
 
   return result.text.trim();
 };
 
-export const streamGatewayText = (input: StreamTextInput, config?: AiGatewayConfig) => {
+export const streamGatewayText = (input: StreamTextInput, config?: AiGatewayConfig): GatewayTextStream | null => {
   const model = createGatewayModel(config);
 
   if (!model) {
     return null;
   }
 
-  return streamText({
+  const result = streamText({
     model,
     system: input.system,
-    messages: input.messages,
+    messages: toModelMessages(input.messages),
     temperature: input.temperature ?? 0.4
   });
+
+  return result.textStream;
 };

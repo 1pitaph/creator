@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from typing import Any
 
 import duckdb
@@ -21,9 +22,10 @@ METRIC_COLUMNS = {
 }
 
 DENIED_SQL = re.compile(
-    r"\b(copy|install|load|attach|export|create|insert|update|delete|drop|alter|pragma|call|read_csv|read_parquet|read_json|httpfs)\b",
+    r"\b(copy|install|load|attach|detach|export|create|insert|update|delete|drop|alter|pragma|call|set|reset|begin|commit|rollback|vacuum|read_\w+|parquet_scan|csv_scan|json_scan|sqlite_scan|postgres_scan|mysql_scan|httpfs)\b",
     re.IGNORECASE,
 )
+DENIED_EXTERNAL_LITERAL = re.compile(r"(['\"])(?:/|~|[a-zA-Z]:\\|https?://|s3://|file:)", re.IGNORECASE)
 
 
 def _snapshot_frames(request: DataKernelRequest) -> dict[str, pd.DataFrame]:
@@ -172,32 +174,71 @@ def explain_metric_drop(request: DataKernelRequest) -> DataKernelResponse:
 
 
 def _validate_sql(sql: str) -> str:
-    stripped = sql.strip().rstrip(";")
+    raw = sql.strip()
+    if not raw:
+        raise ValueError("SQL query is required.")
+    if ";" in raw.rstrip(";"):
+        raise ValueError("Only a single SQL statement is allowed.")
+    stripped = raw.rstrip(";").strip()
     lowered = stripped.lower()
     if not (lowered.startswith("select") or lowered.startswith("with")):
         raise ValueError("Only SELECT or WITH queries are allowed.")
     if DENIED_SQL.search(stripped):
         raise ValueError("Query contains a denied SQL keyword or file/network function.")
+    if DENIED_EXTERNAL_LITERAL.search(stripped):
+        raise ValueError("Query contains a denied file or network reference.")
     return stripped
+
+
+def _execute_select(sql: str, frames: dict[str, pd.DataFrame], max_rows: int, connection_holder: dict[str, duckdb.DuckDBPyConnection]) -> pd.DataFrame:
+    connection = duckdb.connect(database=":memory:")
+    connection_holder["connection"] = connection
+    try:
+        for statement in (
+            "SET memory_limit='128MB'",
+            "SET threads=1",
+            "SET enable_external_access=false",
+            "SET autoinstall_known_extensions=false",
+            "SET autoload_known_extensions=false",
+        ):
+            try:
+                connection.execute(statement)
+            except duckdb.Error:
+                pass
+
+        for name, frame in frames.items():
+            connection.register(name, frame)
+
+        limited_sql = f"select * from ({sql}) as user_query limit {max_rows + 1}"
+        return connection.execute(limited_sql).fetchdf()
+    finally:
+        try:
+            connection.close()
+        except Exception:
+            pass
 
 
 def run_sql(request: DataKernelRequest) -> DataKernelResponse:
     sql = _validate_sql(str(request.input.get("sql") or ""))
     frames = _snapshot_frames(request)
     started = time.monotonic()
+    connection_holder: dict[str, duckdb.DuckDBPyConnection] = {}
+    executor = ThreadPoolExecutor(max_workers=1)
 
     try:
-        connection = duckdb.connect(database=":memory:")
-        connection.execute("SET memory_limit='128MB'")
-        connection.execute("SET threads=1")
-        for name, frame in frames.items():
-            connection.register(name, frame)
-        result_frame = connection.execute(sql).fetchdf()
+        future = executor.submit(_execute_select, sql, frames, request.limits.maxRows, connection_holder)
+        result_frame = future.result(timeout=request.limits.maxExecutionMs / 1000)
+    except FutureTimeout:
+        connection_holder.get("connection") and connection_holder["connection"].interrupt()
+        return DataKernelResponse(
+            ok=False,
+            requestId=request.requestId,
+            tool=request.tool,
+            error=KernelError(code="TIMEOUT", message="Query exceeded maxExecutionMs."),
+            stats={"elapsedMs": int((time.monotonic() - started) * 1000)},
+        )
     finally:
-        try:
-            connection.close()
-        except Exception:
-            pass
+        executor.shutdown(wait=False, cancel_futures=True)
 
     elapsed_ms = int((time.monotonic() - started) * 1000)
     if elapsed_ms > request.limits.maxExecutionMs:

@@ -1,27 +1,48 @@
+import { useChat } from "@ai-sdk/react";
 import { createStructuredAgentRun } from "@creator/data-agent";
-import type { AgentRun, DiagnosisResponse } from "@creator/data-contracts";
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import type {
+  AgentApprovalDecision,
+  AgentApprovalRequest,
+  AgentChatMetadata,
+  AgentRun,
+  AgentRunPatch,
+  AgentStreamEvent,
+  DiagnosisResponse
+} from "@creator/data-contracts";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { AskTarget, UiMessage } from "../../types";
-import { fetchAgentReply, type ChatFetcher } from "./api";
+import { resumeAgentApproval, type ResumeAgentApprovalFetcher } from "./api";
+
+type CreatorChatData = {
+  "agent-thread": Extract<AgentStreamEvent, { type: "thread" }>;
+  "agent-tool-call": Extract<AgentStreamEvent, { type: "tool-call" }>["toolCall"];
+  "agent-run-patch": AgentRunPatch;
+  "agent-run": AgentRun;
+  "agent-approval": AgentApprovalRequest;
+  "agent-finish": Extract<AgentStreamEvent, { type: "finish" }>;
+};
+
+type CreatorUIMessage = UIMessage<AgentChatMetadata, CreatorChatData>;
 
 type UseAgentChatOptions = {
   activeModuleIds: string[];
   creatorId: string;
   diagnosis: DiagnosisResponse;
-  fetcher?: ChatFetcher;
+  fetchImpl?: typeof fetch;
   idFactory?: () => string;
-  streamDelayMs?: number;
+  resumeFetcher?: ResumeAgentApprovalFetcher;
 };
 
 const defaultIdFactory = () => crypto.randomUUID();
-
-const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const createThreadId = () => `thread-${crypto.randomUUID()}`;
 
 const createInitialWelcomeMessage = (idFactory: () => string): UiMessage => ({
   id: idFactory(),
   role: "assistant",
   content: "我会根据当前创作者画像和已加载模块给建议。把鼠标移到任意数据模块右上角，点「询问 AI」就能围绕该模块追问。",
+  localOnly: true,
   mode: "local",
   usedModules: []
 });
@@ -30,174 +51,184 @@ const createCreatorSwitchMessage = (diagnosis: DiagnosisResponse, idFactory: () 
   id: idFactory(),
   role: "assistant",
   content: `已切换到「${diagnosis.creator.displayName}」。我重新加载了 ${diagnosis.modules.length} 个分析模块，你可以从任意数据卡片唤起我。`,
+  localOnly: true,
   mode: "local",
   usedModules: diagnosis.modules.map((module) => module.id)
 });
 
-const isAbortError = (error: unknown) => error instanceof DOMException && error.name === "AbortError";
+const textFromParts = (message: CreatorUIMessage) =>
+  message.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+
+const getDataPart = <Name extends keyof CreatorChatData>(message: CreatorUIMessage, name: Name): CreatorChatData[Name] | undefined => {
+  const type = `data-${name}`;
+  const part = message.parts.find((item) => item.type === type);
+
+  return part && "data" in part ? (part.data as CreatorChatData[Name]) : undefined;
+};
+
+const mapSdkMessage = (message: CreatorUIMessage): UiMessage => {
+  const agentRun = getDataPart(message, "agent-run");
+  const patch = getDataPart(message, "agent-run-patch");
+  const approval = getDataPart(message, "agent-approval");
+  const thread = getDataPart(message, "agent-thread");
+
+  return {
+    id: message.id,
+    role: message.role,
+    content: textFromParts(message),
+    mode: message.metadata?.mode,
+    usedModules: message.metadata?.usedModules ?? agentRun?.usedModules ?? patch?.usedModules,
+    agentRun,
+    approval,
+    threadId: message.metadata?.threadId ?? thread?.threadId
+  };
+};
 
 export const useAgentChat = ({
   activeModuleIds,
   creatorId,
   diagnosis,
-  fetcher = fetchAgentReply,
+  fetchImpl,
   idFactory = defaultIdFactory,
-  streamDelayMs = 8
+  resumeFetcher = resumeAgentApproval
 }: UseAgentChatOptions) => {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<UiMessage[]>(() => [createInitialWelcomeMessage(idFactory)]);
+  const [localMessages, setLocalMessages] = useState<UiMessage[]>(() => [createInitialWelcomeMessage(idFactory)]);
   const [draft, setDraft] = useState("");
-  const [isChatting, setIsChatting] = useState(false);
   const [focus, setFocus] = useState<AskTarget | null>(null);
+  const [threadId, setThreadId] = useState(createThreadId);
+  const [isResumingApproval, setIsResumingApproval] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const activeModuleIdsRef = useRef(activeModuleIds);
   const creatorIdRef = useRef(creatorId);
+  const diagnosisRef = useRef(diagnosis);
   const idFactoryRef = useRef(idFactory);
-  const messagesRef = useRef(messages);
-  const requestIdRef = useRef(0);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const isChattingRef = useRef(false);
+  const pendingModuleIdsRef = useRef(activeModuleIds);
+  const threadIdRef = useRef(threadId);
   const hasMountedDiagnosisRef = useRef(false);
 
-  const updateMessages = useCallback((updater: (current: UiMessage[]) => UiMessage[]) => {
-    setMessages((current) => {
-      const nextMessages = updater(current);
-      messagesRef.current = nextMessages;
-      return nextMessages;
-    });
-  }, []);
-
-  const replaceMessages = useCallback((nextMessages: UiMessage[]) => {
-    messagesRef.current = nextMessages;
-    setMessages(nextMessages);
-  }, []);
-
+  activeModuleIdsRef.current = activeModuleIds;
   creatorIdRef.current = creatorId;
+  diagnosisRef.current = diagnosis;
   idFactoryRef.current = idFactory;
+  threadIdRef.current = threadId;
 
-  const isActiveRequest = useCallback(
-    (requestId: number, signal: AbortSignal, requestCreatorId: string) =>
-      requestIdRef.current === requestId && creatorIdRef.current === requestCreatorId && !signal.aborted,
-    []
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport<CreatorUIMessage>({
+        api: "/api/chat/stream",
+        fetch: fetchImpl,
+        prepareSendMessagesRequest: ({ messages }) => ({
+          body: {
+            creatorId: creatorIdRef.current,
+            threadId: threadIdRef.current,
+            activeModules: pendingModuleIdsRef.current,
+            messages: messages
+              .filter((message) => !message.metadata?.localOnly)
+              .map((message) => ({
+                id: message.id,
+                role: message.role,
+                content: textFromParts(message),
+                localOnly: message.metadata?.localOnly
+              }))
+          }
+        })
+      }),
+    [fetchImpl]
   );
 
-  const addStreamingAssistantMessage = useCallback(
-    async (
-      reply: string,
-      usedModules: string[],
-      mode: UiMessage["mode"],
-      requestId: number,
-      signal: AbortSignal,
-      requestCreatorId: string,
-      agentRun?: AgentRun
-    ) => {
-      if (!isActiveRequest(requestId, signal, requestCreatorId)) {
-        return;
-      }
+  const chat = useChat<CreatorUIMessage>({
+    id: threadId,
+    transport,
+    onError: () => {
+      const fallbackRun = createStructuredAgentRun({
+        diagnosis: diagnosisRef.current,
+        messages: [],
+        activeModules: pendingModuleIdsRef.current
+      });
 
-      const id = idFactoryRef.current();
-      updateMessages((current) => [
+      setLocalMessages((current) => [
         ...current,
         {
-          id,
+          id: idFactoryRef.current(),
           role: "assistant",
-          content: "",
-          usedModules,
-          mode,
-          agentRun
+          content: fallbackRun.answer,
+          localOnly: true,
+          mode: "local",
+          usedModules: fallbackRun.usedModules,
+          agentRun: fallbackRun
         }
       ]);
+    }
+  });
 
-      if (streamDelayMs <= 0) {
-        updateMessages((current) => current.map((message) => (message.id === id ? { ...message, content: reply, agentRun } : message)));
-        return;
-      }
-
-      for (let index = 1; index <= reply.length; index += 2) {
-        if (!isActiveRequest(requestId, signal, requestCreatorId)) {
-          return;
-        }
-
-        const content = reply.slice(0, index);
-        updateMessages((current) => current.map((message) => (message.id === id ? { ...message, content, agentRun } : message)));
-        await wait(streamDelayMs);
-      }
-
-      if (isActiveRequest(requestId, signal, requestCreatorId)) {
-        updateMessages((current) => current.map((message) => (message.id === id ? { ...message, content: reply, agentRun } : message)));
-      }
-    },
-    [isActiveRequest, streamDelayMs, updateMessages]
-  );
+  const remoteMessages = chat.messages.map(mapSdkMessage);
+  const messages = [...localMessages, ...remoteMessages];
+  const isChatting = chat.status === "submitted" || chat.status === "streaming";
+  const currentApproval = [...remoteMessages, ...localMessages]
+    .slice()
+    .reverse()
+    .map((message: UiMessage) => message.approval)
+    .find((approval: AgentApprovalRequest | undefined): approval is AgentApprovalRequest => Boolean(approval));
 
   const sendQuestion = useCallback(
-    async (question: string, moduleIds = activeModuleIds) => {
+    async (question: string, moduleIds = activeModuleIdsRef.current) => {
       const text = question.trim();
 
-      if (!text || isChattingRef.current) {
+      if (!text || chat.status === "submitted" || chat.status === "streaming") {
         return;
       }
 
       setOpen(true);
-      const userMessage: UiMessage = {
-        id: idFactoryRef.current(),
-        role: "user",
-        content: text
-      };
-      const nextMessages = [...messagesRef.current, userMessage];
-      replaceMessages(nextMessages);
       setDraft("");
-      setIsChatting(true);
-      isChattingRef.current = true;
-
-      abortControllerRef.current?.abort();
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-      const requestId = requestIdRef.current + 1;
-      requestIdRef.current = requestId;
-      const requestCreatorId = creatorId;
+      pendingModuleIdsRef.current = moduleIds;
 
       try {
-        const payload = await fetcher(
-          {
-            creatorId,
-            messages: nextMessages.map(({ role, content }) => ({ role, content })),
-            activeModules: moduleIds
-          },
-          controller.signal
-        );
-
-        if (!isActiveRequest(requestId, controller.signal, requestCreatorId)) {
-          return;
-        }
-
-        await addStreamingAssistantMessage(payload.reply, payload.usedModules, payload.mode, requestId, controller.signal, requestCreatorId, payload.agentRun);
-      } catch (error: unknown) {
-        if (isAbortError(error) || !isActiveRequest(requestId, controller.signal, requestCreatorId)) {
-          return;
-        }
-
-        const agentRun = createStructuredAgentRun({
-          diagnosis,
-          messages: nextMessages,
+        await chat.sendMessage({
+          text,
+          metadata: {
+            threadId: threadIdRef.current
+          }
+        });
+      } catch {
+        const fallbackRun = createStructuredAgentRun({
+          diagnosis: diagnosisRef.current,
+          messages: [{ role: "user", content: text }],
           activeModules: moduleIds
         });
-        await addStreamingAssistantMessage(agentRun.answer, agentRun.usedModules, "local", requestId, controller.signal, requestCreatorId, agentRun);
-      } finally {
-        if (isActiveRequest(requestId, controller.signal, requestCreatorId)) {
-          setIsChatting(false);
-          isChattingRef.current = false;
-        }
+
+        setLocalMessages((current) => [
+          ...current,
+          {
+            id: idFactoryRef.current(),
+            role: "user",
+            content: text,
+            localOnly: true
+          },
+          {
+            id: idFactoryRef.current(),
+            role: "assistant",
+            content: fallbackRun.answer,
+            localOnly: true,
+            mode: "local",
+            usedModules: fallbackRun.usedModules,
+            agentRun: fallbackRun
+          }
+        ]);
       }
     },
-    [activeModuleIds, addStreamingAssistantMessage, creatorId, diagnosis, fetcher, isActiveRequest, replaceMessages]
+    [chat]
   );
 
   const askTarget = useCallback(
     (target: AskTarget) => {
       setFocus(target);
-      void sendQuestion(target.prompt, target.moduleId ? [target.moduleId] : activeModuleIds);
+      void sendQuestion(target.prompt, target.moduleId ? [target.moduleId] : activeModuleIdsRef.current);
     },
-    [activeModuleIds, sendQuestion]
+    [sendQuestion]
   );
 
   const askPreset = useCallback((question: string) => {
@@ -213,16 +244,54 @@ export const useAgentChat = ({
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      void sendQuestion(draft, focus?.moduleId ? [focus.moduleId] : activeModuleIds);
+      void sendQuestion(draft, focus?.moduleId ? [focus.moduleId] : activeModuleIdsRef.current);
     },
-    [activeModuleIds, draft, focus?.moduleId, sendQuestion]
+    [draft, focus?.moduleId, sendQuestion]
+  );
+
+  const resumeApproval = useCallback(
+    async (decision: AgentApprovalDecision) => {
+      if (!currentApproval || isResumingApproval) {
+        return;
+      }
+
+      setIsResumingApproval(true);
+
+      try {
+        const response = await resumeFetcher({
+          threadId: currentApproval.threadId,
+          approvalId: currentApproval.id,
+          decision
+        });
+
+        if (response.agentRun) {
+          setLocalMessages((current) => [
+            ...current,
+            {
+              id: idFactoryRef.current(),
+              role: "assistant",
+              content: response.agentRun!.answer,
+              localOnly: true,
+              mode: "local",
+              usedModules: response.agentRun!.usedModules,
+              agentRun: response.agentRun,
+              threadId: response.threadId
+            }
+          ]);
+        }
+      } finally {
+        setIsResumingApproval(false);
+      }
+    },
+    [currentApproval, isResumingApproval, resumeFetcher]
   );
 
   useEffect(() => {
-    abortControllerRef.current?.abort();
-    requestIdRef.current += 1;
-    setIsChatting(false);
-    isChattingRef.current = false;
+    void chat.stop();
+    const nextThreadId = createThreadId();
+    threadIdRef.current = nextThreadId;
+    setThreadId(nextThreadId);
+    chat.setMessages([]);
   }, [creatorId]);
 
   useEffect(() => {
@@ -233,8 +302,8 @@ export const useAgentChat = ({
 
     setFocus(null);
     setDraft("");
-    replaceMessages([createCreatorSwitchMessage(diagnosis, idFactoryRef.current)]);
-  }, [diagnosis.creator.id, diagnosis.creator.displayName, diagnosis.modules, replaceMessages]);
+    setLocalMessages([createCreatorSwitchMessage(diagnosis, idFactoryRef.current)]);
+  }, [diagnosis]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -244,14 +313,19 @@ export const useAgentChat = ({
     askPreset,
     askTarget,
     close: () => setOpen(false),
+    currentApproval,
+    denyApproval: () => resumeApproval("deny"),
     draft,
     endRef,
     focus,
     handleSubmit,
     isChatting,
+    isResumingApproval,
     messages,
     open,
     openAgent: () => setOpen(true),
-    setDraft
+    approveApproval: () => resumeApproval("approve"),
+    setDraft,
+    threadId
   };
 };

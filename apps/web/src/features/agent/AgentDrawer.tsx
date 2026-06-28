@@ -7,7 +7,7 @@ import { X } from "@phosphor-icons/react/X";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import type { FormEvent, RefObject } from "react";
 
-import type { AiModuleMetadata } from "@creator/data-contracts";
+import type { AgentApprovalRequest, AiModuleMetadata } from "@creator/data-contracts";
 import { Badge, Button, CardHeader, CardTitle, cn } from "@creator/ui";
 
 import { phosphorIconWeight } from "../../constants";
@@ -24,6 +24,10 @@ export const AgentDrawer = ({
   onDraftChange,
   onSubmit,
   onAskPreset,
+  approval,
+  onApproveApproval,
+  onDenyApproval,
+  isResumingApproval,
   moduleById,
   endRef,
   focus
@@ -36,6 +40,10 @@ export const AgentDrawer = ({
   onDraftChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onAskPreset: (question: string) => void;
+  approval?: AgentApprovalRequest;
+  onApproveApproval: () => void;
+  onDenyApproval: () => void;
+  isResumingApproval: boolean;
   moduleById: Map<string, AiModuleMetadata>;
   endRef: RefObject<HTMLDivElement | null>;
   focus: AskTarget | null;
@@ -116,6 +124,26 @@ export const AgentDrawer = ({
         <ScrollArea.Thumb className="relative flex-1 rounded-full bg-zinc-300" />
       </ScrollArea.Scrollbar>
     </ScrollArea.Root>
+
+    {approval ? (
+      <div className="border-t border-amber-100 bg-amber-50 px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-amber-950">{approval.title}</p>
+            <p className="mt-1 text-xs leading-5 text-amber-800">{approval.detail}</p>
+            {approval.risk ? <p className="mt-1 text-[11px] leading-5 text-amber-700">{approval.risk}</p> : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button type="button" size="sm" variant="ghost" disabled={isResumingApproval} onClick={onDenyApproval}>
+              拒绝
+            </Button>
+            <Button type="button" size="sm" variant="primary" disabled={isResumingApproval} onClick={onApproveApproval}>
+              确认
+            </Button>
+          </div>
+        </div>
+      </div>
+    ) : null}
 
     <form className="border-t border-zinc-100 p-4" onSubmit={onSubmit}>
       <div className="flex items-end gap-2">

@@ -28,6 +28,9 @@ describe("AgentDrawer", () => {
         onDraftChange={vi.fn()}
         onSubmit={vi.fn()}
         onAskPreset={vi.fn()}
+        onApproveApproval={vi.fn()}
+        onDenyApproval={vi.fn()}
+        isResumingApproval={false}
         moduleById={moduleById}
         endRef={{ current: null }}
         focus={null}
@@ -51,6 +54,9 @@ describe("AgentDrawer", () => {
         onDraftChange={vi.fn()}
         onSubmit={vi.fn()}
         onAskPreset={onAskPreset}
+        onApproveApproval={vi.fn()}
+        onDenyApproval={vi.fn()}
+        isResumingApproval={false}
         moduleById={moduleById}
         endRef={{ current: null }}
         focus={null}
@@ -60,5 +66,43 @@ describe("AgentDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: /下一条视频拍什么/ }));
 
     expect(onAskPreset).toHaveBeenCalledWith("下一条视频拍什么？");
+  });
+
+  it("renders approval controls", () => {
+    const onApproveApproval = vi.fn();
+    const onDenyApproval = vi.fn();
+
+    render(
+      <AgentDrawer
+        open
+        onClose={vi.fn()}
+        messages={[]}
+        draft=""
+        isChatting={false}
+        onDraftChange={vi.fn()}
+        onSubmit={vi.fn()}
+        onAskPreset={vi.fn()}
+        approval={{
+          id: "approval-1",
+          threadId: "thread-1",
+          actionIds: ["action-1"],
+          title: "确认写入行动计划",
+          detail: "将 1 条建议写入当前创作者的行动计划。",
+          createdAt: "2026-06-28T00:00:00.000Z"
+        }}
+        onApproveApproval={onApproveApproval}
+        onDenyApproval={onDenyApproval}
+        isResumingApproval={false}
+        moduleById={moduleById}
+        endRef={{ current: null }}
+        focus={null}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+    fireEvent.click(screen.getByRole("button", { name: "拒绝" }));
+
+    expect(onApproveApproval).toHaveBeenCalledTimes(1);
+    expect(onDenyApproval).toHaveBeenCalledTimes(1);
   });
 });
