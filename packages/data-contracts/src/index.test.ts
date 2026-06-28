@@ -92,7 +92,7 @@ describe("data contracts", () => {
       selectedView: "visual",
       updatedAt: "2026-06-28T00:00:00.000Z",
       cards: {
-        summary: { visible: true, size: "wide" },
+        summary: { visible: true, size: "large" },
       },
       visual: {
         layouts: {
@@ -119,7 +119,15 @@ describe("data contracts", () => {
     });
 
     expect(parsed.selectedView).toBe("visual");
-    expect(parsed.cards.summary?.size).toBe("wide");
+    expect(parsed.cards.summary?.size).toBe("large");
+    expect(() =>
+      DashboardPreferencesV1Schema.parse({
+        ...parsed,
+        cards: {
+          summary: { visible: true, size: "wide" },
+        },
+      }),
+    ).toThrow();
   });
 
   it("parses legacy ChatResponse with AgentRun and thread metadata", () => {

@@ -28,8 +28,14 @@ describe("dashboard customization", () => {
 
     expect(preferences.selectedView).toBe("visual");
     expect(Object.keys(preferences.cards)).toEqual(cards.map((card) => card.id));
-    expect(preferences.cards["trend-comparison"]?.size).toBe("hero");
+    expect(preferences.cards.summary?.size).toBe("large");
+    expect(preferences.cards.insights?.size).toBe("medium");
+    expect(preferences.cards["trend-comparison"]?.size).toBe("large");
     expect(preferences.visual.layouts.lg.map((item) => item.i)).toEqual(cards.map((card) => card.id));
+    expect(preferences.visual.layouts.lg.slice(0, 2)).toMatchObject([
+      { i: "summary", x: 0, y: 0, w: 8, h: 9, minW: 8, minH: 9, maxW: 8, maxH: 9 },
+      { i: "insights", x: 8, y: 0, w: 4, h: 9, minW: 4, minH: 9, maxW: 4, maxH: 9 }
+    ]);
     expect(preferences.board.columns.today.length).toBeGreaterThan(0);
   });
 
@@ -50,6 +56,34 @@ describe("dashboard customization", () => {
     expect(parseDashboardPreferences({ version: 0 })).toBeNull();
   });
 
+  it("migrates legacy cached card sizes before reconcile normalizes preset layout", () => {
+    const { actions, cards } = buildFixture();
+    const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
+    const parsed = parseDashboardPreferences({
+      ...preferences,
+      cards: {
+        ...preferences.cards,
+        summary: { visible: true, size: "wide" },
+        insights: { visible: true, size: "tall" },
+        "metric:views": { visible: true, size: "sm" }
+      },
+      visual: {
+        layouts: {
+          ...preferences.visual.layouts,
+          lg: [{ i: "summary", x: 0, y: 0, w: 1, h: 1, minW: 1, minH: 1 }]
+        }
+      }
+    });
+
+    expect(parsed?.cards.summary?.size).toBe("large");
+    expect(parsed?.cards.insights?.size).toBe("medium");
+    expect(parsed?.cards["metric:views"]?.size).toBe("small");
+
+    const reconciled = reconcileDashboardPreferences(parsed ?? preferences, defaultCreatorId, cards, actions, "2026-06-29T00:00:00.000Z");
+
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({ h: 9, w: 8, minH: 9, minW: 8 });
+  });
+
   it("reconciles removed and newly available cards and actions", () => {
     const { actions, cards } = buildFixture();
     const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards.slice(0, -1), actions.slice(0, -1), "2026-06-28T00:00:00.000Z");
@@ -57,7 +91,7 @@ describe("dashboard customization", () => {
       ...preferences,
       cards: {
         ...preferences.cards,
-        unknown: { visible: true, size: "sm" as const }
+        unknown: { visible: true, size: "small" as const }
       },
       visual: {
         layouts: {

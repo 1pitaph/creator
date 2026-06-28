@@ -5,14 +5,12 @@ import type { DashboardCardSize, DashboardPreferencesV1 } from "@creator/data-co
 import { Badge, Button } from "@creator/ui";
 
 import { phosphorIconWeight } from "../../../constants";
-import type { DashboardCardDefinition, DashboardCardKind } from "../customization";
+import { createDashboardLayouts, dashboardCardSizeOrder, type DashboardCardDefinition, type DashboardCardKind } from "../customization";
 
 const sizeLabels: Record<DashboardCardSize, string> = {
-  sm: "小",
-  md: "中",
-  wide: "宽",
-  tall: "高",
-  hero: "重点"
+  small: "小",
+  medium: "中",
+  large: "大"
 };
 
 const kindLabels: Record<DashboardCardKind, string> = {
@@ -25,7 +23,7 @@ const kindLabels: Record<DashboardCardKind, string> = {
   actions: "行动"
 };
 
-const sizeOptions = Object.keys(sizeLabels) as DashboardCardSize[];
+const sizeOptions = dashboardCardSizeOrder;
 
 export const TableDashboardView = ({
   cards,
@@ -109,6 +107,20 @@ export const TableDashboardView = ({
                               visible: current.cards[card.id]?.visible ?? true,
                               size
                             }
+                          },
+                          visual: {
+                            layouts: createDashboardLayouts(
+                              cards,
+                              {
+                                ...current.cards,
+                                [card.id]: {
+                                  ...current.cards[card.id],
+                                  visible: current.cards[card.id]?.visible ?? true,
+                                  size
+                                }
+                              },
+                              current.visual.layouts
+                            )
                           }
                         }));
                       }}

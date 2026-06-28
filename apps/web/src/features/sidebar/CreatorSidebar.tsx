@@ -6,9 +6,9 @@ import Avatar from "boring-avatars";
 import { type ReactNode, useState } from "react";
 
 import type { DiagnosisResponse } from "@creator/data-contracts";
-import { Badge, cn } from "@creator/ui";
+import { cn } from "@creator/ui";
 
-import { creatorTypeLabels, lifecycleLabels, phosphorIconWeight } from "../../constants";
+import { phosphorIconWeight } from "../../constants";
 import type { DashboardPanel } from "../../types";
 import { CreatorAccountNotchSelect } from "./CreatorAccountNotchSelect";
 import { sidebarNavItems } from "./navItems";
@@ -203,10 +203,6 @@ const SidebarContent = ({
             onNavigate={onNavigate}
           />
         </div>
-
-        {collapsed ? null : <SidebarDivider />}
-
-        {collapsed ? null : <CreatorMiniCard diagnosis={diagnosis} />}
       </ScrollArea.Viewport>
       <ScrollArea.Scrollbar
         className="flex w-2.5 touch-none select-none bg-transparent p-0.5"
@@ -271,42 +267,6 @@ const DouyinLogoMark = () => (
     <path d={douyinLogoPath} fill="#fe2c55" transform="translate(1 -1)" />
     <path d={douyinLogoPath} fill="currentColor" />
   </svg>
-);
-
-const SidebarDivider = () => (
-  <div className="my-4 px-4">
-    <div className="h-px w-full bg-neutral-200" />
-    <div className="h-px w-full bg-white" />
-  </div>
-);
-
-const CreatorMiniCard = ({ diagnosis }: { diagnosis: DiagnosisResponse }) => (
-  <div className="mx-1 rounded-xl border border-neutral-200 bg-white/65 p-3 shadow-[0_1px_1px_rgba(24,24,27,0.03),inset_0_1px_0_rgba(255,255,255,0.85)]">
-    <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-sm font-semibold text-neutral-950">
-        {diagnosis.creator.displayName.slice(0, 2)}
-      </div>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-neutral-950">
-          {diagnosis.creator.displayName}
-        </p>
-        <p className="truncate text-xs text-neutral-500">
-          {diagnosis.creator.handle}
-        </p>
-      </div>
-    </div>
-    <div className="mt-3 flex flex-wrap gap-1.5">
-      <Badge tone="blue" className="bg-sky-50/80">
-        {diagnosis.creator.domain}
-      </Badge>
-      <Badge tone="green" className="bg-emerald-50/80">
-        {creatorTypeLabels[diagnosis.creator.creatorType]}
-      </Badge>
-      <Badge tone="neutral" className="bg-neutral-100/80">
-        {lifecycleLabels[diagnosis.creator.lifecycle]}
-      </Badge>
-    </div>
-  </div>
 );
 
 const SidebarFooter = ({

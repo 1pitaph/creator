@@ -46,6 +46,7 @@ export const DashboardCardRenderer = ({
     onDragHandlePointerDown={onDragHandlePointerDown}
     className={fill ? "h-full" : undefined}
     contentClassName={fill ? "overflow-hidden" : undefined}
+    size={size}
   >
     <CardBody actions={actions} card={card} diagnosis={diagnosis} fill={fill} onAsk={onAsk} size={size} viewModel={viewModel} />
   </DashboardModuleCard>
@@ -70,9 +71,9 @@ const CardBody = ({
 }) => {
   switch (card.kind) {
     case "summary":
-      return <SummaryCardBody diagnosis={diagnosis} viewModel={viewModel} />;
+      return <SummaryCardBody diagnosis={diagnosis} size={size} viewModel={viewModel} />;
     case "metric":
-      return card.metric ? <MetricCardBody metric={card.metric} metrics={viewModel.metrics} /> : null;
+      return card.metric ? <MetricCardBody metric={card.metric} metrics={viewModel.metrics} size={size} /> : null;
     case "trend":
       return <TrendCardBody fill={fill} size={size} viewModel={viewModel} />;
     case "insights":
@@ -90,11 +91,37 @@ const Scrollable = ({ children, fill }: { children: ReactNode; fill: boolean }) 
   <div className={cn("space-y-3", fill && "h-full overflow-auto pr-1")}>{children}</div>
 );
 
-const SummaryCardBody = ({ diagnosis, viewModel }: { diagnosis: DiagnosisResponse; viewModel: DashboardViewModel }) => {
+const SummaryCardBody = ({
+  diagnosis,
+  size,
+  viewModel
+}: {
+  diagnosis: DiagnosisResponse;
+  size: DashboardCardDefinition["defaultSize"];
+  viewModel: DashboardViewModel;
+}) => {
   const { healthScore, topInsight } = viewModel;
 
+  if (size === "small") {
+    return (
+      <div className="flex h-full min-h-[116px] flex-col justify-between">
+        <div className="flex flex-wrap gap-1.5">
+          <Badge tone="green">{creatorTypeLabels[diagnosis.creator.creatorType]}</Badge>
+          <Badge tone={topInsight?.severity ? severityTone[topInsight.severity] : "neutral"}>{topInsight?.severity === "warning" ? "关注" : "机会"}</Badge>
+        </div>
+        <div>
+          <div className="flex items-end gap-2">
+            <span className="text-4xl font-semibold leading-none text-zinc-950">{healthScore}</span>
+            <span className="pb-1 text-xs font-medium text-zinc-500">/100</span>
+          </div>
+          <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-600">{topInsight?.title ?? "保持稳定实验节奏"}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid gap-5 lg:grid-cols-[200px_minmax(0,1fr)]">
+    <div className={cn("grid gap-5", size === "large" ? "lg:grid-cols-[200px_minmax(0,1fr)]" : "grid-cols-1")}>
       <div className="rounded-2xl bg-white p-5 shadow-[0_1px_1px_rgba(24,24,27,0.026),0_4px_14px_rgba(24,24,27,0.03)]">
         <p className="text-xs font-medium text-zinc-500">账号健康度</p>
         <div className="mt-4 flex items-end gap-2">
@@ -130,15 +157,23 @@ const SummaryCardBody = ({ diagnosis, viewModel }: { diagnosis: DiagnosisRespons
   );
 };
 
-const MetricCardBody = ({ metric, metrics }: { metric: NonNullable<DashboardCardDefinition["metric"]>; metrics: DashboardViewModel["metrics"] }) => (
+const MetricCardBody = ({
+  metric,
+  metrics,
+  size
+}: {
+  metric: NonNullable<DashboardCardDefinition["metric"]>;
+  metrics: DashboardViewModel["metrics"];
+  size: DashboardCardDefinition["defaultSize"];
+}) => (
   <div className="flex h-full min-h-[116px] flex-col justify-between">
     <div className="flex items-center justify-between gap-3">
       <span className={cn("rounded-md px-2 py-1 text-xs font-medium", toneClass[metric.tone].soft)}>{metric.trendLabel}</span>
       <TrendUp className={cn("h-4 w-4", metric.trend === "down" ? "rotate-180 text-zinc-400" : metric.trend === "flat" ? "text-zinc-400" : "text-zinc-500")} weight={phosphorIconWeight} />
     </div>
     <div className="mt-5">
-      <p className="text-4xl font-semibold tracking-normal text-zinc-950">{metric.value}</p>
-      <ChartSlot className="mt-5" height={56} intent={metric.chartIntent} metrics={metrics} tone={metric.tone} compact />
+      <p className={cn("font-semibold tracking-normal text-zinc-950", size === "small" ? "text-4xl" : "text-5xl")}>{metric.value}</p>
+      <ChartSlot className={cn(size === "small" ? "mt-4" : "mt-5")} height={size === "small" ? 56 : chartHeightBySize[size]} intent={metric.chartIntent} metrics={metrics} tone={metric.tone} compact />
     </div>
   </div>
 );
@@ -152,7 +187,7 @@ const TrendCardBody = ({ fill, size, viewModel }: { fill: boolean; size: Dashboa
       metrics={viewModel.metrics}
       tone="zinc"
     />
-    {size === "hero" || size === "wide" ? (
+    {size === "large" ? (
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {viewModel.metricCards.slice(0, 4).map((metric) => (
           <TrendStrip key={metric.id} metric={metric} metrics={viewModel.metrics} />

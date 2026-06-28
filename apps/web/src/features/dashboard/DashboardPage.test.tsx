@@ -55,10 +55,22 @@ vi.mock("react-grid-layout", async () => {
           type="button"
           onClick={() =>
             onLayoutChange?.([], {
-              lg: [{ i: "summary", x: 1, y: 2, w: 3, h: 4 }],
-              md: [],
-              sm: [],
-              xs: [],
+              lg: [
+                { i: "insights", x: 0, y: 0, w: 4, h: 9 },
+                { i: "summary", x: 4, y: 0, w: 8, h: 9 },
+              ],
+              md: [
+                { i: "insights", x: 0, y: 0, w: 4, h: 9 },
+                { i: "summary", x: 4, y: 0, w: 8, h: 9 },
+              ],
+              sm: [
+                { i: "insights", x: 0, y: 0, w: 4, h: 8 },
+                { i: "summary", x: 0, y: 8, w: 4, h: 9 },
+              ],
+              xs: [
+                { i: "insights", x: 0, y: 0, w: 2, h: 8 },
+                { i: "summary", x: 0, y: 8, w: 2, h: 8 },
+              ],
             })
           }
         >
@@ -160,8 +172,8 @@ const readStoredPreferences = () => {
   );
   return raw
     ? (JSON.parse(raw) as {
-        cards: Record<string, { visible: boolean }>;
-        visual: { layouts: { lg: Array<{ h: number; i: string; w: number; x: number }> } };
+        cards: Record<string, { size: string; visible: boolean }>;
+        visual: { layouts: { lg: Array<{ h: number; i: string; maxH?: number; maxW?: number; minH?: number; minW?: number; w: number; x: number }> } };
       })
     : null;
 };
@@ -257,11 +269,8 @@ describe("DashboardPage", () => {
       screen.getByLabelText("拖动卡片：AI 诊断摘要"),
     ).toBeInTheDocument();
     expect(
-      screen.getByTestId("visual-resize-handle-summary-e"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("visual-resize-handle-summary-s"),
-    ).toBeInTheDocument();
+      screen.queryByTestId("visual-resize-handle-summary-e"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑" })).not.toBeInTheDocument();
 
     rerenderPanel("board");
@@ -336,6 +345,36 @@ describe("DashboardPage", () => {
     });
   });
 
+  it("uses large/medium/small Table sizing and syncs preset dimensions", async () => {
+    renderDashboard({ panel: "table" });
+
+    expect(screen.getAllByRole("option", { name: "小" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("option", { name: "中" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("option", { name: "大" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("option", { name: "宽" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "高" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "重点" })).not.toBeInTheDocument();
+
+    const summarySizeSelect = screen.getAllByRole("combobox")[0];
+    expect(summarySizeSelect).toBeDefined();
+
+    fireEvent.change(summarySizeSelect as HTMLElement, {
+      target: { value: "medium" },
+    });
+
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards.summary?.size).toBe("medium");
+      expect(readStoredLayoutItem("summary")).toMatchObject({
+        h: 9,
+        maxH: 9,
+        maxW: 4,
+        minH: 9,
+        minW: 4,
+        w: 4,
+      });
+    });
+  });
+
   it("saves Visual layout changes without entering edit mode", async () => {
     renderDashboard();
 
@@ -343,8 +382,11 @@ describe("DashboardPage", () => {
 
     await waitFor(() => {
       expect(readStoredPreferences()?.visual.layouts.lg[0]).toMatchObject({
-        i: "summary",
-        x: 1,
+        i: "insights",
+        x: 0,
+        y: 0,
+        w: 4,
+        h: 9,
       });
     });
   });
@@ -354,26 +396,20 @@ describe("DashboardPage", () => {
 
     const grid = screen.getByTestId("visual-grid");
     const handle = screen.getByLabelText("拖动卡片：AI 诊断摘要");
-    const rightResizeHandle = screen.getByTestId("visual-resize-handle-summary-e");
-    const bottomResizeHandle = screen.getByTestId("visual-resize-handle-summary-s");
     const askButton = screen.getByLabelText("询问 AI Agent：AI 诊断摘要");
-    const resizeHandles = grid.dataset.resizeHandles?.split(",") ?? [];
+    const resizeHandles = grid.dataset.resizeHandles?.split(",").filter(Boolean) ?? [];
 
     expect(grid).toHaveAttribute("data-drag-enabled", "true");
-    expect(grid).toHaveAttribute("data-resize-enabled", "true");
-    expect(resizeHandles).toEqual(expect.arrayContaining(["e", "s"]));
-    expect(resizeHandles).not.toContain("se");
-    expect(screen.queryByTestId("visual-resize-handle-summary-se")).not.toBeInTheDocument();
+    expect(grid).toHaveAttribute("data-resize-enabled", "false");
+    expect(resizeHandles).toEqual([]);
+    expect(screen.queryByTestId("visual-resize-handle-summary-e")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("visual-resize-handle-summary-s")).not.toBeInTheDocument();
     expect(grid).toHaveAttribute(
       "data-drag-handle",
       ".dashboard-card-drag-handle",
     );
     expect(handle.matches(grid.dataset.dragHandle ?? "")).toBe(true);
     expect(handle.matches(grid.dataset.dragCancel ?? "")).toBe(false);
-    expect(rightResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
-    expect(rightResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
-    expect(bottomResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
-    expect(bottomResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
     expect(askButton.matches(grid.dataset.dragHandle ?? "")).toBe(false);
     expect(askButton.matches(grid.dataset.dragCancel ?? "")).toBe(true);
 
@@ -384,72 +420,17 @@ describe("DashboardPage", () => {
     );
   });
 
-  it("resizes Visual cards from the right edge on the width axis only", async () => {
+  it("keeps Visual card dimensions locked to large/medium/small presets", async () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(readStoredLayoutItem("summary")).toMatchObject({ h: 7, w: 6 });
-    });
-
-    const initial = readStoredLayoutItem("summary");
-    const rightResizeHandle = screen.getByTestId("visual-resize-handle-summary-e");
-
-    fireEvent.pointerDown(rightResizeHandle, {
-      button: 0,
-      clientX: 0,
-      clientY: 0,
-      pointerId: 1,
-    });
-    fireEvent.pointerMove(rightResizeHandle, {
-      clientX: 120,
-      clientY: 240,
-      pointerId: 1,
-    });
-    fireEvent.pointerUp(rightResizeHandle, {
-      clientX: 120,
-      clientY: 240,
-      pointerId: 1,
-    });
-
-    await waitFor(() => {
       expect(readStoredLayoutItem("summary")).toMatchObject({
-        h: initial?.h,
-        w: (initial?.w ?? 0) + 1,
-      });
-    });
-  });
-
-  it("resizes Visual cards from the bottom edge on the height axis only", async () => {
-    renderDashboard();
-
-    await waitFor(() => {
-      expect(readStoredLayoutItem("summary")).toMatchObject({ h: 7, w: 6 });
-    });
-
-    const initial = readStoredLayoutItem("summary");
-    const bottomResizeHandle = screen.getByTestId("visual-resize-handle-summary-s");
-
-    fireEvent.pointerDown(bottomResizeHandle, {
-      button: 0,
-      clientX: 0,
-      clientY: 0,
-      pointerId: 1,
-    });
-    fireEvent.pointerMove(bottomResizeHandle, {
-      clientX: 240,
-      clientY: 110,
-      pointerId: 1,
-    });
-    fireEvent.pointerUp(bottomResizeHandle, {
-      clientX: 240,
-      clientY: 110,
-      pointerId: 1,
-    });
-
-    await waitFor(() => {
-      expect(readStoredLayoutItem("summary")).toMatchObject({
-        h: (initial?.h ?? 0) + 2,
-        w: initial?.w,
+        h: 9,
+        maxH: 9,
+        maxW: 8,
+        minH: 9,
+        minW: 8,
+        w: 8,
       });
     });
   });

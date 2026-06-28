@@ -175,11 +175,9 @@ export const DiagnosisResponseSchema = z.object({
 
 export const DashboardViewSchema = z.enum(["visual", "board", "table"]);
 export const DashboardCardSizeSchema = z.enum([
-  "sm",
-  "md",
-  "wide",
-  "tall",
-  "hero",
+  "small",
+  "medium",
+  "large",
 ]);
 export const DashboardBreakpointSchema = z.enum(["lg", "md", "sm", "xs"]);
 export const DashboardBoardColumnSchema = z.enum([

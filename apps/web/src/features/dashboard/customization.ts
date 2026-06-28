@@ -41,45 +41,58 @@ export const dashboardColumnCounts: Record<DashboardBreakpoint, number> = {
   xs: 2
 };
 
-const sizeGrid: Record<DashboardCardSize, Record<DashboardBreakpoint, { w: number; h: number; minW: number; minH: number }>> = {
-  sm: {
-    lg: { w: 3, h: 5, minW: 2, minH: 4 },
-    md: { w: 4, h: 5, minW: 3, minH: 4 },
-    sm: { w: 2, h: 5, minW: 2, minH: 4 },
-    xs: { w: 2, h: 5, minW: 2, minH: 4 }
+type DashboardGridPreset = {
+  w: number;
+  h: number;
+};
+
+export const dashboardCardSizeOrder: DashboardCardSize[] = ["small", "medium", "large"];
+
+const legacySizeMap: Record<string, DashboardCardSize> = {
+  sm: "small",
+  md: "medium",
+  wide: "large",
+  tall: "medium",
+  hero: "large"
+};
+
+const sizeGrid: Record<DashboardCardSize, Record<DashboardBreakpoint, DashboardGridPreset>> = {
+  small: {
+    lg: { w: 3, h: 5 },
+    md: { w: 4, h: 5 },
+    sm: { w: 2, h: 5 },
+    xs: { w: 2, h: 5 }
   },
-  md: {
-    lg: { w: 4, h: 6, minW: 3, minH: 5 },
-    md: { w: 4, h: 6, minW: 3, minH: 5 },
-    sm: { w: 4, h: 6, minW: 2, minH: 5 },
-    xs: { w: 2, h: 6, minW: 2, minH: 5 }
+  medium: {
+    lg: { w: 4, h: 9 },
+    md: { w: 4, h: 9 },
+    sm: { w: 4, h: 8 },
+    xs: { w: 2, h: 8 }
   },
-  wide: {
-    lg: { w: 6, h: 7, minW: 4, minH: 5 },
-    md: { w: 8, h: 7, minW: 4, minH: 5 },
-    sm: { w: 4, h: 7, minW: 3, minH: 5 },
-    xs: { w: 2, h: 7, minW: 2, minH: 5 }
-  },
-  tall: {
-    lg: { w: 4, h: 9, minW: 3, minH: 6 },
-    md: { w: 4, h: 9, minW: 3, minH: 6 },
-    sm: { w: 4, h: 8, minW: 3, minH: 6 },
-    xs: { w: 2, h: 8, minW: 2, minH: 6 }
-  },
-  hero: {
-    lg: { w: 8, h: 10, minW: 5, minH: 7 },
-    md: { w: 8, h: 10, minW: 4, minH: 7 },
-    sm: { w: 4, h: 9, minW: 4, minH: 7 },
-    xs: { w: 2, h: 8, minW: 2, minH: 6 }
+  large: {
+    lg: { w: 8, h: 9 },
+    md: { w: 8, h: 9 },
+    sm: { w: 4, h: 9 },
+    xs: { w: 2, h: 8 }
   }
 };
 
 export const chartHeightBySize: Record<DashboardCardSize, number> = {
-  sm: 64,
-  md: 112,
-  wide: 180,
-  tall: 180,
-  hero: 280
+  small: 56,
+  medium: 140,
+  large: 260
+};
+
+export const normalizeDashboardCardSize = (value: unknown, fallback: DashboardCardSize = "medium"): DashboardCardSize => {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  if (dashboardCardSizeOrder.includes(value as DashboardCardSize)) {
+    return value as DashboardCardSize;
+  }
+
+  return legacySizeMap[value] ?? fallback;
 };
 
 export const createActionCardId = (insightId: string, index: number) => `action:${insightId}:${index}`;
@@ -93,7 +106,7 @@ export const buildDashboardCards = (diagnosis: DiagnosisResponse, viewModel: Das
       title: "AI 诊断摘要",
       description: "账号健康度、阶段、目标与首要问题。",
       priority: 0,
-      defaultSize: "wide",
+      defaultSize: "large",
       askTarget: {
         title: "AI 诊断摘要",
         prompt: `请总结「${diagnosis.creator.displayName}」当前最重要的增长问题，并按优先级给 3 个动作。`,
@@ -107,7 +120,7 @@ export const buildDashboardCards = (diagnosis: DiagnosisResponse, viewModel: Das
       title: metric.label,
       description: metric.helper,
       priority: 10 + index,
-      defaultSize: "sm" as const,
+      defaultSize: "small" as const,
       askTarget: metric.askTarget,
       metric
     })),
@@ -117,7 +130,7 @@ export const buildDashboardCards = (diagnosis: DiagnosisResponse, viewModel: Das
       title: "7 日趋势对照",
       description: "播放、完播、互动和转粉趋势对照。",
       priority: 30,
-      defaultSize: "hero",
+      defaultSize: "large",
       askTarget: {
         title: "7 日趋势对照",
         prompt: `请结合 7 日趋势，找出「${diagnosis.creator.displayName}」波动最大的指标，并给一个排查顺序。`,
@@ -130,8 +143,8 @@ export const buildDashboardCards = (diagnosis: DiagnosisResponse, viewModel: Das
       kind: "insights",
       title: "AI 诊断优先级",
       description: "按风险和机会排序的诊断结果。",
-      priority: 40,
-      defaultSize: "tall",
+      priority: 1,
+      defaultSize: "medium",
       askTarget: {
         title: "AI 诊断优先级",
         prompt: `请基于诊断优先级，告诉我「${diagnosis.creator.displayName}」今天应该先做哪一件事，为什么？`,
@@ -144,8 +157,8 @@ export const buildDashboardCards = (diagnosis: DiagnosisResponse, viewModel: Das
       kind: "top-content",
       title: "高表现内容样本",
       description: "可复用的内容结构与机会点。",
-      priority: 50,
-      defaultSize: "wide",
+      priority: 31,
+      defaultSize: "medium",
       askTarget: {
         title: "高表现内容样本",
         prompt: `请基于高表现内容样本，为「${diagnosis.creator.displayName}」提炼可复用的标题、开头和结尾模板。`,
@@ -158,8 +171,8 @@ export const buildDashboardCards = (diagnosis: DiagnosisResponse, viewModel: Das
       kind: "modules",
       title: "已加载 AI 模块",
       description: "当前画像触发的分析模块。",
-      priority: 60,
-      defaultSize: "tall",
+      priority: 40,
+      defaultSize: "large",
       askTarget: {
         title: "已加载 AI 模块",
         prompt: `请解释为什么「${diagnosis.creator.displayName}」当前加载了这些 AI 分析模块，并说明每个模块负责什么。`,
@@ -172,8 +185,8 @@ export const buildDashboardCards = (diagnosis: DiagnosisResponse, viewModel: Das
       kind: "actions",
       title: "下一步行动队列",
       description: "今天、下一步、本周和已完成行动。",
-      priority: 70,
-      defaultSize: "tall",
+      priority: 32,
+      defaultSize: "medium",
       askTarget: {
         title: "下一步行动队列",
         prompt: "请把当前所有诊断动作整理成「今天、明天、本周」三个时间段的行动清单。",
@@ -196,45 +209,102 @@ export const buildDashboardActionCards = (diagnosis: DiagnosisResponse): Dashboa
     }))
   );
 
-const createGridItem = (card: DashboardCardDefinition, breakpoint: DashboardBreakpoint, x: number, y: number): DashboardGridItem => {
+const getGridPreset = (size: DashboardCardSize, breakpoint: DashboardBreakpoint) => {
   const cols = dashboardColumnCounts[breakpoint];
-  const size = sizeGrid[card.defaultSize][breakpoint];
-  const w = Math.min(size.w, cols);
+  const preset = sizeGrid[size][breakpoint];
+
+  return {
+    w: Math.min(preset.w, cols),
+    h: preset.h
+  };
+};
+
+export const createDashboardGridItem = (
+  card: DashboardCardDefinition,
+  breakpoint: DashboardBreakpoint,
+  x: number,
+  y: number,
+  size: DashboardCardSize = card.defaultSize
+): DashboardGridItem => {
+  const preset = getGridPreset(size, breakpoint);
 
   return {
     i: card.id,
     x,
     y,
-    w,
-    h: size.h,
-    minW: Math.min(size.minW, w),
-    minH: size.minH
+    w: preset.w,
+    h: preset.h,
+    minW: preset.w,
+    minH: preset.h,
+    maxW: preset.w,
+    maxH: preset.h
   };
 };
 
-const createLayout = (cards: DashboardCardDefinition[], breakpoint: DashboardBreakpoint) => {
+export const orderDashboardCardsByLayout = (cards: DashboardCardDefinition[], layout: DashboardGridItem[] | undefined) => {
+  if (!layout?.length) {
+    return cards;
+  }
+
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const cardIndexById = new Map(cards.map((card, index) => [card.id, index]));
+  const seen = new Set<string>();
+  const ordered = [...layout]
+    .filter((item) => cardById.has(item.i))
+    .sort((a, b) => a.y - b.y || a.x - b.x || (cardIndexById.get(a.i) ?? 0) - (cardIndexById.get(b.i) ?? 0))
+    .flatMap((item) => {
+      const card = cardById.get(item.i);
+
+      if (!card || seen.has(card.id)) {
+        return [];
+      }
+
+      seen.add(card.id);
+      return [card];
+    });
+
+  return [...ordered, ...cards.filter((card) => !seen.has(card.id))];
+};
+
+export const createDashboardLayout = (
+  cards: DashboardCardDefinition[],
+  breakpoint: DashboardBreakpoint,
+  cardPreferences: DashboardPreferencesV1["cards"] = {}
+) => {
   const cols = dashboardColumnCounts[breakpoint];
   let cursorX = 0;
   let cursorY = 0;
   let rowHeight = 0;
 
   return cards.map((card) => {
-    const size = sizeGrid[card.defaultSize][breakpoint];
-    const w = Math.min(size.w, cols);
+    const size = normalizeDashboardCardSize(cardPreferences[card.id]?.size, card.defaultSize);
+    const preset = getGridPreset(size, breakpoint);
 
-    if (cursorX + w > cols) {
+    if (cursorX + preset.w > cols) {
       cursorX = 0;
       cursorY += rowHeight;
       rowHeight = 0;
     }
 
-    const item = createGridItem(card, breakpoint, cursorX, cursorY);
-    cursorX += w;
+    const item = createDashboardGridItem(card, breakpoint, cursorX, cursorY, size);
+    cursorX += preset.w;
     rowHeight = Math.max(rowHeight, item.h);
 
     return item;
   });
 };
+
+export const createDashboardLayouts = (
+  cards: DashboardCardDefinition[],
+  cardPreferences: DashboardPreferencesV1["cards"] = {},
+  sourceLayouts?: DashboardPreferencesV1["visual"]["layouts"]
+) =>
+  Object.fromEntries(
+    dashboardBreakpoints.map((breakpoint) => {
+      const orderedCards = orderDashboardCardsByLayout(cards, sourceLayouts?.[breakpoint]);
+      return [breakpoint, createDashboardLayout(orderedCards, breakpoint, cardPreferences)];
+    })
+  ) as DashboardPreferencesV1["visual"]["layouts"];
 
 const createBoardColumns = (actions: DashboardActionCard[]) => {
   const columns: Record<DashboardBoardColumn, string[]> = {
@@ -266,62 +336,28 @@ export const buildDefaultDashboardPreferences = (
   cards: DashboardCardDefinition[],
   actions: DashboardActionCard[],
   now = new Date().toISOString()
-): DashboardPreferencesV1 => ({
-  version: 1,
-  creatorId,
-  selectedView: "visual",
-  updatedAt: now,
-  cards: Object.fromEntries(cards.map((card) => [card.id, { visible: true, size: card.defaultSize }])),
-  visual: {
-    layouts: Object.fromEntries(dashboardBreakpoints.map((breakpoint) => [breakpoint, createLayout(cards, breakpoint)])) as DashboardPreferencesV1["visual"]["layouts"]
-  },
-  board: {
-    columns: createBoardColumns(actions)
-  },
-  table: {
-    sort: {
-      field: "priority",
-      direction: "asc"
+): DashboardPreferencesV1 => {
+  const defaultCards = Object.fromEntries(cards.map((card) => [card.id, { visible: true, size: card.defaultSize }])) as DashboardPreferencesV1["cards"];
+
+  return {
+    version: 1,
+    creatorId,
+    selectedView: "visual",
+    updatedAt: now,
+    cards: defaultCards,
+    visual: {
+      layouts: createDashboardLayouts(cards, defaultCards)
+    },
+    board: {
+      columns: createBoardColumns(actions)
+    },
+    table: {
+      sort: {
+        field: "priority",
+        direction: "asc"
+      }
     }
-  }
-});
-
-const filterGridItems = (items: DashboardGridItem[] | undefined, cardIds: Set<string>) => (items ?? []).filter((item) => cardIds.has(item.i));
-
-const appendMissingGridItems = (
-  items: DashboardGridItem[],
-  cards: DashboardCardDefinition[],
-  breakpoint: DashboardBreakpoint
-) => {
-  const existingIds = new Set(items.map((item) => item.i));
-  const cols = dashboardColumnCounts[breakpoint];
-  const bottom = items.reduce((max, item) => Math.max(max, item.y + item.h), 0);
-  let cursorX = 0;
-  let cursorY = bottom;
-  let rowHeight = 0;
-  const nextItems = [...items];
-
-  cards.forEach((card) => {
-    if (existingIds.has(card.id)) {
-      return;
-    }
-
-    const size = sizeGrid[card.defaultSize][breakpoint];
-    const w = Math.min(size.w, cols);
-
-    if (cursorX + w > cols) {
-      cursorX = 0;
-      cursorY += rowHeight;
-      rowHeight = 0;
-    }
-
-    const item = createGridItem(card, breakpoint, cursorX, cursorY);
-    nextItems.push(item);
-    cursorX += w;
-    rowHeight = Math.max(rowHeight, item.h);
-  });
-
-  return nextItems;
+  };
 };
 
 export const reconcileDashboardPreferences = (
@@ -338,16 +374,14 @@ export const reconcileDashboardPreferences = (
   const reconciledCards = Object.fromEntries(
     cards.map((card) => {
       const saved = preferences.cards[card.id];
-      return [card.id, saved ? { visible: saved.visible, size: saved.size } : defaults.cards[card.id]];
+      return [card.id, saved ? { visible: saved.visible, size: normalizeDashboardCardSize(saved.size, card.defaultSize) } : defaults.cards[card.id]];
     })
   ) as DashboardPreferencesV1["cards"];
 
-  const layouts = Object.fromEntries(
-    dashboardBreakpoints.map((breakpoint) => {
-      const filtered = filterGridItems(preferences.visual.layouts[breakpoint], cardIds);
-      return [breakpoint, appendMissingGridItems(filtered, cards, breakpoint)];
-    })
+  const sourceLayouts = Object.fromEntries(
+    dashboardBreakpoints.map((breakpoint) => [breakpoint, (preferences.visual.layouts[breakpoint] ?? []).filter((item) => cardIds.has(item.i))])
   ) as DashboardPreferencesV1["visual"]["layouts"];
+  const layouts = createDashboardLayouts(cards, reconciledCards, sourceLayouts);
 
   const assignedActions = new Set<string>();
   const columns = Object.fromEntries(
@@ -403,8 +437,43 @@ export const reconcileDashboardPreferences = (
   };
 };
 
+const migrateDashboardPreferencesInput = (value: unknown) => {
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const candidate = value as { cards?: unknown };
+
+  if (!candidate.cards || typeof candidate.cards !== "object") {
+    return value;
+  }
+
+  const cards = Object.fromEntries(
+    Object.entries(candidate.cards as Record<string, unknown>).map(([cardId, preference]) => {
+      if (!preference || typeof preference !== "object") {
+        return [cardId, preference];
+      }
+
+      const cardPreference = preference as { size?: unknown; visible?: unknown };
+
+      return [
+        cardId,
+        {
+          ...cardPreference,
+          size: normalizeDashboardCardSize(cardPreference.size)
+        }
+      ];
+    })
+  );
+
+  return {
+    ...candidate,
+    cards
+  };
+};
+
 export const parseDashboardPreferences = (value: unknown) => {
-  const parsed = DashboardPreferencesV1Schema.safeParse(value);
+  const parsed = DashboardPreferencesV1Schema.safeParse(migrateDashboardPreferencesInput(value));
   return parsed.success ? parsed.data : null;
 };
 

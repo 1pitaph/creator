@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, cn } from "@creator/ui";
 import { HoverBorderGradientButton } from "../../../components/effects/AskAgentButton";
 import { GlowingPanel } from "../../../components/effects/GlowingPanel";
 import type { AskTarget } from "../../../types";
+import type { DashboardCardDefinition } from "../customization";
 
 export const DashboardModuleCard = ({
   title,
@@ -18,6 +19,7 @@ export const DashboardModuleCard = ({
   dragHandleLabel,
   onDragHandlePointerDown,
   showDragHandle = false,
+  size = "medium",
   children
 }: {
   title: string;
@@ -30,17 +32,23 @@ export const DashboardModuleCard = ({
   dragHandleLabel?: string;
   onDragHandlePointerDown?: PointerEventHandler<HTMLButtonElement>;
   showDragHandle?: boolean;
+  size?: DashboardCardDefinition["defaultSize"];
   children: ReactNode;
 }) => (
   <GlowingPanel className={className}>
     {showDragHandle ? <DashboardCardDragHandle label={dragHandleLabel ?? `拖动卡片：${title}`} onPointerDown={onDragHandlePointerDown} /> : null}
-    <Card className={cn("relative z-10 overflow-visible !rounded-[inherit] border-0 bg-white shadow-none", fill && "flex h-full flex-col")}>
+    <Card className={cn("relative z-10 overflow-visible !rounded-[inherit] border-0 bg-white shadow-none", fill && "flex h-full flex-col")} data-dashboard-card-size={size}>
       <AskAgentToolbar target={askTarget} onAsk={onAsk} />
-      <CardHeader className="relative z-10 border-b border-zinc-100/80 !py-5 !pl-6 !pr-28">
-        <CardTitle className="text-[15px] font-semibold text-zinc-900">{title}</CardTitle>
-        {description ? <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">{description}</p> : null}
+      <CardHeader
+        className={cn(
+          "relative z-10 border-b border-zinc-100/80",
+          size === "small" ? "!py-3 !pl-4 !pr-16" : "!py-5 !pl-6 !pr-28"
+        )}
+      >
+        <CardTitle className={cn("font-semibold text-zinc-900", size === "small" ? "truncate text-[13px]" : "text-[15px]")}>{title}</CardTitle>
+        {description && size !== "small" ? <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">{description}</p> : null}
       </CardHeader>
-      <CardContent className={cn("relative z-10 !px-6 !py-5", fill && "min-h-0 flex-1", contentClassName)}>{children}</CardContent>
+      <CardContent className={cn("relative z-10", size === "small" ? "!px-4 !py-3" : "!px-6 !py-5", fill && "min-h-0 flex-1", contentClassName)}>{children}</CardContent>
     </Card>
   </GlowingPanel>
 );

@@ -38,12 +38,6 @@ const moduleLoadModeOptions: Array<{
   { icon: Table, value: "adaptive" },
 ];
 
-const panelTitles: Record<DashboardPanel, string> = {
-  overview: "诊断总览",
-  board: "行动队列",
-  table: "面板配置",
-};
-
 const modeIndicatorTransition =
   "transition-[transform,width] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none";
 
@@ -98,10 +92,6 @@ export const DashboardPage = memo(function DashboardPage({
                 onModeChange={handleModuleLoadModeChange}
                 selectedMode={moduleLoadMode}
               />
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-zinc-500">当前面板</p>
-                <h1 className="text-lg font-semibold text-zinc-950">{panelTitles[panel]}</h1>
-              </div>
             </div>
 
             <div className="flex items-center gap-2">
