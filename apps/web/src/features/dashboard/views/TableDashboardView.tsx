@@ -1,29 +1,21 @@
 import { Eye } from "@phosphor-icons/react/Eye";
 import { EyeSlash } from "@phosphor-icons/react/EyeSlash";
+import { useContainerWidth, verticalCompactor, type Layout } from "react-grid-layout";
 
-import type { DashboardCardSize, DashboardPreferencesV1 } from "@creator/data-contracts";
+import type { DashboardGridItem, DashboardPreferencesV1 } from "@creator/data-contracts";
 import { Badge, Button } from "@creator/ui";
 
 import { phosphorIconWeight } from "../../../constants";
 import {
-  createDashboardLayouts,
-  dashboardCardSizeOrder,
+  createDashboardGridItem,
+  dashboardColumnCounts,
+  getDashboardBreakpointForWidth,
+  getDashboardCardGridConstraints,
+  normalizeDashboardGridItem,
   normalizeDashboardCardDimensions,
   type DashboardCardDefinition,
   type DashboardCardKind
 } from "../customization";
-
-const widthLabels: Record<DashboardCardSize, string> = {
-  small: "窄",
-  medium: "标准",
-  large: "宽"
-};
-
-const heightLabels: Record<DashboardCardSize, string> = {
-  small: "矮",
-  medium: "标准",
-  large: "高"
-};
 
 const kindLabels: Record<DashboardCardKind, string> = {
   summary: "摘要",
@@ -35,7 +27,18 @@ const kindLabels: Record<DashboardCardKind, string> = {
   actions: "行动"
 };
 
-const sizeOptions = dashboardCardSizeOrder;
+const toStoredGridItems = (layout: Layout): DashboardGridItem[] =>
+  layout.map((item) => ({
+    i: item.i,
+    x: item.x,
+    y: item.y,
+    w: item.w,
+    h: item.h,
+    minW: item.minW,
+    minH: item.minH,
+    maxW: item.maxW,
+    maxH: item.maxH
+  }));
 
 export const TableDashboardView = ({
   cards,
@@ -46,12 +49,20 @@ export const TableDashboardView = ({
   preferences: DashboardPreferencesV1;
   updatePreferences: (updater: (current: DashboardPreferencesV1) => DashboardPreferencesV1) => void;
 }) => {
+  const { containerRef, mounted, width } = useContainerWidth({ measureBeforeMount: true, initialWidth: 0 });
+  const measuredWidth = Math.round(width);
+  const breakpoint = mounted && measuredWidth > 0 ? getDashboardBreakpointForWidth(measuredWidth) : "lg";
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const getCardLayoutItem = (card: DashboardCardDefinition, layout = preferences.visual.layouts[breakpoint]) => {
+    const dimensions = normalizeDashboardCardDimensions(preferences.cards[card.id], card.defaultSize);
+    const item = layout.find((layoutItem) => layoutItem.i === card.id) ?? createDashboardGridItem(card, breakpoint, 0, 0, dimensions);
+
+    return normalizeDashboardGridItem(item, breakpoint, card);
+  };
   const sortedCards = [...cards].sort((a, b) => {
     const direction = preferences.table.sort.direction === "asc" ? 1 : -1;
-    const aPreference = preferences.cards[a.id] ?? { visible: true, width: a.defaultSize, height: a.defaultSize };
-    const bPreference = preferences.cards[b.id] ?? { visible: true, width: b.defaultSize, height: b.defaultSize };
-    const aDimensions = normalizeDashboardCardDimensions(aPreference, a.defaultSize);
-    const bDimensions = normalizeDashboardCardDimensions(bPreference, b.defaultSize);
+    const aLayout = getCardLayoutItem(a);
+    const bLayout = getCardLayoutItem(b);
 
     switch (preferences.table.sort.field) {
       case "title":
@@ -59,13 +70,13 @@ export const TableDashboardView = ({
       case "type":
         return kindLabels[a.kind].localeCompare(kindLabels[b.kind], "zh-CN") * direction;
       case "width":
-        return (sizeOptions.indexOf(aDimensions.width) - sizeOptions.indexOf(bDimensions.width)) * direction;
+        return (aLayout.w - bLayout.w) * direction;
       case "height":
-        return (sizeOptions.indexOf(aDimensions.height) - sizeOptions.indexOf(bDimensions.height)) * direction;
+        return (aLayout.h - bLayout.h) * direction;
       case "size":
-        return (sizeOptions.indexOf(aDimensions.width) - sizeOptions.indexOf(bDimensions.width)) * direction;
+        return (aLayout.w - bLayout.w) * direction;
       case "visible":
-        return (Number(bPreference.visible) - Number(aPreference.visible)) * direction;
+        return (Number(preferences.cards[b.id]?.visible ?? true) - Number(preferences.cards[a.id]?.visible ?? true)) * direction;
       case "priority":
       default:
         return (a.priority - b.priority) * direction;
@@ -84,39 +95,62 @@ export const TableDashboardView = ({
     }));
   };
 
-  const updateCardDimension = (card: DashboardCardDefinition, axis: "width" | "height", value: DashboardCardSize) => {
+  const updateCardGridDimension = (card: DashboardCardDefinition, axis: "w" | "h", value: number) => {
     updatePreferences((current) => {
-      const currentDimensions = normalizeDashboardCardDimensions(current.cards[card.id], card.defaultSize);
-      const nextCards = {
-        ...current.cards,
-        [card.id]: {
-          ...current.cards[card.id],
-          visible: current.cards[card.id]?.visible ?? true,
-          ...currentDimensions,
-          [axis]: value
+      const currentLayout = current.visual.layouts[breakpoint] ?? [];
+      const dimensions = normalizeDashboardCardDimensions(current.cards[card.id], card.defaultSize);
+      const fallbackItem = createDashboardGridItem(card, breakpoint, 0, 0, dimensions);
+      const hasExistingItem = currentLayout.some((item) => item.i === card.id);
+      const nextLayout = (hasExistingItem ? currentLayout : [...currentLayout, fallbackItem]).flatMap((item) => {
+        const itemCard = cardById.get(item.i);
+
+        if (!itemCard) {
+          return [];
         }
-      };
+
+        const normalizedItem = normalizeDashboardGridItem(item, breakpoint, itemCard);
+
+        return [
+          item.i === card.id
+            ? normalizeDashboardGridItem(
+                {
+                  ...normalizedItem,
+                  [axis]: value
+                },
+                breakpoint,
+                itemCard
+              )
+            : normalizedItem
+        ];
+      });
+      const compactedLayout = toStoredGridItems(verticalCompactor.compact(nextLayout as Layout, dashboardColumnCounts[breakpoint]) as Layout).flatMap((item) => {
+        const itemCard = cardById.get(item.i);
+
+        return itemCard ? [normalizeDashboardGridItem(item, breakpoint, itemCard)] : [];
+      });
 
       return {
         ...current,
-        cards: nextCards,
         visual: {
-          layouts: createDashboardLayouts(cards, nextCards, current.visual.layouts)
+          layouts: {
+            ...current.visual.layouts,
+            [breakpoint]: compactedLayout
+          }
         }
       };
     });
   };
 
   return (
-    <section className="overflow-hidden rounded-[18px] bg-white shadow-[0_1px_1px_rgba(24,24,27,0.025),0_8px_28px_rgba(24,24,27,0.04)]">
+    <section ref={containerRef} className="overflow-hidden rounded-[18px] bg-white shadow-[0_1px_1px_rgba(24,24,27,0.025),0_8px_28px_rgba(24,24,27,0.04)]">
       <div className="overflow-x-auto">
         <table className="min-w-[860px] w-full border-collapse text-left">
           <thead className="border-b border-zinc-100 bg-zinc-50/70 text-xs font-semibold text-zinc-500">
             <tr>
               <HeaderButton label="名称" onClick={() => setSort("title")} />
               <HeaderButton label="类型" onClick={() => setSort("type")} />
-              <HeaderButton label="宽度" onClick={() => setSort("width")} />
-              <HeaderButton label="高度" onClick={() => setSort("height")} />
+              <HeaderButton label="宽度(列)" onClick={() => setSort("width")} />
+              <HeaderButton label="高度(行)" onClick={() => setSort("height")} />
               <HeaderButton label="显示" onClick={() => setSort("visible")} />
               <HeaderButton label="顺序" onClick={() => setSort("priority")} />
             </tr>
@@ -124,7 +158,8 @@ export const TableDashboardView = ({
           <tbody className="divide-y divide-zinc-100 text-sm">
             {sortedCards.map((card) => {
               const preference = preferences.cards[card.id] ?? { visible: true, width: card.defaultSize, height: card.defaultSize };
-              const dimensions = normalizeDashboardCardDimensions(preference, card.defaultSize);
+              const layoutItem = getCardLayoutItem(card);
+              const constraints = getDashboardCardGridConstraints(card, breakpoint);
 
               return (
                 <tr key={card.id} className="align-top">
@@ -136,36 +171,32 @@ export const TableDashboardView = ({
                     <Badge tone="neutral">{kindLabels[card.kind]}</Badge>
                   </td>
                   <td className="px-4 py-4">
-                    <select
-                      aria-label={`设置「${card.title}」宽度`}
-                      className="h-9 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-900"
-                      value={dimensions.width}
+                    <input
+                      aria-label={`设置「${card.title}」宽度列数`}
+                      className="h-9 w-20 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-900"
+                      max={constraints.maxW}
+                      min={constraints.minW}
+                      step={1}
+                      type="number"
+                      value={layoutItem.w}
                       onChange={(event) => {
-                        updateCardDimension(card, "width", event.target.value as DashboardCardSize);
+                        updateCardGridDimension(card, "w", Number(event.target.value));
                       }}
-                    >
-                      {sizeOptions.map((size) => (
-                        <option key={size} value={size}>
-                          {widthLabels[size]}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </td>
                   <td className="px-4 py-4">
-                    <select
-                      aria-label={`设置「${card.title}」高度`}
-                      className="h-9 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-900"
-                      value={dimensions.height}
+                    <input
+                      aria-label={`设置「${card.title}」高度行数`}
+                      className="h-9 w-20 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-900"
+                      max={constraints.maxH}
+                      min={constraints.minH}
+                      step={1}
+                      type="number"
+                      value={layoutItem.h}
                       onChange={(event) => {
-                        updateCardDimension(card, "height", event.target.value as DashboardCardSize);
+                        updateCardGridDimension(card, "h", Number(event.target.value));
                       }}
-                    >
-                      {sizeOptions.map((size) => (
-                        <option key={size} value={size}>
-                          {heightLabels[size]}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </td>
                   <td className="px-4 py-4">
                     <Button

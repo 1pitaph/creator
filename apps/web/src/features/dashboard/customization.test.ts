@@ -33,24 +33,24 @@ describe("dashboard customization", () => {
     expect(preferences.cards["trend-comparison"]).toMatchObject({ width: "large", height: "large" });
     expect(preferences.visual.layouts.lg.map((item) => item.i)).toEqual(cards.map((card) => card.id));
     expect(preferences.visual.layouts.lg.slice(0, 2)).toMatchObject([
-      { i: "summary", x: 0, y: 0, w: 8, h: 11, minW: 8, minH: 11, maxW: 8, maxH: 11 },
-      { i: "insights", x: 8, y: 0, w: 4, h: 8, minW: 4, minH: 8, maxW: 4, maxH: 8 }
+      { i: "summary", x: 0, y: 0, w: 8, h: 11, minW: 3, minH: 6, maxW: 12, maxH: 16 },
+      { i: "insights", x: 8, y: 0, w: 4, h: 8, minW: 3, minH: 6, maxW: 12, maxH: 16 }
     ]);
     expect(preferences.visual.layouts.md.find((item) => item.i === "metric:views7d")).toMatchObject({
       w: 3,
       h: 5,
-      minW: 3,
+      minW: 2,
       minH: 5,
-      maxW: 3,
-      maxH: 5
+      maxW: 8,
+      maxH: 16
     });
     expect(preferences.visual.layouts.sm.find((item) => item.i === "insights")).toMatchObject({
       w: 3,
       h: 7,
       minW: 3,
-      minH: 7,
-      maxW: 3,
-      maxH: 7
+      minH: 6,
+      maxW: 4,
+      maxH: 16
     });
     expect(preferences.board.columns.today.length).toBeGreaterThan(0);
   });
@@ -72,7 +72,7 @@ describe("dashboard customization", () => {
     expect(parseDashboardPreferences({ version: 0 })).toBeNull();
   });
 
-  it("migrates legacy cached card sizes before reconcile normalizes preset layout", () => {
+  it("migrates legacy cached card sizes while preserving saved grid dimensions", () => {
     const { actions, cards } = buildFixture();
     const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
     const parsed = parseDashboardPreferences({
@@ -86,7 +86,7 @@ describe("dashboard customization", () => {
       visual: {
         layouts: {
           ...preferences.visual.layouts,
-          lg: [{ i: "summary", x: 0, y: 0, w: 1, h: 1, minW: 1, minH: 1 }]
+          lg: [{ i: "summary", x: 1, y: 2, w: 7, h: 9, minW: 1, minH: 1 }]
         }
       }
     });
@@ -97,11 +97,11 @@ describe("dashboard customization", () => {
 
     const reconciled = reconcileDashboardPreferences(parsed ?? preferences, defaultCreatorId, cards, actions, "2026-06-29T00:00:00.000Z");
 
-    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({ h: 8, w: 8, minH: 8, minW: 8 });
-    expect(reconciled.visual.layouts.lg.find((item) => item.i === "insights")).toMatchObject({ h: 11, w: 4, minH: 11, minW: 4 });
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({ x: 1, y: 2, h: 9, w: 7, minH: 6, minW: 3 });
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "insights")).toMatchObject({ h: 11, w: 4, minH: 6, minW: 3 });
   });
 
-  it("combines independent width and height presets", () => {
+  it("keeps independent width and height presets as metadata without resetting saved layouts", () => {
     const { actions, cards } = buildFixture();
     const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
     const reconciled = reconcileDashboardPreferences(
@@ -121,11 +121,42 @@ describe("dashboard customization", () => {
     expect(reconciled.cards.summary).toMatchObject({ width: "small", height: "large" });
     expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({
       h: 11,
-      maxH: 11,
-      maxW: 3,
-      minH: 11,
+      maxH: 16,
+      maxW: 12,
+      minH: 6,
       minW: 3,
-      w: 3
+      w: 8
+    });
+  });
+
+  it("clamps invalid saved grid dimensions without resetting valid layout placement", () => {
+    const { actions, cards } = buildFixture();
+    const preferences = buildDefaultDashboardPreferences(defaultCreatorId, cards, actions, "2026-06-28T00:00:00.000Z");
+    const reconciled = reconcileDashboardPreferences(
+      {
+        ...preferences,
+        visual: {
+          layouts: {
+            ...preferences.visual.layouts,
+            lg: [{ i: "summary", x: 11, y: 4, w: 20, h: 99 }]
+          }
+        }
+      },
+      defaultCreatorId,
+      cards,
+      actions,
+      "2026-06-29T00:00:00.000Z"
+    );
+
+    expect(reconciled.visual.layouts.lg.find((item) => item.i === "summary")).toMatchObject({
+      x: 0,
+      y: 4,
+      w: 12,
+      h: 16,
+      minW: 3,
+      minH: 6,
+      maxW: 12,
+      maxH: 16
     });
   });
 

@@ -394,56 +394,53 @@ describe("DashboardPage", () => {
     });
   });
 
-  it("uses independent Table width and height sizing", async () => {
+  it("uses current-breakpoint Table width and height grid steppers", async () => {
     renderDashboard({ panel: "table" });
 
-    expect(screen.getByText("宽度")).toBeInTheDocument();
-    expect(screen.getByText("高度")).toBeInTheDocument();
-    expect(screen.getAllByRole("option", { name: "窄" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("option", { name: "标准" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("option", { name: "宽" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("option", { name: "矮" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("option", { name: "高" }).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("option", { name: "重点" })).not.toBeInTheDocument();
+    expect(screen.getByText("宽度(列)")).toBeInTheDocument();
+    expect(screen.getByText("高度(行)")).toBeInTheDocument();
 
-    const summaryWidthSelect = screen.getByLabelText("设置「AI 诊断摘要」宽度");
-    const summaryHeightSelect = screen.getByLabelText("设置「AI 诊断摘要」高度");
+    const summaryWidthInput = screen.getByLabelText("设置「AI 诊断摘要」宽度列数");
+    const summaryHeightInput = screen.getByLabelText("设置「AI 诊断摘要」高度行数");
 
-    fireEvent.change(summaryWidthSelect, {
-      target: { value: "medium" },
+    expect(summaryWidthInput).toHaveValue(8);
+    expect(summaryHeightInput).toHaveValue(11);
+
+    fireEvent.change(summaryWidthInput, {
+      target: { value: "7" },
     });
 
     await waitFor(() => {
       expect(readStoredPreferences()?.cards.summary).toMatchObject({
-        width: "medium",
+        width: "large",
         height: "large",
       });
       expect(readStoredLayoutItem("summary")).toMatchObject({
         h: 11,
-        maxH: 11,
-        maxW: 4,
-        minH: 11,
-        minW: 4,
-        w: 4,
+        maxH: 16,
+        maxW: 12,
+        minH: 6,
+        minW: 3,
+        w: 7,
       });
     });
 
-    fireEvent.change(summaryHeightSelect, {
-      target: { value: "medium" },
+    fireEvent.change(summaryHeightInput, {
+      target: { value: "9" },
     });
 
     await waitFor(() => {
       expect(readStoredPreferences()?.cards.summary).toMatchObject({
-        width: "medium",
-        height: "medium",
+        width: "large",
+        height: "large",
       });
       expect(readStoredLayoutItem("summary")).toMatchObject({
-        h: 8,
-        maxH: 8,
-        maxW: 4,
-        minH: 8,
-        minW: 4,
-        w: 4,
+        h: 9,
+        maxH: 16,
+        maxW: 12,
+        minH: 6,
+        minW: 3,
+        w: 7,
       });
     });
   });
@@ -505,22 +502,22 @@ describe("DashboardPage", () => {
     );
   });
 
-  it("keeps Visual card dimensions locked to large/medium/small presets", async () => {
+  it("starts Visual cards from presets while leaving grid dimensions resizable", async () => {
     renderDashboard();
 
     await waitFor(() => {
       expect(readStoredLayoutItem("summary")).toMatchObject({
         h: 11,
-        maxH: 11,
-        maxW: 8,
-        minH: 11,
-        minW: 8,
+        maxH: 16,
+        maxW: 12,
+        minH: 6,
+        minW: 3,
         w: 8,
       });
     });
   });
 
-  it("snaps right-edge resizing between width presets without changing height", async () => {
+  it("resizes the right edge one grid column at a time without changing height", async () => {
     renderDashboard();
 
     await waitFor(() => {
@@ -551,16 +548,16 @@ describe("DashboardPage", () => {
 
     await waitFor(() => {
       expect(readStoredPreferences()?.cards.summary).toMatchObject({
-        width: "medium",
+        width: "large",
         height: "large",
       });
       expect(readStoredLayoutItem("summary")).toMatchObject({
         h: 11,
-        maxH: 11,
-        maxW: 4,
-        minH: 11,
-        minW: 4,
-        w: 4,
+        maxH: 16,
+        maxW: 12,
+        minH: 6,
+        minW: 3,
+        w: 7,
       });
     });
 
@@ -583,21 +580,21 @@ describe("DashboardPage", () => {
 
     await waitFor(() => {
       expect(readStoredPreferences()?.cards.summary).toMatchObject({
-        width: "small",
+        width: "large",
         height: "large",
       });
       expect(readStoredLayoutItem("summary")).toMatchObject({
         h: 11,
-        maxH: 11,
-        maxW: 3,
-        minH: 11,
+        maxH: 16,
+        maxW: 12,
+        minH: 6,
         minW: 3,
-        w: 3,
+        w: 6,
       });
     });
   });
 
-  it("snaps bottom-edge resizing between height presets without changing width", async () => {
+  it("resizes the bottom edge one grid row at a time without changing width", async () => {
     renderDashboard();
 
     await waitFor(() => {
@@ -629,14 +626,14 @@ describe("DashboardPage", () => {
     await waitFor(() => {
       expect(readStoredPreferences()?.cards["metric:views7d"]).toMatchObject({
         width: "small",
-        height: "medium",
+        height: "small",
       });
       expect(readStoredLayoutItem("metric:views7d")).toMatchObject({
-        h: 8,
-        maxH: 8,
-        maxW: 3,
-        minH: 8,
-        minW: 3,
+        h: 6,
+        maxH: 16,
+        maxW: 12,
+        minH: 5,
+        minW: 2,
         w: 3,
       });
     });
@@ -661,14 +658,14 @@ describe("DashboardPage", () => {
     await waitFor(() => {
       expect(readStoredPreferences()?.cards["metric:views7d"]).toMatchObject({
         width: "small",
-        height: "large",
+        height: "small",
       });
       expect(readStoredLayoutItem("metric:views7d")).toMatchObject({
-        h: 11,
-        maxH: 11,
-        maxW: 3,
-        minH: 11,
-        minW: 3,
+        h: 7,
+        maxH: 16,
+        maxW: 12,
+        minH: 5,
+        minW: 2,
         w: 3,
       });
     });
