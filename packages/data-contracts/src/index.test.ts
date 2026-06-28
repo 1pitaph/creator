@@ -9,7 +9,7 @@ import {
   AgentToolResultSchema,
   ChatResponseSchema,
   DataKernelRequestSchema,
-  DataKernelResponseSchema
+  DataKernelResponseSchema,
 } from "./index";
 
 const agentRun = AgentRunSchema.parse({
@@ -24,15 +24,15 @@ const agentRun = AgentRunSchema.parse({
       status: "success",
       inputSummary: "读取上下文",
       outputSummary: "完成",
-      evidenceIds: []
-    }
+      evidenceIds: [],
+    },
   ],
   evidence: [],
   facts: [],
   assumptions: [],
   actions: [],
   followUpQuestions: [],
-  createdAt: "2026-06-28T00:00:00.000Z"
+  createdAt: "2026-06-28T00:00:00.000Z",
 });
 
 const dataset = {
@@ -47,7 +47,7 @@ const dataset = {
     bottlenecks: ["完播低"],
     audience: [{ label: "通勤族", percentage: 60, note: "晚间活跃" }],
     creatorHabits: ["周末拍摄"],
-    tone: "直接"
+    tone: "直接",
   },
   summary: {
     views7d: 100,
@@ -56,7 +56,7 @@ const dataset = {
     interactionRate: 0.05,
     followerGain7d: 12,
     followerConversionRate: 0.01,
-    publishCount7d: 3
+    publishCount7d: 3,
   },
   history: [
     {
@@ -65,8 +65,8 @@ const dataset = {
       completionRate: 0.4,
       interactionRate: 0.05,
       followerConversionRate: 0.01,
-      followersGained: 12
-    }
+      followersGained: 12,
+    },
   ],
   topContents: [
     {
@@ -77,9 +77,9 @@ const dataset = {
       interactionRate: 0.05,
       followerConversionRate: 0.01,
       hook: "开头",
-      opportunity: "系列化"
-    }
-  ]
+      opportunity: "系列化",
+    },
+  ],
 };
 
 describe("data contracts", () => {
@@ -90,7 +90,7 @@ describe("data contracts", () => {
       mode: "mock",
       agentRun,
       threadId: "thread-1",
-      status: "completed"
+      status: "completed",
     });
 
     expect(parsed.agentRun?.id).toBe("run-1");
@@ -98,26 +98,36 @@ describe("data contracts", () => {
   });
 
   it("parses stream events, patches, tool results, and checkpoint metadata", () => {
-    expect(AgentRunPatchSchema.parse({ id: "run-1", answer: "delta" }).answer).toBe("delta");
-    expect(AgentToolResultSchema.parse({ toolCallId: "tool-1", name: "run_sql", status: "success" }).evidenceIds).toEqual([]);
+    expect(
+      AgentRunPatchSchema.parse({ id: "run-1", answer: "delta" }).answer,
+    ).toBe("delta");
+    expect(
+      AgentToolResultSchema.parse({
+        toolCallId: "tool-1",
+        name: "run_sql",
+        status: "success",
+      }).evidenceIds,
+    ).toEqual([]);
     expect(
       AgentCheckpointSchema.parse({
         threadId: "thread-1",
         checkpointProvider: "memory",
         status: "completed",
-        updatedAt: "2026-06-28T00:00:00.000Z"
-      }).checkpointProvider
+        updatedAt: "2026-06-28T00:00:00.000Z",
+      }).checkpointProvider,
     ).toBe("memory");
-    expect(AgentStreamEventSchema.parse({ type: "text-delta", delta: "hi" }).type).toBe("text-delta");
+    expect(
+      AgentStreamEventSchema.parse({ type: "text-delta", delta: "hi" }).type,
+    ).toBe("text-delta");
     expect(
       AgentStreamEventSchema.parse({
         type: "tool-result",
         toolResult: {
           toolCallId: "tool-1",
           name: "run_sql",
-          status: "success"
-        }
-      }).type
+          status: "success",
+        },
+      }).type,
     ).toBe("tool-result");
   });
 
@@ -126,16 +136,45 @@ describe("data contracts", () => {
       requestId: "kernel-1",
       tool: "profile_dataset",
       creatorId: "starter-food",
-      dataset
+      dataset,
     });
     const response = DataKernelResponseSchema.parse({
       ok: true,
       requestId: "kernel-1",
-      tool: "profile_dataset"
+      tool: "profile_dataset",
     });
 
     expect(request.limits.maxRows).toBe(200);
     expect(response.evidence).toEqual([]);
+  });
+
+  it("rejects kernel limits beyond the Python kernel bounds", () => {
+    expect(() =>
+      DataKernelRequestSchema.parse({
+        requestId: "kernel-1",
+        tool: "run_sql",
+        creatorId: "starter-food",
+        dataset,
+        limits: {
+          maxRows: 5001,
+          maxExecutionMs: 3000,
+          maxColumns: 40,
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      DataKernelRequestSchema.parse({
+        requestId: "kernel-2",
+        tool: "run_sql",
+        creatorId: "starter-food",
+        dataset,
+        limits: {
+          maxRows: 200,
+          maxExecutionMs: 99,
+          maxColumns: 40,
+        },
+      }),
+    ).toThrow();
   });
 
   it("parses approval resume requests", () => {
@@ -143,8 +182,8 @@ describe("data contracts", () => {
       AgentResumeRequestSchema.parse({
         threadId: "thread-1",
         approvalId: "approval-1",
-        decision: "approve"
-      }).decision
+        decision: "approve",
+      }).decision,
     ).toBe("approve");
   });
 });

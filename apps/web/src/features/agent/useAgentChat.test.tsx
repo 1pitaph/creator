@@ -1,6 +1,10 @@
 import { createStructuredAgentRun } from "@creator/data-agent";
 import type { AgentApprovalRequest } from "@creator/data-contracts";
-import { createUIMessageStream, createUIMessageStreamResponse, type UIMessageChunk } from "ai";
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  type UIMessageChunk,
+} from "ai";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -18,8 +22,8 @@ const createStreamResponse = (chunks: UIMessageChunk[]) =>
     stream: createUIMessageStream({
       execute: ({ writer }) => {
         chunks.forEach((chunk) => writer.write(chunk));
-      }
-    })
+      },
+    }),
   });
 
 const requestBody = (fetchImpl: ReturnType<typeof vi.fn>) => {
@@ -38,17 +42,33 @@ describe("useAgentChat", () => {
     const agentRun = createStructuredAgentRun({
       diagnosis,
       messages: [{ role: "user", content: "帮我分析完播率" }],
-      activeModules: ["content-diagnosis"]
+      activeModules: ["content-diagnosis"],
     });
     const fetchImpl = vi.fn().mockResolvedValue(
       createStreamResponse([
-        { type: "start", messageMetadata: { threadId: "thread-1", mode: "mock", usedModules: ["content-diagnosis"] } },
+        {
+          type: "start",
+          messageMetadata: {
+            threadId: "thread-1",
+            mode: "mock",
+            usedModules: ["content-diagnosis"],
+          },
+        },
         { type: "text-start", id: "text-1" },
         { type: "text-delta", id: "text-1", delta: "建议先重写前 3 秒。" },
         { type: "text-end", id: "text-1" },
         { type: "data-agent-run", id: agentRun.id, data: agentRun },
-        { type: "finish", finishReason: "stop", messageMetadata: { agentRunId: agentRun.id, threadId: "thread-1", mode: "mock", usedModules: ["content-diagnosis"] } }
-      ] as UIMessageChunk[])
+        {
+          type: "finish",
+          finishReason: "stop",
+          messageMetadata: {
+            agentRunId: agentRun.id,
+            threadId: "thread-1",
+            mode: "mock",
+            usedModules: ["content-diagnosis"],
+          },
+        },
+      ] as UIMessageChunk[]),
     );
 
     const { result } = renderHook(() =>
@@ -57,15 +77,15 @@ describe("useAgentChat", () => {
         creatorId: defaultCreatorId,
         diagnosis,
         fetchImpl,
-        idFactory: createIdFactory()
-      })
+        idFactory: createIdFactory(),
+      }),
     );
 
     act(() => {
       result.current.askTarget({
         title: "完播率",
         prompt: "帮我分析完播率",
-        moduleId: "content-diagnosis"
+        moduleId: "content-diagnosis",
       });
     });
 
@@ -73,10 +93,14 @@ describe("useAgentChat", () => {
     expect(requestBody(fetchImpl)).toMatchObject({
       creatorId: defaultCreatorId,
       activeModules: ["content-diagnosis"],
-      messages: [{ role: "user", content: "帮我分析完播率" }]
+      messages: [{ role: "user", content: "帮我分析完播率" }],
     });
 
-    await waitFor(() => expect(result.current.messages.at(-1)?.content).toBe("建议先重写前 3 秒。"));
+    await waitFor(() =>
+      expect(result.current.messages.at(-1)?.content).toBe(
+        "建议先重写前 3 秒。",
+      ),
+    );
     expect(result.current.messages.at(-1)?.mode).toBe("mock");
     expect(result.current.messages.at(-1)?.agentRun?.id).toBe(agentRun.id);
   });
@@ -91,19 +115,23 @@ describe("useAgentChat", () => {
         creatorId: defaultCreatorId,
         diagnosis,
         fetchImpl,
-        idFactory: createIdFactory()
-      })
+        idFactory: createIdFactory(),
+      }),
     );
 
     act(() => {
       result.current.askTarget({
         title: "粉丝经营诊断",
         prompt: "为什么最近转粉变低？",
-        moduleId: "fan-operation"
+        moduleId: "fan-operation",
       });
     });
 
-    const latestAssistantRun = () => result.current.messages.slice().reverse().find((message) => message.role === "assistant" && message.agentRun);
+    const latestAssistantRun = () =>
+      result.current.messages
+        .slice()
+        .reverse()
+        .find((message) => message.role === "assistant" && message.agentRun);
 
     await waitFor(() => expect(latestAssistantRun()?.mode).toBe("local"));
     const fallback = latestAssistantRun();
@@ -116,12 +144,19 @@ describe("useAgentChat", () => {
     const secondDiagnosis = localDiagnosis("growth-knowledge");
     const fetchImpl = vi.fn().mockResolvedValue(
       createStreamResponse([
-        { type: "start", messageMetadata: { threadId: "thread-1", mode: "mock" } },
+        {
+          type: "start",
+          messageMetadata: { threadId: "thread-1", mode: "mock" },
+        },
         { type: "text-start", id: "text-1" },
         { type: "text-delta", id: "text-1", delta: "旧账号回复不应该出现" },
         { type: "text-end", id: "text-1" },
-        { type: "finish", finishReason: "stop", messageMetadata: { threadId: "thread-1", mode: "mock" } }
-      ] as UIMessageChunk[])
+        {
+          type: "finish",
+          finishReason: "stop",
+          messageMetadata: { threadId: "thread-1", mode: "mock" },
+        },
+      ] as UIMessageChunk[]),
     );
 
     const { result, rerender } = renderHook(
@@ -131,25 +166,33 @@ describe("useAgentChat", () => {
           creatorId,
           diagnosis,
           fetchImpl,
-          idFactory: createIdFactory()
+          idFactory: createIdFactory(),
         }),
       {
         initialProps: {
           creatorId: defaultCreatorId,
-          diagnosis: firstDiagnosis
-        }
-      }
+          diagnosis: firstDiagnosis,
+        },
+      },
     );
     const firstThreadId = result.current.threadId;
 
     rerender({
       creatorId: secondDiagnosis.creator.id,
-      diagnosis: secondDiagnosis
+      diagnosis: secondDiagnosis,
     });
 
-    await waitFor(() => expect(result.current.threadId).not.toBe(firstThreadId));
-    expect(result.current.messages.some((message) => message.content.includes("旧账号回复不应该出现"))).toBe(false);
-    expect(result.current.messages.at(0)?.content).toContain(secondDiagnosis.creator.displayName);
+    await waitFor(() =>
+      expect(result.current.threadId).not.toBe(firstThreadId),
+    );
+    expect(
+      result.current.messages.some((message) =>
+        message.content.includes("旧账号回复不应该出现"),
+      ),
+    ).toBe(false);
+    expect(result.current.messages.at(0)?.content).toContain(
+      secondDiagnosis.creator.displayName,
+    );
   });
 
   it("calls resume approval endpoint for approve and deny decisions", async () => {
@@ -160,7 +203,7 @@ describe("useAgentChat", () => {
       actionIds: ["action-1"],
       title: "确认写入行动计划",
       detail: "将建议写入行动计划。",
-      createdAt: "2026-06-28T00:00:00.000Z"
+      createdAt: "2026-06-28T00:00:00.000Z",
     };
     const resumeFetcher = vi.fn().mockResolvedValue({
       threadId: approval.threadId,
@@ -168,18 +211,25 @@ describe("useAgentChat", () => {
       agentRun: createStructuredAgentRun({
         diagnosis,
         messages: [{ role: "assistant", content: "已确认" }],
-        activeModules: []
-      })
+        activeModules: [],
+      }),
     });
     const fetchImpl = vi.fn().mockResolvedValue(
       createStreamResponse([
-        { type: "start", messageMetadata: { threadId: approval.threadId, mode: "mock" } },
+        {
+          type: "start",
+          messageMetadata: { threadId: approval.threadId, mode: "mock" },
+        },
         { type: "text-start", id: "text-1" },
         { type: "text-delta", id: "text-1", delta: "需要确认。" },
         { type: "text-end", id: "text-1" },
         { type: "data-agent-approval", id: approval.id, data: approval },
-        { type: "finish", finishReason: "stop", messageMetadata: { threadId: approval.threadId, mode: "mock" } }
-      ] as UIMessageChunk[])
+        {
+          type: "finish",
+          finishReason: "stop",
+          messageMetadata: { threadId: approval.threadId, mode: "mock" },
+        },
+      ] as UIMessageChunk[]),
     );
 
     const { result } = renderHook(() =>
@@ -189,8 +239,8 @@ describe("useAgentChat", () => {
         diagnosis,
         fetchImpl,
         idFactory: createIdFactory(),
-        resumeFetcher
-      })
+        resumeFetcher,
+      }),
     );
 
     act(() => {
@@ -200,7 +250,9 @@ describe("useAgentChat", () => {
       await result.current.handleSubmit({ preventDefault: vi.fn() } as never);
     });
 
-    await waitFor(() => expect(result.current.currentApproval?.id).toBe(approval.id));
+    await waitFor(() =>
+      expect(result.current.currentApproval?.id).toBe(approval.id),
+    );
 
     await act(async () => {
       await result.current.approveApproval();
@@ -209,7 +261,17 @@ describe("useAgentChat", () => {
     expect(resumeFetcher).toHaveBeenCalledWith({
       threadId: approval.threadId,
       approvalId: approval.id,
-      decision: "approve"
+      decision: "approve",
+    });
+
+    await act(async () => {
+      await result.current.denyApproval();
+    });
+
+    expect(resumeFetcher).toHaveBeenCalledWith({
+      threadId: approval.threadId,
+      approvalId: approval.id,
+      decision: "deny",
     });
   });
 });

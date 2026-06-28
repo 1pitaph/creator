@@ -1,4 +1,9 @@
-import type { AgentMessage, AgentResumeRequest, AgentResumeResponse, AgentRun } from "@creator/data-contracts";
+import type {
+  AgentMessage,
+  AgentResumeRequest,
+  AgentResumeResponse,
+  ChatResponse,
+} from "@creator/data-contracts";
 
 export type ChatRequestPayload = {
   activeModules: string[];
@@ -6,23 +11,21 @@ export type ChatRequestPayload = {
   messages: Array<Pick<AgentMessage, "role" | "content">>;
 };
 
-export type ChatReplyPayload = {
-  reply: string;
-  usedModules: string[];
-  mode: "mock" | "llm";
-  agentRun?: AgentRun;
-};
+export type ChatReplyPayload = ChatResponse;
 
-export type ChatFetcher = (payload: ChatRequestPayload, signal?: AbortSignal) => Promise<ChatReplyPayload>;
+export type ChatFetcher = (
+  payload: ChatRequestPayload,
+  signal?: AbortSignal,
+) => Promise<ChatReplyPayload>;
 
 export const fetchAgentReply: ChatFetcher = async (payload, signal) => {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
     },
     body: JSON.stringify(payload),
-    signal
+    signal,
   });
 
   if (!response.ok) {
@@ -32,15 +35,19 @@ export const fetchAgentReply: ChatFetcher = async (payload, signal) => {
   return (await response.json()) as ChatReplyPayload;
 };
 
-export type ResumeAgentApprovalFetcher = (payload: AgentResumeRequest) => Promise<AgentResumeResponse>;
+export type ResumeAgentApprovalFetcher = (
+  payload: AgentResumeRequest,
+) => Promise<AgentResumeResponse>;
 
-export const resumeAgentApproval: ResumeAgentApprovalFetcher = async (payload) => {
+export const resumeAgentApproval: ResumeAgentApprovalFetcher = async (
+  payload,
+) => {
   const response = await fetch("/api/chat/resume", {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

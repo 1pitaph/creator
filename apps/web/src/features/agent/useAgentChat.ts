@@ -7,17 +7,27 @@ import type {
   AgentRun,
   AgentRunPatch,
   AgentStreamEvent,
-  DiagnosisResponse
+  DiagnosisResponse,
 } from "@creator/data-contracts";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { AskTarget, UiMessage } from "../../types";
 import { resumeAgentApproval, type ResumeAgentApprovalFetcher } from "./api";
 
 type CreatorChatData = {
   "agent-thread": Extract<AgentStreamEvent, { type: "thread" }>;
-  "agent-tool-call": Extract<AgentStreamEvent, { type: "tool-call" }>["toolCall"];
+  "agent-tool-call": Extract<
+    AgentStreamEvent,
+    { type: "tool-call" }
+  >["toolCall"];
   "agent-run-patch": AgentRunPatch;
   "agent-run": AgentRun;
   "agent-approval": AgentApprovalRequest;
@@ -41,19 +51,23 @@ const createThreadId = () => `thread-${crypto.randomUUID()}`;
 const createInitialWelcomeMessage = (idFactory: () => string): UiMessage => ({
   id: idFactory(),
   role: "assistant",
-  content: "我会根据当前创作者画像和已加载模块给建议。把鼠标移到任意数据模块右上角，点「询问 AI」就能围绕该模块追问。",
+  content:
+    "我会根据当前创作者画像和已加载模块给建议。把鼠标移到任意数据模块右上角，点「询问 AI」就能围绕该模块追问。",
   localOnly: true,
   mode: "local",
-  usedModules: []
+  usedModules: [],
 });
 
-const createCreatorSwitchMessage = (diagnosis: DiagnosisResponse, idFactory: () => string): UiMessage => ({
+const createCreatorSwitchMessage = (
+  diagnosis: DiagnosisResponse,
+  idFactory: () => string,
+): UiMessage => ({
   id: idFactory(),
   role: "assistant",
   content: `已切换到「${diagnosis.creator.displayName}」。我重新加载了 ${diagnosis.modules.length} 个分析模块，你可以从任意数据卡片唤起我。`,
   localOnly: true,
   mode: "local",
-  usedModules: diagnosis.modules.map((module) => module.id)
+  usedModules: diagnosis.modules.map((module) => module.id),
 });
 
 const textFromParts = (message: CreatorUIMessage) =>
@@ -62,11 +76,16 @@ const textFromParts = (message: CreatorUIMessage) =>
     .map((part) => part.text)
     .join("");
 
-const getDataPart = <Name extends keyof CreatorChatData>(message: CreatorUIMessage, name: Name): CreatorChatData[Name] | undefined => {
+const getDataPart = <Name extends keyof CreatorChatData>(
+  message: CreatorUIMessage,
+  name: Name,
+): CreatorChatData[Name] | undefined => {
   const type = `data-${name}`;
   const part = message.parts.find((item) => item.type === type);
 
-  return part && "data" in part ? (part.data as CreatorChatData[Name]) : undefined;
+  return part && "data" in part
+    ? (part.data as CreatorChatData[Name])
+    : undefined;
 };
 
 const mapSdkMessage = (message: CreatorUIMessage): UiMessage => {
@@ -80,10 +99,13 @@ const mapSdkMessage = (message: CreatorUIMessage): UiMessage => {
     role: message.role,
     content: textFromParts(message),
     mode: message.metadata?.mode,
-    usedModules: message.metadata?.usedModules ?? agentRun?.usedModules ?? patch?.usedModules,
+    usedModules:
+      message.metadata?.usedModules ??
+      agentRun?.usedModules ??
+      patch?.usedModules,
     agentRun,
     approval,
-    threadId: message.metadata?.threadId ?? thread?.threadId
+    threadId: message.metadata?.threadId ?? thread?.threadId,
   };
 };
 
@@ -93,10 +115,12 @@ export const useAgentChat = ({
   diagnosis,
   fetchImpl,
   idFactory = defaultIdFactory,
-  resumeFetcher = resumeAgentApproval
+  resumeFetcher = resumeAgentApproval,
 }: UseAgentChatOptions) => {
   const [open, setOpen] = useState(false);
-  const [localMessages, setLocalMessages] = useState<UiMessage[]>(() => [createInitialWelcomeMessage(idFactory)]);
+  const [localMessages, setLocalMessages] = useState<UiMessage[]>(() => [
+    createInitialWelcomeMessage(idFactory),
+  ]);
   const [draft, setDraft] = useState("");
   const [focus, setFocus] = useState<AskTarget | null>(null);
   const [threadId, setThreadId] = useState(createThreadId);
@@ -132,12 +156,12 @@ export const useAgentChat = ({
                 id: message.id,
                 role: message.role,
                 content: textFromParts(message),
-                localOnly: message.metadata?.localOnly
-              }))
-          }
-        })
+                localOnly: message.metadata?.localOnly,
+              })),
+          },
+        }),
       }),
-    [fetchImpl]
+    [fetchImpl],
   );
 
   const chat = useChat<CreatorUIMessage>({
@@ -147,7 +171,7 @@ export const useAgentChat = ({
       const fallbackRun = createStructuredAgentRun({
         diagnosis: diagnosisRef.current,
         messages: [],
-        activeModules: pendingModuleIdsRef.current
+        activeModules: pendingModuleIdsRef.current,
       });
 
       setLocalMessages((current) => [
@@ -159,10 +183,10 @@ export const useAgentChat = ({
           localOnly: true,
           mode: "local",
           usedModules: fallbackRun.usedModules,
-          agentRun: fallbackRun
-        }
+          agentRun: fallbackRun,
+        },
       ]);
-    }
+    },
   });
 
   const remoteMessages = chat.messages.map(mapSdkMessage);
@@ -172,7 +196,11 @@ export const useAgentChat = ({
     .slice()
     .reverse()
     .map((message: UiMessage) => message.approval)
-    .find((approval: AgentApprovalRequest | undefined): approval is AgentApprovalRequest => Boolean(approval));
+    .find(
+      (
+        approval: AgentApprovalRequest | undefined,
+      ): approval is AgentApprovalRequest => Boolean(approval),
+    );
 
   const sendQuestion = useCallback(
     async (question: string, moduleIds = activeModuleIdsRef.current) => {
@@ -190,14 +218,14 @@ export const useAgentChat = ({
         await chat.sendMessage({
           text,
           metadata: {
-            threadId: threadIdRef.current
-          }
+            threadId: threadIdRef.current,
+          },
         });
       } catch {
         const fallbackRun = createStructuredAgentRun({
           diagnosis: diagnosisRef.current,
           messages: [{ role: "user", content: text }],
-          activeModules: moduleIds
+          activeModules: moduleIds,
         });
 
         setLocalMessages((current) => [
@@ -206,7 +234,7 @@ export const useAgentChat = ({
             id: idFactoryRef.current(),
             role: "user",
             content: text,
-            localOnly: true
+            localOnly: true,
           },
           {
             id: idFactoryRef.current(),
@@ -215,27 +243,30 @@ export const useAgentChat = ({
             localOnly: true,
             mode: "local",
             usedModules: fallbackRun.usedModules,
-            agentRun: fallbackRun
-          }
+            agentRun: fallbackRun,
+          },
         ]);
       }
     },
-    [chat]
+    [chat],
   );
 
   const askTarget = useCallback(
     (target: AskTarget) => {
       setFocus(target);
-      void sendQuestion(target.prompt, target.moduleId ? [target.moduleId] : activeModuleIdsRef.current);
+      void sendQuestion(
+        target.prompt,
+        target.moduleId ? [target.moduleId] : activeModuleIdsRef.current,
+      );
     },
-    [sendQuestion]
+    [sendQuestion],
   );
 
   const askPreset = useCallback((question: string) => {
     setFocus({
       title: "自由追问",
       prompt: question,
-      summary: "从当前创作者画像、指标面板和已加载 AI 模块中综合回答。"
+      summary: "从当前创作者画像、指标面板和已加载 AI 模块中综合回答。",
     });
     setDraft(question);
     setOpen(true);
@@ -244,9 +275,12 @@ export const useAgentChat = ({
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      void sendQuestion(draft, focus?.moduleId ? [focus.moduleId] : activeModuleIdsRef.current);
+      void sendQuestion(
+        draft,
+        focus?.moduleId ? [focus.moduleId] : activeModuleIdsRef.current,
+      );
     },
-    [draft, focus?.moduleId, sendQuestion]
+    [draft, focus?.moduleId, sendQuestion],
   );
 
   const resumeApproval = useCallback(
@@ -261,7 +295,7 @@ export const useAgentChat = ({
         const response = await resumeFetcher({
           threadId: currentApproval.threadId,
           approvalId: currentApproval.id,
-          decision
+          decision,
         });
 
         if (response.agentRun) {
@@ -275,15 +309,15 @@ export const useAgentChat = ({
               mode: "local",
               usedModules: response.agentRun!.usedModules,
               agentRun: response.agentRun,
-              threadId: response.threadId
-            }
+              threadId: response.threadId,
+            },
           ]);
         }
       } finally {
         setIsResumingApproval(false);
       }
     },
-    [currentApproval, isResumingApproval, resumeFetcher]
+    [currentApproval, isResumingApproval, resumeFetcher],
   );
 
   useEffect(() => {
@@ -302,7 +336,9 @@ export const useAgentChat = ({
 
     setFocus(null);
     setDraft("");
-    setLocalMessages([createCreatorSwitchMessage(diagnosis, idFactoryRef.current)]);
+    setLocalMessages([
+      createCreatorSwitchMessage(diagnosis, idFactoryRef.current),
+    ]);
   }, [diagnosis]);
 
   useEffect(() => {
@@ -326,6 +362,6 @@ export const useAgentChat = ({
     openAgent: () => setOpen(true),
     approveApproval: () => resumeApproval("approve"),
     setDraft,
-    threadId
+    threadId,
   };
 };

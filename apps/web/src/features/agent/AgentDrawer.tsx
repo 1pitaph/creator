@@ -7,7 +7,10 @@ import { X } from "@phosphor-icons/react/X";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import type { FormEvent, RefObject } from "react";
 
-import type { AgentApprovalRequest, AiModuleMetadata } from "@creator/data-contracts";
+import type {
+  AgentApprovalRequest,
+  AiModuleMetadata,
+} from "@creator/data-contracts";
 import { Badge, Button, CardHeader, CardTitle, cn } from "@creator/ui";
 
 import { phosphorIconWeight } from "../../constants";
@@ -30,7 +33,7 @@ export const AgentDrawer = ({
   isResumingApproval,
   moduleById,
   endRef,
-  focus
+  focus,
 }: {
   open: boolean;
   onClose: () => void;
@@ -51,7 +54,7 @@ export const AgentDrawer = ({
   <aside
     className={cn(
       "fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-[430px] transform flex-col border-l border-zinc-200 bg-white shadow-2xl transition duration-200",
-      open ? "translate-x-0" : "translate-x-full"
+      open ? "translate-x-0" : "translate-x-full",
     )}
     aria-hidden={!open}
   >
@@ -65,7 +68,12 @@ export const AgentDrawer = ({
           <p className="mt-1 text-xs text-zinc-500">按当前模块上下文回答。</p>
         </div>
       </div>
-      <button type="button" className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950" onClick={onClose} aria-label="关闭 AI Agent">
+      <button
+        type="button"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950"
+        onClick={onClose}
+        aria-label="关闭 AI Agent"
+      >
         <X className="h-4 w-4" weight={phosphorIconWeight} />
       </button>
     </CardHeader>
@@ -78,8 +86,14 @@ export const AgentDrawer = ({
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-zinc-500">当前询问模块</p>
-            <p className="mt-1 text-sm font-semibold text-zinc-950">{focus.title}</p>
-            {focus.summary ? <p className="mt-1 text-xs leading-5 text-zinc-600">{focus.summary}</p> : null}
+            <p className="mt-1 text-sm font-semibold text-zinc-950">
+              {focus.title}
+            </p>
+            {focus.summary ? (
+              <p className="mt-1 text-xs leading-5 text-zinc-600">
+                {focus.summary}
+              </p>
+            ) : null}
             {focus.evidence && focus.evidence.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {focus.evidence.slice(0, 3).map((item) => (
@@ -97,7 +111,13 @@ export const AgentDrawer = ({
     <div className="border-b border-zinc-100 px-4 py-3">
       <div className="flex flex-wrap gap-2">
         {presetQuestions.map((question) => (
-          <Button key={question} type="button" size="sm" variant="ghost" onClick={() => onAskPreset(question)}>
+          <Button
+            key={question}
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => onAskPreset(question)}
+          >
             <ChatText className="h-3.5 w-3.5" weight={phosphorIconWeight} />
             {question}
           </Button>
@@ -109,18 +129,28 @@ export const AgentDrawer = ({
       <ScrollArea.Viewport className="h-full p-4">
         <div className="space-y-4">
           {messages.map((message) => (
-            <ChatBubble key={message.id} message={message} moduleById={moduleById} />
+            <ChatBubble
+              key={message.id}
+              message={message}
+              moduleById={moduleById}
+            />
           ))}
           {isChatting ? (
             <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <CircleNotch className="h-3.5 w-3.5 animate-spin" weight={phosphorIconWeight} />
+              <CircleNotch
+                className="h-3.5 w-3.5 animate-spin"
+                weight={phosphorIconWeight}
+              />
               Agent 正在调用分析模块
             </div>
           ) : null}
           <div ref={endRef} />
         </div>
       </ScrollArea.Viewport>
-      <ScrollArea.Scrollbar className="flex w-2.5 touch-none select-none bg-transparent p-0.5" orientation="vertical">
+      <ScrollArea.Scrollbar
+        className="flex w-2.5 touch-none select-none bg-transparent p-0.5"
+        orientation="vertical"
+      >
         <ScrollArea.Thumb className="relative flex-1 rounded-full bg-zinc-300" />
       </ScrollArea.Scrollbar>
     </ScrollArea.Root>
@@ -129,15 +159,35 @@ export const AgentDrawer = ({
       <div className="border-t border-amber-100 bg-amber-50 px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-amber-950">{approval.title}</p>
-            <p className="mt-1 text-xs leading-5 text-amber-800">{approval.detail}</p>
-            {approval.risk ? <p className="mt-1 text-[11px] leading-5 text-amber-700">{approval.risk}</p> : null}
+            <p className="text-sm font-semibold text-amber-950">
+              {approval.title}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-amber-800">
+              {approval.detail}
+            </p>
+            {approval.risk ? (
+              <p className="mt-1 text-[11px] leading-5 text-amber-700">
+                {approval.risk}
+              </p>
+            ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button type="button" size="sm" variant="ghost" disabled={isResumingApproval} onClick={onDenyApproval}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={isResumingApproval}
+              onClick={onDenyApproval}
+            >
               拒绝
             </Button>
-            <Button type="button" size="sm" variant="primary" disabled={isResumingApproval} onClick={onApproveApproval}>
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              disabled={isResumingApproval}
+              onClick={onApproveApproval}
+            >
               确认
             </Button>
           </div>
@@ -153,7 +203,13 @@ export const AgentDrawer = ({
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
         />
-        <Button type="submit" variant="primary" size="icon" disabled={isChatting || !draft.trim()} aria-label="发送消息">
+        <Button
+          type="submit"
+          variant="primary"
+          size="icon"
+          disabled={isChatting || !draft.trim()}
+          aria-label="发送消息"
+        >
           <PaperPlaneTilt className="h-4 w-4" weight={phosphorIconWeight} />
         </Button>
       </div>

@@ -1,23 +1,45 @@
 import { z } from "zod";
 
-export const CreatorLifecycleSchema = z.enum(["new", "growing", "stable", "plateau", "commercial"]);
+export const CreatorLifecycleSchema = z.enum([
+  "new",
+  "growing",
+  "stable",
+  "plateau",
+  "commercial",
+]);
 export const CreatorGoalSchema = z.enum([
   "increase_views",
   "grow_followers",
   "improve_interaction",
   "increase_conversion",
-  "stabilize_output"
+  "stabilize_output",
 ]);
-export const ContentFormatSchema = z.enum(["short_video", "live", "image_text", "series", "commerce"]);
-export const AiModuleRendererSchema = z.enum(["insight-card", "trend-chart", "chat-brief", "action-plan"]);
-export const InsightSeveritySchema = z.enum(["positive", "notice", "warning", "critical"]);
+export const ContentFormatSchema = z.enum([
+  "short_video",
+  "live",
+  "image_text",
+  "series",
+  "commerce",
+]);
+export const AiModuleRendererSchema = z.enum([
+  "insight-card",
+  "trend-chart",
+  "chat-brief",
+  "action-plan",
+]);
+export const InsightSeveritySchema = z.enum([
+  "positive",
+  "notice",
+  "warning",
+  "critical",
+]);
 export const ChartStyleSchema = z.enum([
   "mini-trend",
   "multi-metric-trend",
   "dual-axis-trend",
   "funnel-conversion",
   "radar-score",
-  "heatmap-calendar"
+  "heatmap-calendar",
 ]);
 export const MetricSeriesKeySchema = z.enum([
   "views",
@@ -26,14 +48,19 @@ export const MetricSeriesKeySchema = z.enum([
   "followerConversionRate",
   "followersGained",
   "commerceConversionRate",
-  "liveGmv"
+  "liveGmv",
 ]);
-export const ChartUnitSchema = z.enum(["count", "percent", "currency", "mixed"]);
+export const ChartUnitSchema = z.enum([
+  "count",
+  "percent",
+  "currency",
+  "mixed",
+]);
 
 export const AudienceSegmentSchema = z.object({
   label: z.string(),
   percentage: z.number(),
-  note: z.string()
+  note: z.string(),
 });
 
 export const CreatorProfileSchema = z.object({
@@ -47,7 +74,7 @@ export const CreatorProfileSchema = z.object({
   bottlenecks: z.array(z.string()),
   audience: z.array(AudienceSegmentSchema),
   creatorHabits: z.array(z.string()),
-  tone: z.string()
+  tone: z.string(),
 });
 
 export const MetricPointSchema = z.object({
@@ -58,7 +85,7 @@ export const MetricPointSchema = z.object({
   followerConversionRate: z.number(),
   followersGained: z.number(),
   commerceConversionRate: z.number().optional(),
-  liveGmv: z.number().optional()
+  liveGmv: z.number().optional(),
 });
 
 export const TopContentSchema = z.object({
@@ -69,7 +96,7 @@ export const TopContentSchema = z.object({
   interactionRate: z.number(),
   followerConversionRate: z.number(),
   hook: z.string(),
-  opportunity: z.string()
+  opportunity: z.string(),
 });
 
 export const CreatorMetricsSchema = z.object({
@@ -82,10 +109,10 @@ export const CreatorMetricsSchema = z.object({
     followerConversionRate: z.number(),
     publishCount7d: z.number(),
     liveGmv7d: z.number().optional(),
-    commerceConversionRate: z.number().optional()
+    commerceConversionRate: z.number().optional(),
   }),
   history: z.array(MetricPointSchema),
-  topContents: z.array(TopContentSchema)
+  topContents: z.array(TopContentSchema),
 });
 
 export const ChartIntentSchema = z.object({
@@ -94,7 +121,7 @@ export const ChartIntentSchema = z.object({
   description: z.string().optional(),
   metricKeys: z.array(MetricSeriesKeySchema).min(1),
   unit: ChartUnitSchema,
-  timeRangeDays: z.number().int().positive().optional()
+  timeRangeDays: z.number().int().positive().optional(),
 });
 
 export const AiModuleMetadataSchema = z.object({
@@ -104,13 +131,13 @@ export const AiModuleMetadataSchema = z.object({
   renderer: AiModuleRendererSchema,
   chart: ChartIntentSchema.optional(),
   tags: z.array(z.string()),
-  requiredData: z.array(z.string())
+  requiredData: z.array(z.string()),
 });
 
 export const InsightActionSchema = z.object({
   label: z.string(),
   detail: z.string(),
-  effort: z.enum(["low", "medium", "high"])
+  effort: z.enum(["low", "medium", "high"]),
 });
 
 export const InsightSchema = z.object({
@@ -122,21 +149,21 @@ export const InsightSchema = z.object({
   evidence: z.array(z.string()),
   actions: z.array(InsightActionSchema),
   metricLabel: z.string().optional(),
-  metricValue: z.string().optional()
+  metricValue: z.string().optional(),
 });
 
 export const DiagnosisResponseSchema = z.object({
   creator: CreatorProfileSchema,
   metrics: CreatorMetricsSchema,
   modules: z.array(AiModuleMetadataSchema),
-  insights: z.array(InsightSchema)
+  insights: z.array(InsightSchema),
 });
 
 export const AgentMessageSchema = z.object({
   id: z.string().optional(),
   role: z.enum(["system", "user", "assistant"]),
   content: z.string(),
-  localOnly: z.boolean().optional()
+  localOnly: z.boolean().optional(),
 });
 
 export const AgentEvidenceSourceTypeSchema = z.enum([
@@ -147,14 +174,31 @@ export const AgentEvidenceSourceTypeSchema = z.enum([
   "ai-module",
   "insight",
   "agent-tool",
-  "llm"
+  "llm",
 ]);
 
 export const AgentConfidenceSchema = z.enum(["high", "medium", "low"]);
 export const AgentRunModeSchema = z.enum(["deterministic", "llm-assisted"]);
-export const AgentToolCallStatusSchema = z.enum(["pending", "running", "success", "error", "skipped"]);
-export const AgentActionStatusSchema = z.enum(["suggested", "accepted", "in_progress", "done", "dismissed"]);
-export const AgentActionTimeframeSchema = z.enum(["today", "tomorrow", "this_week", "next_review"]);
+export const AgentToolCallStatusSchema = z.enum([
+  "pending",
+  "running",
+  "success",
+  "error",
+  "skipped",
+]);
+export const AgentActionStatusSchema = z.enum([
+  "suggested",
+  "accepted",
+  "in_progress",
+  "done",
+  "dismissed",
+]);
+export const AgentActionTimeframeSchema = z.enum([
+  "today",
+  "tomorrow",
+  "this_week",
+  "next_review",
+]);
 
 export const AgentEvidenceRefSchema = z.object({
   id: z.string(),
@@ -163,14 +207,14 @@ export const AgentEvidenceRefSchema = z.object({
   sourceId: z.string().optional(),
   moduleId: z.string().optional(),
   metricKey: z.string().optional(),
-  excerpt: z.string()
+  excerpt: z.string(),
 });
 
 export const AgentFactSchema = z.object({
   id: z.string(),
   statement: z.string(),
   confidence: AgentConfidenceSchema,
-  evidenceIds: z.array(z.string())
+  evidenceIds: z.array(z.string()),
 });
 
 export const AgentAssumptionSchema = z.object({
@@ -178,7 +222,7 @@ export const AgentAssumptionSchema = z.object({
   statement: z.string(),
   confidence: AgentConfidenceSchema,
   evidenceIds: z.array(z.string()),
-  risk: z.string().optional()
+  risk: z.string().optional(),
 });
 
 export const AgentActionSchema = z.object({
@@ -189,7 +233,7 @@ export const AgentActionSchema = z.object({
   timeframe: AgentActionTimeframeSchema,
   status: AgentActionStatusSchema,
   evidenceIds: z.array(z.string()),
-  metricToWatch: z.string().optional()
+  metricToWatch: z.string().optional(),
 });
 
 export const AgentToolCallSchema = z.object({
@@ -201,7 +245,7 @@ export const AgentToolCallSchema = z.object({
   evidenceIds: z.array(z.string()).default([]),
   error: z.string().optional(),
   startedAt: z.string().optional(),
-  finishedAt: z.string().optional()
+  finishedAt: z.string().optional(),
 });
 
 export const AgentToolResultSchema = z.object({
@@ -211,7 +255,7 @@ export const AgentToolResultSchema = z.object({
   output: z.unknown().optional(),
   outputSummary: z.string().optional(),
   evidenceIds: z.array(z.string()).default([]),
-  error: z.string().optional()
+  error: z.string().optional(),
 });
 
 export const AgentRunSchema = z.object({
@@ -225,7 +269,7 @@ export const AgentRunSchema = z.object({
   assumptions: z.array(AgentAssumptionSchema),
   actions: z.array(AgentActionSchema),
   followUpQuestions: z.array(z.string()),
-  createdAt: z.string()
+  createdAt: z.string(),
 });
 
 const JsonRecordSchema = z.record(z.string(), z.unknown());
@@ -239,10 +283,16 @@ export const AgentRunPatchSchema = z.object({
   facts: z.array(AgentFactSchema).optional(),
   assumptions: z.array(AgentAssumptionSchema).optional(),
   actions: z.array(AgentActionSchema).optional(),
-  followUpQuestions: z.array(z.string()).optional()
+  followUpQuestions: z.array(z.string()).optional(),
 });
 
-export const AgentThreadStatusSchema = z.enum(["idle", "running", "awaiting_approval", "completed", "error"]);
+export const AgentThreadStatusSchema = z.enum([
+  "idle",
+  "running",
+  "awaiting_approval",
+  "completed",
+  "error",
+]);
 
 export const AgentApprovalDecisionSchema = z.enum(["approve", "deny"]);
 
@@ -251,7 +301,7 @@ export const AgentCheckpointSchema = z.object({
   checkpointId: z.string().optional(),
   checkpointProvider: z.enum(["postgres", "memory"]),
   status: AgentThreadStatusSchema,
-  updatedAt: z.string()
+  updatedAt: z.string(),
 });
 
 export const AgentApprovalRequestSchema = z.object({
@@ -261,64 +311,64 @@ export const AgentApprovalRequestSchema = z.object({
   title: z.string(),
   detail: z.string(),
   risk: z.string().optional(),
-  createdAt: z.string()
+  createdAt: z.string(),
 });
 
 export const AgentResumeRequestSchema = z.object({
   threadId: z.string(),
   approvalId: z.string(),
   decision: AgentApprovalDecisionSchema,
-  note: z.string().optional()
+  note: z.string().optional(),
 });
 
 export const AgentResumeResponseSchema = z.object({
   threadId: z.string(),
   status: AgentThreadStatusSchema,
   agentRun: AgentRunSchema.optional(),
-  approval: AgentApprovalRequestSchema.optional()
+  approval: AgentApprovalRequestSchema.optional(),
 });
 
 export const AgentStreamEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("thread"),
     threadId: z.string(),
-    status: AgentThreadStatusSchema
+    status: AgentThreadStatusSchema,
   }),
   z.object({
     type: z.literal("text-delta"),
-    delta: z.string()
+    delta: z.string(),
   }),
   z.object({
     type: z.literal("tool-call"),
-    toolCall: AgentToolCallSchema
+    toolCall: AgentToolCallSchema,
   }),
   z.object({
     type: z.literal("tool-result"),
-    toolResult: AgentToolResultSchema
+    toolResult: AgentToolResultSchema,
   }),
   z.object({
     type: z.literal("agent-run"),
-    agentRun: AgentRunSchema
+    agentRun: AgentRunSchema,
   }),
   z.object({
     type: z.literal("agent-run-patch"),
-    patch: AgentRunPatchSchema
+    patch: AgentRunPatchSchema,
   }),
   z.object({
     type: z.literal("approval-requested"),
-    approval: AgentApprovalRequestSchema
+    approval: AgentApprovalRequestSchema,
   }),
   z.object({
     type: z.literal("finish"),
     threadId: z.string().optional(),
     status: AgentThreadStatusSchema,
-    agentRun: AgentRunSchema.optional()
+    agentRun: AgentRunSchema.optional(),
   }),
   z.object({
     type: z.literal("error"),
     message: z.string(),
-    code: z.string().optional()
-  })
+    code: z.string().optional(),
+  }),
 ]);
 
 export const AgentChatMetadataSchema = z.object({
@@ -327,28 +377,33 @@ export const AgentChatMetadataSchema = z.object({
   usedModules: z.array(z.string()).optional(),
   threadId: z.string().optional(),
   finishReason: z.string().optional(),
-  localOnly: z.boolean().optional()
+  localOnly: z.boolean().optional(),
 });
 
 export const DatasetSnapshotSchema = z.object({
   profile: CreatorProfileSchema,
   summary: CreatorMetricsSchema.shape.summary,
   history: z.array(MetricPointSchema),
-  topContents: z.array(TopContentSchema)
+  topContents: z.array(TopContentSchema),
 });
 
-export const DataKernelToolNameSchema = z.enum(["profile_dataset", "create_chart_data", "explain_metric_drop", "run_sql"]);
+export const DataKernelToolNameSchema = z.enum([
+  "profile_dataset",
+  "create_chart_data",
+  "explain_metric_drop",
+  "run_sql",
+]);
 
 export const DataKernelLimitsSchema = z.object({
-  maxRows: z.number().int().positive().default(200),
-  maxExecutionMs: z.number().int().positive().default(3000),
-  maxColumns: z.number().int().positive().default(40)
+  maxRows: z.number().int().min(1).max(5000).default(200),
+  maxExecutionMs: z.number().int().min(100).max(30000).default(3000),
+  maxColumns: z.number().int().min(1).max(200).default(40),
 });
 
 export const DEFAULT_DATA_KERNEL_LIMITS = {
   maxRows: 200,
   maxExecutionMs: 3000,
-  maxColumns: 40
+  maxColumns: 40,
 } as const;
 
 export const DataKernelRequestSchema = z.object({
@@ -357,7 +412,7 @@ export const DataKernelRequestSchema = z.object({
   creatorId: z.string(),
   dataset: DatasetSnapshotSchema,
   input: JsonRecordSchema.default({}),
-  limits: DataKernelLimitsSchema.default(DEFAULT_DATA_KERNEL_LIMITS)
+  limits: DataKernelLimitsSchema.default(DEFAULT_DATA_KERNEL_LIMITS),
 });
 
 export const DataKernelEvidenceSchema = z.object({
@@ -365,20 +420,20 @@ export const DataKernelEvidenceSchema = z.object({
   rowCount: z.number().int().nonnegative(),
   columns: z.array(z.string()),
   excerpt: z.string(),
-  metricKey: z.string().optional()
+  metricKey: z.string().optional(),
 });
 
 export const DataKernelArtifactSchema = z.object({
   id: z.string(),
   kind: z.enum(["table", "chart", "profile", "explanation"]),
   title: z.string(),
-  data: z.unknown()
+  data: z.unknown(),
 });
 
 export const DataKernelErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
-  detail: z.string().optional()
+  detail: z.string().optional(),
 });
 
 export const DataKernelResponseSchema = z.object({
@@ -390,7 +445,7 @@ export const DataKernelResponseSchema = z.object({
   artifacts: z.array(DataKernelArtifactSchema).default([]),
   stats: JsonRecordSchema.default({}),
   warnings: z.array(z.string()).default([]),
-  error: DataKernelErrorSchema.optional()
+  error: DataKernelErrorSchema.optional(),
 });
 
 export const ChatRequestSchema = z.object({
@@ -401,9 +456,9 @@ export const ChatRequestSchema = z.object({
   focus: z
     .object({
       title: z.string(),
-      moduleId: z.string().optional()
+      moduleId: z.string().optional(),
     })
-    .optional()
+    .optional(),
 });
 
 export const ChatResponseSchema = z.object({
@@ -413,7 +468,7 @@ export const ChatResponseSchema = z.object({
   agentRun: AgentRunSchema.optional(),
   threadId: z.string().optional(),
   status: AgentThreadStatusSchema.optional(),
-  approval: AgentApprovalRequestSchema.optional()
+  approval: AgentApprovalRequestSchema.optional(),
 });
 
 export type CreatorLifecycle = z.infer<typeof CreatorLifecycleSchema>;
@@ -434,7 +489,9 @@ export type InsightAction = z.infer<typeof InsightActionSchema>;
 export type Insight = z.infer<typeof InsightSchema>;
 export type DiagnosisResponse = z.infer<typeof DiagnosisResponseSchema>;
 export type AgentMessage = z.infer<typeof AgentMessageSchema>;
-export type AgentEvidenceSourceType = z.infer<typeof AgentEvidenceSourceTypeSchema>;
+export type AgentEvidenceSourceType = z.infer<
+  typeof AgentEvidenceSourceTypeSchema
+>;
 export type AgentConfidence = z.infer<typeof AgentConfidenceSchema>;
 export type AgentRunMode = z.infer<typeof AgentRunModeSchema>;
 export type AgentToolCallStatus = z.infer<typeof AgentToolCallStatusSchema>;

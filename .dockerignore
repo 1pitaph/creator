@@ -1,0 +1,14 @@
+.git
+.turbo
+node_modules
+dist
+out
+coverage
+*.log
+tmp
+ref
+**/__pycache__
+**/.pytest_cache
+**/*.pyc
+**/*.egg-info
+apps/data-kernel/.venv

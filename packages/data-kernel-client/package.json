@@ -16,12 +16,16 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "lint": "eslint .",
+    "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@creator/data-contracts": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1"
+    "@creator/ai-modules": "workspace:*",
+    "@creator/mock-data": "workspace:*",
+    "@types/node": "^24.10.1",
+    "vitest": "^4.1.9"
   }
 }

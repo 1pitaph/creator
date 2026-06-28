@@ -9,6 +9,8 @@
     "dev:desktop": "turbo dev --filter=@creator/desktop",
     "build": "turbo build",
     "lint": "turbo lint",
+    "test": "turbo test --filter=!@creator/data-kernel",
+    "test:python": "pnpm --filter @creator/data-kernel test",
     "typecheck": "turbo typecheck",
     "format": "prettier --write ."
   },

@@ -63,6 +63,9 @@ importers:
       tsx:
         specifier: ^4.20.6
         version: 4.22.4
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@24.13.2)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@7.3.6(@types/node@24.13.2)(jiti@1.21.7)(tsx@4.22.4))
 
   apps/data-kernel: {}
 
@@ -224,6 +227,9 @@ importers:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@24.13.2)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@7.3.6(@types/node@24.13.2)(jiti@1.21.7)(tsx@4.22.4))
 
   packages/ai-modules:
     dependencies:
@@ -267,6 +273,10 @@ importers:
       zod:
         specifier: ^4.1.12
         version: 4.4.3
+    devDependencies:
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@24.13.2)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@7.3.6(@types/node@24.13.2)(jiti@1.21.7)(tsx@4.22.4))
 
   packages/data-kernel-client:
     dependencies:
@@ -274,9 +284,18 @@ importers:
         specifier: workspace:*
         version: link:../data-contracts
     devDependencies:
+      '@creator/ai-modules':
+        specifier: workspace:*
+        version: link:../ai-modules
+      '@creator/mock-data':
+        specifier: workspace:*
+        version: link:../mock-data
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@24.13.2)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@7.3.6(@types/node@24.13.2)(jiti@1.21.7)(tsx@4.22.4))
 
   packages/mock-data:
     dependencies:

@@ -2,16 +2,17 @@ services:
   postgres:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: creator
-      POSTGRES_PASSWORD: creator
-      POSTGRES_DB: creator_agent
+      POSTGRES_USER: ${POSTGRES_USER:-creator}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-creator}
+      POSTGRES_DB: ${POSTGRES_DB:-creator_agent}
     ports:
-      - "54329:5432"
+      - "${POSTGRES_PORT:-54329}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U creator -d creator_agent"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
     volumes:
       - creator-postgres:/var/lib/postgresql/data
 
@@ -19,19 +20,56 @@ services:
     build:
       context: ./apps/data-kernel
     environment:
-      DATA_KERNEL_TOKEN: local-dev-token
-    ports:
-      - "8790:8790"
+      DATA_KERNEL_TOKEN: ${DATA_KERNEL_TOKEN:-local-dev-token}
+      DATA_KERNEL_PORT: 8790
+    expose:
+      - "8790"
     read_only: true
     tmpfs:
       - /tmp:size=64m
     mem_limit: 512m
     cpus: 1
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8790/health').read()"]
-      interval: 5s
+      test: ["CMD", "python", "-m", "app.healthcheck"]
+      interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 8787
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:5174}
+      DATA_KERNEL_URL: http://data-kernel:8790
+      DATA_KERNEL_TOKEN: ${DATA_KERNEL_TOKEN:-local-dev-token}
+      AGENT_CHECKPOINT_URL: postgresql://${POSTGRES_USER:-creator}:${POSTGRES_PASSWORD:-creator}@postgres:5432/${POSTGRES_DB:-creator_agent}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+    ports:
+      - "${API_PORT:-8787}:8787"
+    init: true
+    mem_limit: 768m
+    cpus: 1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      data-kernel:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:'' + (process.env.PORT || 8787) + ''/health'').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
 volumes:
   creator-postgres:
