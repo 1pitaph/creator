@@ -14,16 +14,25 @@ import {
 import { localDiagnosis } from "../creator-diagnosis/api";
 import { CreatorSidebar } from "./CreatorSidebar";
 
+const renderSidebar = ({
+  onSelectCreator = vi.fn(),
+  onSelectPanel = vi.fn(),
+  selectedPanel = "overview" as const,
+} = {}) =>
+  render(
+    <CreatorSidebar
+      selectedCreatorId={defaultCreatorId}
+      onSelectCreator={onSelectCreator}
+      selectedPanel={selectedPanel}
+      onSelectPanel={onSelectPanel}
+      diagnosis={localDiagnosis(defaultCreatorId)}
+      isLoadingDiagnosis={false}
+    />,
+  );
+
 describe("CreatorSidebar", () => {
   it("opens and closes the mobile sidebar", () => {
-    render(
-      <CreatorSidebar
-        selectedCreatorId={defaultCreatorId}
-        onSelectCreator={vi.fn()}
-        diagnosis={localDiagnosis(defaultCreatorId)}
-        isLoadingDiagnosis={false}
-      />,
-    );
+    renderSidebar();
 
     const trigger = screen.getByTestId("mobile-sidebar-trigger");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -36,14 +45,7 @@ describe("CreatorSidebar", () => {
   });
 
   it("collapses and expands the desktop sidebar", () => {
-    render(
-      <CreatorSidebar
-        selectedCreatorId={defaultCreatorId}
-        onSelectCreator={vi.fn()}
-        diagnosis={localDiagnosis(defaultCreatorId)}
-        isLoadingDiagnosis={false}
-      />,
-    );
+    renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
     expect(sidebar).toHaveAttribute("data-collapsed", "false");
@@ -66,14 +68,7 @@ describe("CreatorSidebar", () => {
   });
 
   it("keeps sidebar navigation accessible when collapsed", () => {
-    render(
-      <CreatorSidebar
-        selectedCreatorId={defaultCreatorId}
-        onSelectCreator={vi.fn()}
-        diagnosis={localDiagnosis(defaultCreatorId)}
-        isLoadingDiagnosis={false}
-      />,
-    );
+    renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
     fireEvent.click(
@@ -85,15 +80,20 @@ describe("CreatorSidebar", () => {
     ).toBeInTheDocument();
   });
 
+  it("routes board and table entries through sidebar navigation", () => {
+    const handleSelectPanel = vi.fn();
+    renderSidebar({ onSelectPanel: handleSelectPanel });
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    fireEvent.click(within(sidebar).getByRole("button", { name: "行动队列" }));
+    fireEvent.click(within(sidebar).getByRole("button", { name: "面板配置" }));
+
+    expect(handleSelectPanel).toHaveBeenCalledWith("board");
+    expect(handleSelectPanel).toHaveBeenCalledWith("table");
+  });
+
   it("renders the creator account notch above the footer", () => {
-    render(
-      <CreatorSidebar
-        selectedCreatorId={defaultCreatorId}
-        onSelectCreator={vi.fn()}
-        diagnosis={localDiagnosis(defaultCreatorId)}
-        isLoadingDiagnosis={false}
-      />,
-    );
+    renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
     const navigation = within(sidebar).getByRole("navigation");
@@ -116,14 +116,7 @@ describe("CreatorSidebar", () => {
       creatorOptions.find((creator) => creator.id !== defaultCreatorId) ??
       creatorOptions[0]!;
 
-    render(
-      <CreatorSidebar
-        selectedCreatorId={defaultCreatorId}
-        onSelectCreator={handleSelectCreator}
-        diagnosis={localDiagnosis(defaultCreatorId)}
-        isLoadingDiagnosis={false}
-      />,
-    );
+    renderSidebar({ onSelectCreator: handleSelectCreator });
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
     const trigger = within(sidebar).getByTestId(
@@ -155,14 +148,7 @@ describe("CreatorSidebar", () => {
       creatorOptions.find((creator) => creator.id !== defaultCreatorId) ??
       creatorOptions[0]!;
 
-    render(
-      <CreatorSidebar
-        selectedCreatorId={defaultCreatorId}
-        onSelectCreator={handleSelectCreator}
-        diagnosis={localDiagnosis(defaultCreatorId)}
-        isLoadingDiagnosis={false}
-      />,
-    );
+    renderSidebar({ onSelectCreator: handleSelectCreator });
 
     const mobileTrigger = screen.getByTestId("mobile-sidebar-trigger");
     fireEvent.click(mobileTrigger);
@@ -186,14 +172,7 @@ describe("CreatorSidebar", () => {
   });
 
   it("keeps a compact creator switcher accessible when collapsed", async () => {
-    render(
-      <CreatorSidebar
-        selectedCreatorId={defaultCreatorId}
-        onSelectCreator={vi.fn()}
-        diagnosis={localDiagnosis(defaultCreatorId)}
-        isLoadingDiagnosis={false}
-      />,
-    );
+    renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
     fireEvent.click(
@@ -216,14 +195,7 @@ describe("CreatorSidebar", () => {
       creatorOptions.find((creator) => creator.id !== defaultCreatorId) ??
       creatorOptions[0]!;
 
-    render(
-      <CreatorSidebar
-        selectedCreatorId={defaultCreatorId}
-        onSelectCreator={handleSelectCreator}
-        diagnosis={localDiagnosis(defaultCreatorId)}
-        isLoadingDiagnosis={false}
-      />,
-    );
+    renderSidebar({ onSelectCreator: handleSelectCreator });
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
     const trigger = within(sidebar).getByTestId(
@@ -270,6 +242,8 @@ describe("CreatorSidebar", () => {
       <CreatorSidebar
         selectedCreatorId={defaultCreatorId}
         onSelectCreator={vi.fn()}
+        selectedPanel="overview"
+        onSelectPanel={vi.fn()}
         diagnosis={firstDiagnosis}
         isLoadingDiagnosis={false}
       />,
@@ -298,6 +272,8 @@ describe("CreatorSidebar", () => {
       <CreatorSidebar
         selectedCreatorId={secondCreatorId}
         onSelectCreator={vi.fn()}
+        selectedPanel="overview"
+        onSelectPanel={vi.fn()}
         diagnosis={secondDiagnosis}
         isLoadingDiagnosis={false}
       />,

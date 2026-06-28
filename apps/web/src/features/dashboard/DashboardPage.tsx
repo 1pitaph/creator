@@ -14,12 +14,12 @@ import { PencilSimpleLine } from "@phosphor-icons/react/PencilSimpleLine";
 import { SquaresFour } from "@phosphor-icons/react/SquaresFour";
 import { Table } from "@phosphor-icons/react/Table";
 
-import type { DashboardView, DiagnosisResponse } from "@creator/data-contracts";
+import type { DiagnosisResponse, ModuleLoadMode } from "@creator/data-contracts";
 import { Button, cn } from "@creator/ui";
 
 import { AuroraBackground } from "../../components/effects/AuroraBackground";
-import { phosphorIconWeight } from "../../constants";
-import type { AskTarget, DashboardViewModel } from "../../types";
+import { moduleLoadModeDescriptions, moduleLoadModeLabels, phosphorIconWeight } from "../../constants";
+import type { AskTarget, DashboardPanel, DashboardViewModel } from "../../types";
 import {
   buildDashboardActionCards,
   buildDashboardCards,
@@ -29,28 +29,39 @@ import { BoardDashboardView } from "./views/BoardDashboardView";
 import { TableDashboardView } from "./views/TableDashboardView";
 import { VisualDashboardView } from "./views/VisualDashboardView";
 
-const viewOptions: Array<{
+const moduleLoadModeOptions: Array<{
   icon: typeof SquaresFour;
-  label: string;
-  value: DashboardView;
+  value: ModuleLoadMode;
 }> = [
-  { icon: SquaresFour, label: "Visual", value: "visual" },
-  { icon: Kanban, label: "Board", value: "board" },
-  { icon: Table, label: "Table", value: "table" },
+  { icon: SquaresFour, value: "focused" },
+  { icon: Kanban, value: "complete" },
+  { icon: Table, value: "adaptive" },
 ];
 
-const viewIndicatorTransition =
+const panelTitles: Record<DashboardPanel, string> = {
+  overview: "诊断总览",
+  board: "行动队列",
+  table: "面板配置",
+};
+
+const modeIndicatorTransition =
   "transition-[transform,width] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none";
 
 export const DashboardPage = memo(function DashboardPage({
   creatorId,
   diagnosis,
+  moduleLoadMode,
   onAskAgent,
+  onModuleLoadModeChange,
+  panel,
   viewModel,
 }: {
   creatorId: string;
   diagnosis: DiagnosisResponse;
+  moduleLoadMode: ModuleLoadMode;
   onAskAgent: (target: AskTarget) => void;
+  onModuleLoadModeChange: (mode: ModuleLoadMode) => void;
+  panel: DashboardPanel;
   viewModel: DashboardViewModel;
 }) {
   const [editing, setEditing] = useState(false);
@@ -68,18 +79,13 @@ export const DashboardPage = memo(function DashboardPage({
       cards,
       creatorId,
     });
-  const handleViewChange = useCallback(
-    (view: DashboardView) => {
-      if (view !== "board") {
-        setEditing(false);
-      }
 
-      updatePreferences((current) => ({
-        ...current,
-        selectedView: view,
-      }));
+  const handleModuleLoadModeChange = useCallback(
+    (mode: ModuleLoadMode) => {
+      setEditing(false);
+      onModuleLoadModeChange(mode);
     },
-    [updatePreferences],
+    [onModuleLoadModeChange],
   );
 
   return (
@@ -87,10 +93,16 @@ export const DashboardPage = memo(function DashboardPage({
       <AuroraBackground>
         <div className="space-y-5 px-5 py-5 xl:px-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <DashboardViewSwitcher
-              onViewChange={handleViewChange}
-              selectedView={preferences.selectedView}
-            />
+            <div className="flex flex-wrap items-center gap-3">
+              <ModuleLoadModeSwitcher
+                onModeChange={handleModuleLoadModeChange}
+                selectedMode={moduleLoadMode}
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-zinc-500">当前面板</p>
+                <h1 className="text-lg font-semibold text-zinc-950">{panelTitles[panel]}</h1>
+              </div>
+            </div>
 
             <div className="flex items-center gap-2">
               <Button
@@ -105,7 +117,7 @@ export const DashboardPage = memo(function DashboardPage({
                 />
                 重置
               </Button>
-              {preferences.selectedView === "board" ? (
+              {panel === "board" ? (
                 <Button
                   type="button"
                   className="!rounded-full"
@@ -129,7 +141,7 @@ export const DashboardPage = memo(function DashboardPage({
             </div>
           </div>
 
-          {preferences.selectedView === "visual" ? (
+          {panel === "overview" ? (
             <VisualDashboardView
               actions={actions}
               cards={cards}
@@ -141,7 +153,7 @@ export const DashboardPage = memo(function DashboardPage({
             />
           ) : null}
 
-          {preferences.selectedView === "board" ? (
+          {panel === "board" ? (
             <BoardDashboardView
               actions={actions}
               editing={editing}
@@ -150,7 +162,7 @@ export const DashboardPage = memo(function DashboardPage({
             />
           ) : null}
 
-          {preferences.selectedView === "table" ? (
+          {panel === "table" ? (
             <TableDashboardView
               cards={cards}
               preferences={preferences}
@@ -163,18 +175,18 @@ export const DashboardPage = memo(function DashboardPage({
   );
 });
 
-const DashboardViewSwitcher = ({
-  onViewChange,
-  selectedView,
+const ModuleLoadModeSwitcher = ({
+  onModeChange,
+  selectedMode,
 }: {
-  onViewChange: (view: DashboardView) => void;
-  selectedView: DashboardView;
+  onModeChange: (mode: ModuleLoadMode) => void;
+  selectedMode: ModuleLoadMode;
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
-  const buttonRefs = useRef<Record<DashboardView, HTMLButtonElement | null>>({
-    board: null,
-    table: null,
-    visual: null,
+  const buttonRefs = useRef<Record<ModuleLoadMode, HTMLButtonElement | null>>({
+    adaptive: null,
+    complete: null,
+    focused: null,
   });
   const [indicatorStyle, setIndicatorStyle] = useState({
     transform: "translate3d(0px, 0px, 0px)",
@@ -182,7 +194,7 @@ const DashboardViewSwitcher = ({
   });
 
   const measureIndicator = useCallback(() => {
-    const selectedButton = buttonRefs.current[selectedView];
+    const selectedButton = buttonRefs.current[selectedMode];
 
     if (!selectedButton) {
       return;
@@ -192,14 +204,14 @@ const DashboardViewSwitcher = ({
       transform: `translate3d(${selectedButton.offsetLeft}px, 0px, 0px)`,
       width: selectedButton.offsetWidth,
     });
-  }, [selectedView]);
+  }, [selectedMode]);
 
   useLayoutEffect(() => {
     measureIndicator();
 
     const observedElements = [
       rootRef.current,
-      ...viewOptions.map(({ value }) => buttonRefs.current[value]),
+      ...moduleLoadModeOptions.map(({ value }) => buttonRefs.current[value]),
     ].filter(
       (element): element is HTMLDivElement | HTMLButtonElement =>
         Boolean(element),
@@ -225,18 +237,19 @@ const DashboardViewSwitcher = ({
     <div
       ref={rootRef}
       className="relative inline-flex rounded-full bg-white/90 p-1 shadow-[0_1px_1px_rgba(24,24,27,0.025),0_6px_18px_rgba(24,24,27,0.04)] backdrop-blur"
+      aria-label="模块加载模式"
     >
       <span
         aria-hidden="true"
         className={cn(
           "absolute inset-y-1 left-0 z-0 rounded-full bg-zinc-950 will-change-[transform,width]",
-          viewIndicatorTransition,
+          modeIndicatorTransition,
         )}
-        data-testid="dashboard-view-indicator"
+        data-testid="dashboard-mode-indicator"
         style={indicatorStyle}
       />
-      {viewOptions.map(({ icon: Icon, label, value }) => {
-        const selected = selectedView === value;
+      {moduleLoadModeOptions.map(({ icon: Icon, value }) => {
+        const selected = selectedMode === value;
 
         return (
           <button
@@ -246,8 +259,9 @@ const DashboardViewSwitcher = ({
             }}
             type="button"
             aria-pressed={selected}
+            title={moduleLoadModeDescriptions[value]}
             className="group/view relative z-10 inline-flex h-9 items-center rounded-full px-3 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
-            onClick={() => onViewChange(value)}
+            onClick={() => onModeChange(value)}
           >
             <span
               className={cn(
@@ -258,7 +272,7 @@ const DashboardViewSwitcher = ({
               )}
             >
               <Icon className="h-4 w-4" weight={phosphorIconWeight} />
-              {label}
+              {moduleLoadModeLabels[value]}
             </span>
           </button>
         );

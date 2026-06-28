@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
+import type { ModuleLoadMode } from "@creator/data-contracts";
+
 import { AgentDrawerContainer } from "./features/agent/AgentDrawerContainer";
 import { defaultCreatorId } from "./features/creator-diagnosis/creatorOptions";
 import { useCreatorDiagnosis } from "./features/creator-diagnosis/useCreatorDiagnosis";
@@ -8,11 +10,13 @@ import { buildDashboardViewModel } from "./features/dashboard/model";
 import { InitialLoadingOverlay } from "./features/loading/InitialLoadingOverlay";
 import { useInitialLoaderState } from "./features/loading/useInitialLoaderState";
 import { CreatorSidebar } from "./features/sidebar/CreatorSidebar";
-import type { AgentCommand, AskTarget } from "./types";
+import type { AgentCommand, AskTarget, DashboardPanel } from "./types";
 
 const createAgentCommandId = () => crypto.randomUUID();
 
 export const App = () => {
+  const [moduleLoadMode, setModuleLoadMode] = useState<ModuleLoadMode>("focused");
+  const [dashboardPanel, setDashboardPanel] = useState<DashboardPanel>("overview");
   const {
     selectedCreatorId,
     setSelectedCreatorId,
@@ -20,6 +24,7 @@ export const App = () => {
     isLoadingDiagnosis,
   } = useCreatorDiagnosis({
     initialCreatorId: defaultCreatorId,
+    moduleLoadMode,
   });
   const viewModel = useMemo(
     () => buildDashboardViewModel(diagnosis),
@@ -43,6 +48,8 @@ export const App = () => {
         <CreatorSidebar
           selectedCreatorId={selectedCreatorId}
           onSelectCreator={setSelectedCreatorId}
+          selectedPanel={dashboardPanel}
+          onSelectPanel={setDashboardPanel}
           diagnosis={diagnosis}
           isLoadingDiagnosis={isLoadingDiagnosis}
         />
@@ -50,6 +57,9 @@ export const App = () => {
         <DashboardPage
           creatorId={selectedCreatorId}
           diagnosis={diagnosis}
+          moduleLoadMode={moduleLoadMode}
+          onModuleLoadModeChange={setModuleLoadMode}
+          panel={dashboardPanel}
           onAskAgent={askAgent}
           viewModel={viewModel}
         />

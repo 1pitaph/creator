@@ -12,7 +12,7 @@ export const TopContentTile = ({ content, onAsk }: { content: TopContent; onAsk:
       onClick={() =>
         onAsk({
           title: content.title,
-          moduleId: "topic-opportunity",
+          moduleId: "viral-review",
           prompt: `请拆解高表现内容「${content.title}」，提炼它的 hook、标题结构和下一条复用方案。`,
           summary: content.opportunity,
           evidence: [`播放 ${formatCompact(content.views)}`, `完播 ${formatPct(content.completionRate)}`, `转粉 ${formatPct(content.followerConversionRate)}`]

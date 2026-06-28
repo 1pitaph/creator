@@ -5,7 +5,7 @@ import type { DiagnosisResponse } from "@creator/data-contracts";
 import { Badge, cn } from "@creator/ui";
 import { TrendUp } from "@phosphor-icons/react/TrendUp";
 
-import { goalLabels, lifecycleLabels, phosphorIconWeight, severityTone, toneClass } from "../../../constants";
+import { creatorTypeLabels, goalLabels, lifecycleLabels, phosphorIconWeight, severityTone, toneClass } from "../../../constants";
 import type { AskTarget, DashboardViewModel } from "../../../types";
 import { chartHeightBySize, type DashboardActionCard, type DashboardCardDefinition } from "../customization";
 import { DashboardModuleCard } from "./DashboardModuleCard";
@@ -109,6 +109,7 @@ const SummaryCardBody = ({ diagnosis, viewModel }: { diagnosis: DiagnosisRespons
       <div className="min-w-0 space-y-4">
         <div className="flex flex-wrap gap-2">
           <Badge tone="blue">{diagnosis.creator.domain}</Badge>
+          <Badge tone="green">{creatorTypeLabels[diagnosis.creator.creatorType]}</Badge>
           <Badge tone="neutral">{lifecycleLabels[diagnosis.creator.lifecycle]}</Badge>
           <Badge tone={topInsight?.severity ? severityTone[topInsight.severity] : "neutral"}>{topInsight?.severity === "warning" ? "需要关注" : "可放大"}</Badge>
         </div>

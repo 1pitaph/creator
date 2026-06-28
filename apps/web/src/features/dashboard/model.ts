@@ -121,9 +121,9 @@ export const buildMetricCards = (diagnosis: DiagnosisResponse): MetricDefinition
   if (typeof metrics.liveGmv7d === "number" || typeof metrics.commerceConversionRate === "number") {
     metricCards.push({
       id: "commerce",
-      label: "商业化承接",
+      label: diagnosis.creator.creatorType === "short_drama_strategy" ? "短剧收益" : "商业化承接",
       value: typeof metrics.liveGmv7d === "number" ? formatCurrency(metrics.liveGmv7d) : formatPct(metrics.commerceConversionRate ?? 0),
-      helper: `商品转化率 ${formatPct(metrics.commerceConversionRate ?? 0)}`,
+      helper: `收益转化率 ${formatPct(metrics.commerceConversionRate ?? 0)}`,
       tone: "violet",
       trendLabel: "可优化",
       trend: "up",
@@ -135,10 +135,10 @@ export const buildMetricCards = (diagnosis: DiagnosisResponse): MetricDefinition
         timeRangeDays: 7
       },
       askTarget: {
-        title: "商业化承接",
-        moduleId: "commerce-optimizer",
-        prompt: `请分析商业化承接：7 日 GMV ${metrics.liveGmv7d ?? 0}，商品转化率 ${formatPct(metrics.commerceConversionRate ?? 0)}，短视频到直播货架应该怎么对齐？`,
-        summary: `GMV ${metrics.liveGmv7d ? formatCurrency(metrics.liveGmv7d) : "暂无"}，商品转化率 ${formatPct(metrics.commerceConversionRate ?? 0)}`,
+        title: diagnosis.creator.creatorType === "short_drama_strategy" ? "短剧收益" : "商业化承接",
+        moduleId: "drama-revenue-radar",
+        prompt: `请分析收益承接：7 日流水 ${metrics.liveGmv7d ?? 0}，收益转化率 ${formatPct(metrics.commerceConversionRate ?? 0)}，下一轮选题应该优先看哪些题材和内容结构？`,
+        summary: `流水 ${metrics.liveGmv7d ? formatCurrency(metrics.liveGmv7d) : "暂无"}，收益转化率 ${formatPct(metrics.commerceConversionRate ?? 0)}`,
         evidence: topContent ? [topContent.opportunity] : []
       }
     });

@@ -21,7 +21,7 @@ import { createPortal } from "react-dom";
 
 import { cn, MagneticButton } from "@creator/ui";
 
-import { phosphorIconWeight } from "../../constants";
+import { creatorTypeLabels, phosphorIconWeight } from "../../constants";
 import { creatorOptions } from "../creator-diagnosis/creatorOptions";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
@@ -171,7 +171,7 @@ const CreatorAccountListbox = ({
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm">{creator.name}</span>
               <span className="mt-0.5 block truncate text-xs font-normal text-neutral-500">
-                {creator.handle} · {creator.domain}
+                {creatorTypeLabels[creator.creatorType]} · {creator.domain}
               </span>
             </span>
             {isSelected ? (
@@ -206,6 +206,7 @@ export const CreatorAccountNotchSelect = ({
       name: "创作者账号",
       handle: "@creator",
       domain: "Demo",
+      creatorType: "personal_daily_diagnosis" as const,
     };
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
@@ -414,7 +415,7 @@ export const CreatorAccountNotchSelect = ({
           {selectedCreator.name}
         </span>
         <span className="mt-0.5 block truncate text-xs text-neutral-500">
-          {selectedCreator.handle} · {selectedCreator.domain}
+          {creatorTypeLabels[selectedCreator.creatorType]} · {selectedCreator.domain}
         </span>
       </span>
       <CaretDown

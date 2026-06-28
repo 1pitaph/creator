@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ModuleLoadMode } from "@creator/data-contracts";
 
 import { defaultCreatorId } from "../creator-diagnosis/creatorOptions";
 import { localDiagnosis } from "../creator-diagnosis/api";
@@ -112,23 +113,44 @@ vi.mock("react-grid-layout", async () => {
   };
 });
 
-const renderDashboard = () => {
-  const diagnosis = localDiagnosis(defaultCreatorId);
+const renderDashboard = ({
+  moduleLoadMode = "focused",
+  panel = "overview",
+}: {
+  moduleLoadMode?: ModuleLoadMode;
+  panel?: "overview" | "board" | "table";
+} = {}) => {
+  const diagnosis = localDiagnosis(defaultCreatorId, moduleLoadMode);
   const viewModel = buildDashboardViewModel(diagnosis);
   const onAskAgent = vi.fn();
+  const onModuleLoadModeChange = vi.fn();
+  const renderPage = (nextPanel = panel, nextModuleLoadMode = moduleLoadMode) => {
+    const nextDiagnosis = nextModuleLoadMode === moduleLoadMode ? diagnosis : localDiagnosis(defaultCreatorId, nextModuleLoadMode);
+    const nextViewModel = nextModuleLoadMode === moduleLoadMode ? viewModel : buildDashboardViewModel(nextDiagnosis);
 
-  render(
-    <DashboardPage
-      creatorId={defaultCreatorId}
-      diagnosis={diagnosis}
-      onAskAgent={onAskAgent}
-      viewModel={viewModel}
-    />,
-  );
+    return (
+      <DashboardPage
+        creatorId={defaultCreatorId}
+        diagnosis={nextDiagnosis}
+        moduleLoadMode={nextModuleLoadMode}
+        onModuleLoadModeChange={onModuleLoadModeChange}
+        panel={nextPanel}
+        onAskAgent={onAskAgent}
+        viewModel={nextViewModel}
+      />
+    );
+  };
+
+  const view = render(renderPage(panel, moduleLoadMode));
 
   return {
     diagnosis,
     onAskAgent,
+    onModuleLoadModeChange,
+    rerenderPanel: (nextPanel: "overview" | "board" | "table") =>
+      view.rerender(renderPage(nextPanel, moduleLoadMode)),
+    rerenderMode: (nextModuleLoadMode: ModuleLoadMode) =>
+      view.rerender(renderPage(panel, nextModuleLoadMode)),
   };
 };
 
@@ -138,6 +160,7 @@ const readStoredPreferences = () => {
   );
   return raw
     ? (JSON.parse(raw) as {
+        cards: Record<string, { visible: boolean }>;
         visual: { layouts: { lg: Array<{ h: number; i: string; w: number; x: number }> } };
       })
     : null;
@@ -219,11 +242,14 @@ describe("DashboardPage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders Visual, Board, and Table views", () => {
-    renderDashboard();
+  it("renders module mode switcher and panel-controlled views", () => {
+    const { rerenderPanel } = renderDashboard();
 
     expect(screen.getByTestId("aurora-background")).toBeInTheDocument();
-    expect(screen.getByTestId("dashboard-view-indicator")).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-mode-indicator")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "少而准" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "覆盖完整" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "动态阈值" })).toBeInTheDocument();
     expect(screen.getByTestId("visual-grid")).toBeInTheDocument();
     expect(screen.queryByText("创作者 AI 数据面板")).not.toBeInTheDocument();
     expect(screen.queryByText(/增长诊断台/)).not.toBeInTheDocument();
@@ -238,7 +264,7 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Board" }));
+    rerenderPanel("board");
     expect(screen.getByText("今天")).toBeInTheDocument();
     expect(
       screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
@@ -247,7 +273,7 @@ describe("DashboardPage", () => {
       screen.queryByTestId("visual-resize-handle-summary-e"),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Table" }));
+    rerenderPanel("table");
     expect(screen.getByText("名称")).toBeInTheDocument();
     expect(screen.getByText("AI 诊断摘要")).toBeInTheDocument();
     expect(
@@ -258,17 +284,19 @@ describe("DashboardPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("moves the view indicator to the selected pill", async () => {
-    renderDashboard();
+  it("moves the module mode indicator to the selected pill", async () => {
+    const { onModuleLoadModeChange, rerenderMode } = renderDashboard();
 
-    const indicator = screen.getByTestId("dashboard-view-indicator");
-    const boardButton = screen.getByRole("button", { name: "Board" });
-    const tableButton = screen.getByRole("button", { name: "Table" });
+    const indicator = screen.getByTestId("dashboard-mode-indicator");
+    const completeButton = screen.getByRole("button", { name: "覆盖完整" });
+    const adaptiveButton = screen.getByRole("button", { name: "动态阈值" });
 
-    setButtonMetrics(boardButton, { offsetLeft: 88, offsetWidth: 87 });
-    setButtonMetrics(tableButton, { offsetLeft: 175, offsetWidth: 83 });
+    setButtonMetrics(completeButton, { offsetLeft: 88, offsetWidth: 87 });
+    setButtonMetrics(adaptiveButton, { offsetLeft: 175, offsetWidth: 83 });
 
-    fireEvent.click(boardButton);
+    fireEvent.click(completeButton);
+    expect(onModuleLoadModeChange).toHaveBeenCalledWith("complete");
+    rerenderMode("complete");
 
     await waitFor(() => {
       expect(indicator).toHaveStyle({
@@ -276,25 +304,30 @@ describe("DashboardPage", () => {
         width: "87px",
       });
     });
-    expect(boardButton).toHaveAttribute("aria-pressed", "true");
 
-    fireEvent.click(tableButton);
+    const nextIndicator = screen.getByTestId("dashboard-mode-indicator");
+    const nextAdaptiveButton = screen.getByRole("button", { name: "动态阈值" });
+    setButtonMetrics(nextAdaptiveButton, { offsetLeft: 175, offsetWidth: 83 });
+    fireEvent.click(nextAdaptiveButton);
+    expect(onModuleLoadModeChange).toHaveBeenCalledWith("adaptive");
+    rerenderMode("adaptive");
 
     await waitFor(() => {
-      expect(indicator).toHaveStyle({
+      expect(nextIndicator).toHaveStyle({
         transform: "translate3d(175px, 0px, 0px)",
         width: "83px",
       });
     });
-    expect(tableButton).toHaveAttribute("aria-pressed", "true");
   });
 
   it("hides a card from Table and removes it from Visual", async () => {
-    renderDashboard();
+    const { rerenderPanel } = renderDashboard({ panel: "table" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Table" }));
     fireEvent.click(screen.getByLabelText("隐藏 AI 诊断摘要"));
-    fireEvent.click(screen.getByRole("button", { name: "Visual" }));
+    await waitFor(() => {
+      expect(readStoredPreferences()?.cards.summary?.visible).toBe(false);
+    });
+    rerenderPanel("overview");
 
     await waitFor(() => {
       expect(
@@ -422,12 +455,10 @@ describe("DashboardPage", () => {
   });
 
   it("keeps Board drag behavior behind the Board edit mode", () => {
-    const { diagnosis } = renderDashboard();
+    const { diagnosis } = renderDashboard({ panel: "board" });
     const firstActionLabel = diagnosis.insights.flatMap((insight) => insight.actions)[0]?.label;
 
     expect(firstActionLabel).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Board" }));
 
     expect(screen.getByRole("button", { name: "编辑" })).toBeInTheDocument();
     expect(screen.getByText(firstActionLabel as string).closest("article")).not.toHaveClass("cursor-grab");

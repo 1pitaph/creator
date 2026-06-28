@@ -27,6 +27,7 @@ class CreatorProfile(BaseModel):
     handle: str
     displayName: str
     domain: str
+    creatorType: str
     lifecycle: str
     contentFormats: list[str]
     goals: list[str]

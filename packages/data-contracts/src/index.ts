@@ -7,6 +7,13 @@ export const CreatorLifecycleSchema = z.enum([
   "plateau",
   "commercial",
 ]);
+export const CreatorTypeSchema = z.enum([
+  "short_drama_strategy",
+  "personal_daily_diagnosis",
+  "growth_review",
+  "plateau_repair",
+  "series_operation",
+]);
 export const CreatorGoalSchema = z.enum([
   "increase_views",
   "grow_followers",
@@ -20,6 +27,11 @@ export const ContentFormatSchema = z.enum([
   "image_text",
   "series",
   "commerce",
+]);
+export const ModuleLoadModeSchema = z.enum([
+  "focused",
+  "complete",
+  "adaptive",
 ]);
 export const AiModuleRendererSchema = z.enum([
   "insight-card",
@@ -68,6 +80,7 @@ export const CreatorProfileSchema = z.object({
   handle: z.string(),
   displayName: z.string(),
   domain: z.string(),
+  creatorType: CreatorTypeSchema,
   lifecycle: CreatorLifecycleSchema,
   contentFormats: z.array(ContentFormatSchema),
   goals: z.array(CreatorGoalSchema),
@@ -155,6 +168,7 @@ export const InsightSchema = z.object({
 export const DiagnosisResponseSchema = z.object({
   creator: CreatorProfileSchema,
   metrics: CreatorMetricsSchema,
+  moduleLoadMode: ModuleLoadModeSchema,
   modules: z.array(AiModuleMetadataSchema),
   insights: z.array(InsightSchema),
 });
@@ -540,8 +554,10 @@ export const ChatResponseSchema = z.object({
 });
 
 export type CreatorLifecycle = z.infer<typeof CreatorLifecycleSchema>;
+export type CreatorType = z.infer<typeof CreatorTypeSchema>;
 export type CreatorGoal = z.infer<typeof CreatorGoalSchema>;
 export type ContentFormat = z.infer<typeof ContentFormatSchema>;
+export type ModuleLoadMode = z.infer<typeof ModuleLoadModeSchema>;
 export type AiModuleRenderer = z.infer<typeof AiModuleRendererSchema>;
 export type ChartStyle = z.infer<typeof ChartStyleSchema>;
 export type MetricSeriesKey = z.infer<typeof MetricSeriesKeySchema>;

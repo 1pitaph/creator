@@ -27,7 +27,7 @@ const withTimeout = async <T,>(promise: Promise<T>, ms: number) =>
   ]);
 
 const createDashboardPreferences = (
-  creatorId = "starter-food",
+  creatorId = "short-drama-strategy",
 ): DashboardPreferencesV1 => ({
   version: 1,
   creatorId,
@@ -78,7 +78,7 @@ describe("creator API", () => {
   it("returns null when dashboard preferences have not been saved", async () => {
     const response = await app.inject({
       method: "GET",
-      url: "/api/creator/starter-food/dashboard-preferences",
+      url: "/api/creator/short-drama-strategy/dashboard-preferences",
     });
 
     expect(response.statusCode).toBe(200);
@@ -89,12 +89,12 @@ describe("creator API", () => {
     const preferences = createDashboardPreferences();
     const saved = await app.inject({
       method: "PUT",
-      url: "/api/creator/starter-food/dashboard-preferences",
+      url: "/api/creator/short-drama-strategy/dashboard-preferences",
       payload: preferences,
     });
     const loaded = await app.inject({
       method: "GET",
-      url: "/api/creator/starter-food/dashboard-preferences",
+      url: "/api/creator/short-drama-strategy/dashboard-preferences",
     });
 
     expect(saved.statusCode).toBe(200);
@@ -105,7 +105,7 @@ describe("creator API", () => {
   it("rejects invalid dashboard preferences", async () => {
     const response = await app.inject({
       method: "PUT",
-      url: "/api/creator/starter-food/dashboard-preferences",
+      url: "/api/creator/short-drama-strategy/dashboard-preferences",
       payload: {
         ...createDashboardPreferences("other-creator"),
         selectedView: "canvas",
@@ -121,7 +121,7 @@ describe("creator API", () => {
       method: "POST",
       url: "/api/chat",
       payload: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         threadId: "thread-json",
         activeModules: ["content-diagnosis"],
         messages: [
@@ -155,9 +155,9 @@ describe("creator API", () => {
       method: "POST",
       url: "/api/chat/stream",
       payload: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         threadId: "thread-stream",
-        activeModules: ["topic-opportunity"],
+        activeModules: ["viral-review"],
         messages: [{ role: "user", content: "下一条视频拍什么？" }],
       },
     });
@@ -207,9 +207,9 @@ describe("creator API", () => {
       method: "POST",
       url: "/api/chat/stream",
       payload: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         threadId: "thread-stream-approval",
-        activeModules: ["topic-opportunity"],
+        activeModules: ["viral-review"],
         messages: [{ role: "user", content: "把建议写入行动计划" }],
       },
     });
@@ -261,7 +261,7 @@ describe("creator API", () => {
         method: "POST",
         url: "/api/chat/stream",
         payload: {
-          creatorId: "starter-food",
+          creatorId: "short-drama-strategy",
           threadId: "thread-stream-kernel-error",
           activeModules: ["content-diagnosis"],
           messages: [{ role: "user", content: "为什么完播率不好？" }],
@@ -339,7 +339,7 @@ describe("creator API", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          creatorId: "starter-food",
+          creatorId: "short-drama-strategy",
           threadId: "thread-stream-abort",
           activeModules: ["content-diagnosis"],
           messages: [{ role: "user", content: "帮我分析完播率" }],
@@ -366,9 +366,9 @@ describe("creator API", () => {
       method: "POST",
       url: "/api/chat/stream",
       payload: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         threadId: "thread-approval",
-        activeModules: ["topic-opportunity"],
+        activeModules: ["viral-review"],
         messages: [{ role: "user", content: "把建议写入行动计划" }],
       },
     });
@@ -411,7 +411,7 @@ describe("creator API", () => {
       method: "POST",
       url: "/api/chat",
       payload: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         messages: "bad",
       },
     });
@@ -419,7 +419,7 @@ describe("creator API", () => {
       method: "POST",
       url: "/api/chat/stream",
       payload: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         messages: "bad",
       },
     });

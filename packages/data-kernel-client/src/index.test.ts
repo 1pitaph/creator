@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createDataKernelClient } from "./index";
 
 const diagnosis = () => {
-  const creator = getMockCreator("starter-food");
+  const creator = getMockCreator("short-drama-strategy");
 
   return createDiagnosis({
     profile: creator.profile,
@@ -53,7 +53,7 @@ describe("data kernel client", () => {
     expect(body).toMatchObject({
       requestId: "request-1",
       tool: "profile_dataset",
-      creatorId: "starter-food",
+      creatorId: "short-drama-strategy",
       limits: { maxRows: 25, maxExecutionMs: 3000, maxColumns: 40 },
     });
     expect(body.dataset.history.length).toBeGreaterThan(0);

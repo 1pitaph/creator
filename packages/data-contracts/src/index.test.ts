@@ -38,10 +38,11 @@ const agentRun = AgentRunSchema.parse({
 
 const dataset = {
   profile: {
-    id: "starter-food",
+    id: "short-drama-strategy",
     handle: "@starter",
     displayName: "Starter",
     domain: "美食",
+    creatorType: "personal_daily_diagnosis",
     lifecycle: "new",
     contentFormats: ["short_video"],
     goals: ["increase_views"],
@@ -87,7 +88,7 @@ describe("data contracts", () => {
   it("parses dashboard preferences", () => {
     const parsed = DashboardPreferencesV1Schema.parse({
       version: 1,
-      creatorId: "starter-food",
+      creatorId: "short-drama-strategy",
       selectedView: "visual",
       updatedAt: "2026-06-28T00:00:00.000Z",
       cards: {
@@ -193,7 +194,7 @@ describe("data contracts", () => {
     const request = DataKernelRequestSchema.parse({
       requestId: "kernel-1",
       tool: "profile_dataset",
-      creatorId: "starter-food",
+      creatorId: "short-drama-strategy",
       dataset,
     });
     const response = DataKernelResponseSchema.parse({
@@ -230,9 +231,9 @@ describe("data contracts", () => {
   it("rejects kernel limits beyond the Python kernel bounds", () => {
     expect(() =>
       DataKernelRequestSchema.parse({
-        requestId: "kernel-1",
-        tool: "run_sql",
-        creatorId: "starter-food",
+      requestId: "kernel-1",
+      tool: "run_sql",
+      creatorId: "short-drama-strategy",
         dataset,
         limits: {
           maxRows: 5001,
@@ -243,9 +244,9 @@ describe("data contracts", () => {
     ).toThrow();
     expect(() =>
       DataKernelRequestSchema.parse({
-        requestId: "kernel-2",
-        tool: "run_sql",
-        creatorId: "starter-food",
+      requestId: "kernel-2",
+      tool: "run_sql",
+      creatorId: "short-drama-strategy",
         dataset,
         limits: {
           maxRows: 200,

@@ -136,7 +136,7 @@ describe("data kernel smoke", () => {
           method: "POST",
           url: "/api/chat/stream",
           payload: {
-            creatorId: "starter-food",
+            creatorId: "short-drama-strategy",
             threadId: "thread-kernel-smoke",
             activeModules: ["content-diagnosis"],
             messages: [{ role: "user", content: "为什么完播率不好？" }],

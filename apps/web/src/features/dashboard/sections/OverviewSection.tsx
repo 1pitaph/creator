@@ -1,7 +1,7 @@
 import type { DiagnosisResponse } from "@creator/data-contracts";
 import { Badge } from "@creator/ui";
 
-import { goalLabels, lifecycleLabels, severityTone } from "../../../constants";
+import { creatorTypeLabels, goalLabels, lifecycleLabels, severityTone } from "../../../constants";
 import type { AskTarget, DashboardViewModel } from "../../../types";
 import { DashboardModuleCard } from "../components/DashboardModuleCard";
 import { ModuleTile } from "../components/ModuleTile";
@@ -47,6 +47,7 @@ export const OverviewSection = ({
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <Badge tone="blue">{diagnosis.creator.domain}</Badge>
+              <Badge tone="green">{creatorTypeLabels[diagnosis.creator.creatorType]}</Badge>
               <Badge tone="neutral">{lifecycleLabels[diagnosis.creator.lifecycle]}</Badge>
               <Badge tone={topInsight?.severity ? severityTone[topInsight.severity] : "neutral"}>
                 {topInsight?.severity === "warning" ? "需要关注" : "可放大"}

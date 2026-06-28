@@ -1,4 +1,4 @@
-import type { DiagnosisResponse } from "@creator/data-contracts";
+import type { DiagnosisResponse, ModuleLoadMode } from "@creator/data-contracts";
 import { useEffect, useRef, useState } from "react";
 
 import { defaultCreatorId } from "./creatorOptions";
@@ -6,8 +6,9 @@ import { fetchDiagnosis, localDiagnosis, type DiagnosisFetcher } from "./api";
 
 type UseCreatorDiagnosisOptions = {
   fetcher?: DiagnosisFetcher;
-  fallback?: (creatorId: string) => DiagnosisResponse;
+  fallback?: (creatorId: string, moduleLoadMode?: ModuleLoadMode) => DiagnosisResponse;
   initialCreatorId?: string;
+  moduleLoadMode?: ModuleLoadMode;
 };
 
 const isAbortError = (error: unknown) => error instanceof DOMException && error.name === "AbortError";
@@ -15,10 +16,11 @@ const isAbortError = (error: unknown) => error instanceof DOMException && error.
 export const useCreatorDiagnosis = ({
   fetcher = fetchDiagnosis,
   fallback = localDiagnosis,
-  initialCreatorId = defaultCreatorId
+  initialCreatorId = defaultCreatorId,
+  moduleLoadMode = "focused"
 }: UseCreatorDiagnosisOptions = {}) => {
   const [selectedCreatorId, setSelectedCreatorId] = useState(initialCreatorId);
-  const [diagnosis, setDiagnosis] = useState<DiagnosisResponse>(() => fallback(initialCreatorId));
+  const [diagnosis, setDiagnosis] = useState<DiagnosisResponse>(() => fallback(initialCreatorId, moduleLoadMode));
   const [isLoadingDiagnosis, setIsLoadingDiagnosis] = useState(false);
   const requestIdRef = useRef(0);
 
@@ -29,13 +31,13 @@ export const useCreatorDiagnosis = ({
 
     setIsLoadingDiagnosis(true);
 
-    fetcher(selectedCreatorId, controller.signal)
+    fetcher(selectedCreatorId, moduleLoadMode, controller.signal)
       .catch((error: unknown) => {
         if (isAbortError(error)) {
           return null;
         }
 
-        return fallback(selectedCreatorId);
+        return fallback(selectedCreatorId, moduleLoadMode);
       })
       .then((nextDiagnosis) => {
         if (nextDiagnosis && requestIdRef.current === requestId) {
@@ -51,7 +53,7 @@ export const useCreatorDiagnosis = ({
     return () => {
       controller.abort();
     };
-  }, [fallback, fetcher, selectedCreatorId]);
+  }, [fallback, fetcher, moduleLoadMode, selectedCreatorId]);
 
   return {
     diagnosis,

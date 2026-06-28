@@ -141,7 +141,7 @@ describe("useAgentChat", () => {
 
   it("resets thread state after creator changes", async () => {
     const firstDiagnosis = localDiagnosis(defaultCreatorId);
-    const secondDiagnosis = localDiagnosis("growth-knowledge");
+    const secondDiagnosis = localDiagnosis("growth-review");
     const fetchImpl = vi.fn().mockResolvedValue(
       createStreamResponse([
         {

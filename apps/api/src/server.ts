@@ -10,6 +10,7 @@ import {
   AgentResumeRequestSchema,
   ChatRequestSchema,
   DashboardPreferencesV1Schema,
+  ModuleLoadModeSchema,
   type AgentChatMetadata,
   type DashboardPreferencesV1,
   type AgentRunPatch,
@@ -31,11 +32,14 @@ import { pathToFileURL } from "node:url";
 config({ path: resolve(process.cwd(), "../../.env") });
 config();
 
-const getDiagnosisForCreator = (creatorId: string) => {
+const getDiagnosisForCreator = (creatorId: string, moduleLoadMode = "focused") => {
   const creator = getMockCreator(creatorId);
+  const parsedModuleLoadMode = ModuleLoadModeSchema.catch("focused").parse(moduleLoadMode);
+
   return createDiagnosis({
     profile: creator.profile,
     metrics: creator.metrics,
+    moduleLoadMode: parsedModuleLoadMode,
   });
 };
 
@@ -63,13 +67,15 @@ export const buildApiApp = async () => {
       displayName: profile.displayName,
       handle: profile.handle,
       domain: profile.domain,
+      creatorType: profile.creatorType,
       lifecycle: profile.lifecycle,
     })),
   );
 
   app.get("/api/creator/:id/diagnosis", async (request) => {
     const { id } = request.params as { id: string };
-    return getDiagnosisForCreator(id);
+    const { moduleLoadMode } = request.query as { moduleLoadMode?: string };
+    return getDiagnosisForCreator(id, moduleLoadMode);
   });
 
   app.get("/api/creator/:id/dashboard-preferences", async (request) => {

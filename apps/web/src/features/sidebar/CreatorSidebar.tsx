@@ -8,7 +8,8 @@ import { type ReactNode, useState } from "react";
 import type { DiagnosisResponse } from "@creator/data-contracts";
 import { Badge, cn } from "@creator/ui";
 
-import { lifecycleLabels, phosphorIconWeight } from "../../constants";
+import { creatorTypeLabels, lifecycleLabels, phosphorIconWeight } from "../../constants";
+import type { DashboardPanel } from "../../types";
 import { CreatorAccountNotchSelect } from "./CreatorAccountNotchSelect";
 import { sidebarNavItems } from "./navItems";
 
@@ -26,11 +27,15 @@ const creatorAvatarColors = [
 export const CreatorSidebar = ({
   selectedCreatorId,
   onSelectCreator,
+  selectedPanel,
+  onSelectPanel,
   diagnosis,
   isLoadingDiagnosis,
 }: {
   selectedCreatorId: string;
   onSelectCreator: (creatorId: string) => void;
+  selectedPanel: DashboardPanel;
+  onSelectPanel: (panel: DashboardPanel) => void;
   diagnosis: DiagnosisResponse;
   isLoadingDiagnosis: boolean;
 }) => {
@@ -83,6 +88,8 @@ export const CreatorSidebar = ({
           collapsed={isDesktopCollapsed}
           selectedCreatorId={selectedCreatorId}
           onSelectCreator={onSelectCreator}
+          selectedPanel={selectedPanel}
+          onSelectPanel={onSelectPanel}
           diagnosis={diagnosis}
           isLoadingDiagnosis={isLoadingDiagnosis}
         />
@@ -138,6 +145,8 @@ export const CreatorSidebar = ({
               onSelectCreator(creatorId);
               closeMobileSidebar();
             }}
+            selectedPanel={selectedPanel}
+            onSelectPanel={onSelectPanel}
             diagnosis={diagnosis}
             isLoadingDiagnosis={isLoadingDiagnosis}
             onNavigate={closeMobileSidebar}
@@ -154,6 +163,8 @@ const SidebarContent = ({
   showBrand = true,
   selectedCreatorId,
   onSelectCreator,
+  selectedPanel,
+  onSelectPanel,
   diagnosis,
   isLoadingDiagnosis,
   onNavigate,
@@ -163,6 +174,8 @@ const SidebarContent = ({
   showBrand?: boolean;
   selectedCreatorId: string;
   onSelectCreator: (creatorId: string) => void;
+  selectedPanel: DashboardPanel;
+  onSelectPanel: (panel: DashboardPanel) => void;
   diagnosis: DiagnosisResponse;
   isLoadingDiagnosis: boolean;
   onNavigate?: () => void;
@@ -183,7 +196,12 @@ const SidebarContent = ({
         className={cn("h-full", collapsed ? "pr-0" : "pr-1")}
       >
         <div>
-          <SidebarNav collapsed={collapsed} onNavigate={onNavigate} />
+          <SidebarNav
+            collapsed={collapsed}
+            selectedPanel={selectedPanel}
+            onSelectPanel={onSelectPanel}
+            onNavigate={onNavigate}
+          />
         </div>
 
         {collapsed ? null : <SidebarDivider />}
@@ -281,6 +299,9 @@ const CreatorMiniCard = ({ diagnosis }: { diagnosis: DiagnosisResponse }) => (
       <Badge tone="blue" className="bg-sky-50/80">
         {diagnosis.creator.domain}
       </Badge>
+      <Badge tone="green" className="bg-emerald-50/80">
+        {creatorTypeLabels[diagnosis.creator.creatorType]}
+      </Badge>
       <Badge tone="neutral" className="bg-neutral-100/80">
         {lifecycleLabels[diagnosis.creator.lifecycle]}
       </Badge>
@@ -349,22 +370,33 @@ const SidebarFooterAvatar = ({ seed }: { seed: string }) => (
 
 const SidebarNav = ({
   collapsed = false,
+  selectedPanel,
+  onSelectPanel,
   onNavigate,
 }: {
   collapsed?: boolean;
+  selectedPanel: DashboardPanel;
+  onSelectPanel: (panel: DashboardPanel) => void;
   onNavigate?: () => void;
 }) => (
   <nav className="flex flex-col gap-1">
-    {sidebarNavItems.map((item) => (
-      <SidebarLinkItem
-        key={item.label}
-        collapsed={collapsed}
-        label={item.label}
-        active={item.active}
-        icon={item.icon}
-        onClick={onNavigate}
-      />
-    ))}
+    {sidebarNavItems.map((item) => {
+      const active = item.panel === selectedPanel && (selectedPanel !== "overview" || item.primary);
+
+      return (
+        <SidebarLinkItem
+          key={item.id}
+          collapsed={collapsed}
+          label={item.label}
+          active={active}
+          icon={item.icon}
+          onClick={() => {
+            onSelectPanel(item.panel);
+            onNavigate?.();
+          }}
+        />
+      );
+    })}
   </nav>
 );
 

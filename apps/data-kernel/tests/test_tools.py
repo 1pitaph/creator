@@ -8,10 +8,11 @@ from app.main import app
 def snapshot() -> dict:
     return {
         "profile": {
-            "id": "starter-food",
+            "id": "short-drama-strategy",
             "handle": "@三分钟家常菜",
             "displayName": "三分钟家常菜",
             "domain": "美食教程",
+            "creatorType": "personal_daily_diagnosis",
             "lifecycle": "new",
             "contentFormats": ["short_video"],
             "goals": ["increase_views"],
@@ -47,7 +48,7 @@ def request(tool: str, input_data: dict | None = None, limits: dict | None = Non
     return {
         "requestId": f"test-{tool}",
         "tool": tool,
-        "creatorId": "starter-food",
+        "creatorId": "short-drama-strategy",
         "dataset": snapshot(),
         "input": input_data or {},
         "limits": limits or {"maxRows": 3, "maxExecutionMs": 3000, "maxColumns": 10},

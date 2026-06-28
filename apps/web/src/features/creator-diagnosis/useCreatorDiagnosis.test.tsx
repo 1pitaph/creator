@@ -23,7 +23,7 @@ describe("useCreatorDiagnosis", () => {
 
     const { result } = renderHook(() => useCreatorDiagnosis({ fetcher }));
 
-    await waitFor(() => expect(fetcher).toHaveBeenCalledWith(defaultCreatorId, expect.any(AbortSignal)));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledWith(defaultCreatorId, "focused", expect.any(AbortSignal)));
     await waitFor(() => expect(result.current.isLoadingDiagnosis).toBe(false));
 
     expect(result.current.diagnosis.creator.id).toBe(defaultCreatorId);
@@ -37,7 +37,7 @@ describe("useCreatorDiagnosis", () => {
 
     await waitFor(() => expect(result.current.isLoadingDiagnosis).toBe(false));
 
-    expect(fallback).toHaveBeenCalledWith(defaultCreatorId);
+    expect(fallback).toHaveBeenCalledWith(defaultCreatorId, "focused");
     expect(result.current.diagnosis.creator.id).toBe(defaultCreatorId);
   });
 
@@ -50,13 +50,13 @@ describe("useCreatorDiagnosis", () => {
 
     const { result } = renderHook(() => useCreatorDiagnosis({ fetcher, initialCreatorId: firstCreatorId }));
 
-    await waitFor(() => expect(fetcher).toHaveBeenCalledWith(firstCreatorId, expect.any(AbortSignal)));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledWith(firstCreatorId, "focused", expect.any(AbortSignal)));
 
     act(() => {
       result.current.setSelectedCreatorId(secondCreatorId);
     });
 
-    await waitFor(() => expect(fetcher).toHaveBeenCalledWith(secondCreatorId, expect.any(AbortSignal)));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledWith(secondCreatorId, "focused", expect.any(AbortSignal)));
 
     await act(async () => {
       secondRequest.resolve(localDiagnosis(secondCreatorId));

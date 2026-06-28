@@ -36,6 +36,8 @@ export type DashboardAction = InsightAction & {
   insightTitle: string;
 };
 
+export type DashboardPanel = "overview" | "board" | "table";
+
 export type DashboardViewModel = {
   activeModuleIds: string[];
   actionQueue: DashboardAction[];

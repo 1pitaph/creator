@@ -13,7 +13,7 @@ import {
 } from "./index";
 
 const diagnosis = () => {
-  const creator = getMockCreator("starter-food");
+  const creator = getMockCreator("short-drama-strategy");
 
   return createDiagnosis({
     profile: creator.profile,
@@ -33,7 +33,7 @@ describe("agent graph", () => {
     const result = await invokeAgentGraph({
       diagnosis: diagnosis(),
       request: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         threadId: "thread-test",
         activeModules: ["content-diagnosis"],
         messages: [
@@ -57,9 +57,9 @@ describe("agent graph", () => {
     const result = await invokeAgentGraph({
       diagnosis: diagnosis(),
       request: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         threadId: "thread-approval",
-        activeModules: ["topic-opportunity"],
+        activeModules: ["viral-review"],
         messages: [{ role: "user", content: "把这些建议写入行动计划" }],
       },
     });
@@ -87,7 +87,7 @@ describe("agent graph", () => {
       const result = await invokeAgentGraph({
         diagnosis: diagnosis(),
         request: {
-          creatorId: "starter-food",
+          creatorId: "short-drama-strategy",
           threadId: "thread-postgres-checkpoint",
           activeModules: ["content-diagnosis"],
           messages: [{ role: "user", content: "帮我分析完播率" }],
@@ -121,7 +121,7 @@ describe("agent graph", () => {
       const result = await invokeAgentGraph({
         diagnosis: diagnosis(),
         request: {
-          creatorId: "starter-food",
+          creatorId: "short-drama-strategy",
           threadId: "thread-postgres-fallback",
           activeModules: ["content-diagnosis"],
           messages: [{ role: "user", content: "帮我分析完播率" }],
@@ -172,7 +172,7 @@ describe("agent graph", () => {
       const result = await invokeAgentGraph({
         diagnosis: diagnosis(),
         request: {
-          creatorId: "starter-food",
+          creatorId: "short-drama-strategy",
           threadId: "thread-llm",
           activeModules: ["content-diagnosis"],
           messages: [{ role: "user", content: "帮我分析完播率" }],
@@ -239,7 +239,7 @@ describe("agent graph", () => {
       const result = await invokeAgentGraph({
         diagnosis: diagnosis(),
         request: {
-          creatorId: "starter-food",
+          creatorId: "short-drama-strategy",
           threadId: "thread-kernel",
           activeModules: ["content-diagnosis"],
           messages: [{ role: "user", content: "为什么完播率不好？" }],
@@ -278,7 +278,7 @@ describe("agent graph", () => {
     for await (const event of streamAgentGraphEvents({
       diagnosis: diagnosis(),
       request: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         threadId: "thread-stream",
         activeModules: ["content-diagnosis"],
         messages: [{ role: "user", content: "为什么完播率不好？" }],
@@ -349,7 +349,7 @@ describe("agent graph", () => {
       for await (const event of streamAgentGraphEvents({
         diagnosis: diagnosis(),
         request: {
-          creatorId: "starter-food",
+          creatorId: "short-drama-strategy",
           threadId: "thread-kernel-error-stream",
           activeModules: ["content-diagnosis"],
           messages: [{ role: "user", content: "为什么完播率不好？" }],
@@ -454,7 +454,7 @@ describe("agent graph", () => {
       for await (const event of streamAgentGraphEvents({
         diagnosis: diagnosis(),
         request: {
-          creatorId: "starter-food",
+          creatorId: "short-drama-strategy",
           threadId: "thread-llm-stream",
           activeModules: ["content-diagnosis"],
           messages: [{ role: "user", content: "帮我分析完播率" }],
@@ -481,9 +481,9 @@ describe("agent graph", () => {
     const pending = await invokeAgentGraph({
       diagnosis: diagnosis(),
       request: {
-        creatorId: "starter-food",
+        creatorId: "short-drama-strategy",
         threadId: "thread-resume-checkpoint",
-        activeModules: ["topic-opportunity"],
+        activeModules: ["viral-review"],
         messages: [{ role: "user", content: "把这些建议写入行动计划" }],
       },
     });
