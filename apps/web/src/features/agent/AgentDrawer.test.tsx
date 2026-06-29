@@ -206,6 +206,16 @@ describe("AgentDrawer", () => {
     expect(drawer).toHaveAttribute("data-state", "open");
   });
 
+  it("does not render a permanent green status dot in the drawer header", () => {
+    renderAgentDrawer();
+
+    expect(
+      screen
+        .getByTestId("agent-drawer-icon")
+        .parentElement?.querySelector(".bg-emerald-400"),
+    ).toBeNull();
+  });
+
   it("uses hover-revealed scrollbar styling for the message viewport", () => {
     renderAgentDrawer();
 

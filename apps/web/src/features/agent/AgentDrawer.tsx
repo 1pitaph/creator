@@ -353,10 +353,6 @@ export const AgentDrawer = ({
                     className="relative z-10 h-5 w-5"
                     data-testid="agent-drawer-icon"
                   />
-                  <span
-                    className="absolute right-0.5 top-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400"
-                    aria-hidden="true"
-                  />
                 </div>
                 <div>
                   <Dialog.Title asChild>
