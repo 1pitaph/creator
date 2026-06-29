@@ -8,7 +8,6 @@ import {
   type Layout,
   type ResponsiveLayouts
 } from "react-grid-layout";
-import { noCompactor } from "react-grid-layout/core";
 
 import type { DashboardBreakpoint, DashboardGridItem, DashboardPreferencesV1, DiagnosisResponse } from "@creator/data-contracts";
 
@@ -439,7 +438,6 @@ export const VisualDashboardView = ({
           breakpoint={breakpoint}
           breakpoints={dashboardBreakpointWidths}
           cols={responsiveColumnCounts}
-          compactor={noCompactor}
           layouts={layouts}
           rowHeight={visualGridRowHeight}
           margin={visualGridMargin}
@@ -455,7 +453,7 @@ export const VisualDashboardView = ({
           resizeConfig={{
             enabled: false
           }}
-          onDragStop={(nextLayout) => commitLayoutForBreakpoint(nextLayout)}
+          onDragStop={commitLayoutForBreakpoint}
         >
           {visibleCards.map((card) => {
             const layoutItem = activeLayoutById.get(card.id);

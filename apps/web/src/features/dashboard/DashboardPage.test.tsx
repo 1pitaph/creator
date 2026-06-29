@@ -19,6 +19,30 @@ const dashboardStyles = readFileSync("src/styles.css", "utf8");
 
 vi.mock("react-grid-layout", async () => {
   const React = await import("react");
+  type MockLayoutItem = {
+    h: number;
+    i: string;
+    maxH?: number;
+    maxW?: number;
+    minH?: number;
+    minW?: number;
+    w: number;
+    x: number;
+    y: number;
+  };
+
+  const buildMockCompactedDragLayout = (layout: MockLayoutItem[]) =>
+    layout.map((item) => {
+      if (item.i === "summary") {
+        return { ...item, x: 4, y: 0, w: 8, h: 7 };
+      }
+
+      if (item.i === "insights") {
+        return { ...item, x: 8, y: 7, w: 4, h: 7 };
+      }
+
+      return item.y >= 7 ? { ...item, y: item.y + 7 } : item;
+    });
 
   return {
     ResponsiveGridLayout: ({
@@ -29,6 +53,7 @@ vi.mock("react-grid-layout", async () => {
       cols,
       dragConfig,
       margin,
+      layouts,
       onDragStop,
       onLayoutChange,
       rowHeight,
@@ -46,6 +71,7 @@ vi.mock("react-grid-layout", async () => {
         cancel?: string;
       };
       margin?: readonly [number, number];
+      layouts?: Record<string, MockLayoutItem[]>;
       onLayoutChange?: (
         layout: unknown[],
         layouts: Record<string, unknown[]>,
@@ -110,10 +136,7 @@ vi.mock("react-grid-layout", async () => {
           type="button"
           onClick={() =>
             onDragStop?.(
-              [
-                { i: "summary", x: 4, y: 3, w: 8, h: 7 },
-                { i: "insights", x: 0, y: 0, w: 4, h: 8 }
-              ],
+              buildMockCompactedDragLayout(layouts?.lg ?? []),
               null,
               null,
               null,
@@ -206,6 +229,18 @@ const renderDashboard = ({
   };
 };
 
+type StoredDashboardLayoutItem = {
+  h: number;
+  i: string;
+  maxH?: number;
+  maxW?: number;
+  minH?: number;
+  minW?: number;
+  w: number;
+  x: number;
+  y: number;
+};
+
 const readStoredPreferences = () => {
   const raw = window.localStorage.getItem(
     `creator-dashboard-preferences:${defaultCreatorId}:v1`,
@@ -213,13 +248,34 @@ const readStoredPreferences = () => {
   return raw
     ? (JSON.parse(raw) as {
         cards: Record<string, { height: string; visible: boolean; width: string }>;
-        visual: { layouts: Record<string, Array<{ h: number; i: string; maxH?: number; maxW?: number; minH?: number; minW?: number; w: number; x: number; y: number }>> };
+        visual: { layouts: Record<string, StoredDashboardLayoutItem[]> };
       })
     : null;
 };
 
 const readStoredLayoutItem = (cardId: string, breakpoint = "lg") =>
   readStoredPreferences()?.visual.layouts[breakpoint]?.find((item) => item.i === cardId);
+
+const dashboardLayoutItemsOverlap = (
+  left: StoredDashboardLayoutItem,
+  right: StoredDashboardLayoutItem,
+) =>
+  left.i !== right.i &&
+  left.x < right.x + right.w &&
+  left.x + left.w > right.x &&
+  left.y < right.y + right.h &&
+  left.y + left.h > right.y;
+
+const expectStoredVisualLayoutNotToOverlap = (breakpoint = "lg") => {
+  const layout = readStoredPreferences()?.visual.layouts[breakpoint] ?? [];
+
+  layout.forEach((item) => {
+    expect(
+      layout.some((other) => dashboardLayoutItemsOverlap(item, other)),
+      `${item.i} overlaps another Visual dashboard card`,
+    ).toBe(false);
+  });
+};
 
 const matchesSelectorAndParentsTo = (element: Element, selector: string, baseNode: Element) => {
   let node: Element | null = element;
@@ -615,7 +671,7 @@ describe("DashboardPage", () => {
     });
   });
 
-  it("ignores passive Visual layout reports and saves completed drags without repacking", async () => {
+  it("ignores passive Visual layout reports and saves completed drags with collision reflow", async () => {
     renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: "mock layout change" }));
@@ -632,10 +688,18 @@ describe("DashboardPage", () => {
       expect(readStoredLayoutItem("summary")).toMatchObject({
         i: "summary",
         x: 4,
-        y: 3,
+        y: 0,
         w: 8,
         h: 7
       });
+      expect(readStoredLayoutItem("insights")).toMatchObject({
+        i: "insights",
+        x: 8,
+        y: 7,
+        w: 4,
+        h: 7
+      });
+      expectStoredVisualLayoutNotToOverlap();
     });
   });
 
@@ -655,7 +719,7 @@ describe("DashboardPage", () => {
     expect(cardElement).not.toBeNull();
 
     expect(grid).toHaveAttribute("data-grid-breakpoint", "lg");
-    expect(grid).toHaveAttribute("data-grid-compactor", "null");
+    expect(grid).toHaveAttribute("data-grid-compactor", "");
     expect(grid).toHaveAttribute("data-drag-enabled", "true");
     expect(grid).toHaveAttribute("data-resize-enabled", "false");
     expect(resizeHandles).toEqual([]);

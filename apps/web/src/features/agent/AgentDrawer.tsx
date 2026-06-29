@@ -13,7 +13,6 @@ import { CaretUp } from "@phosphor-icons/react/CaretUp";
 import { ChatText } from "@phosphor-icons/react/ChatText";
 import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
 import { PaperPlaneTilt } from "@phosphor-icons/react/PaperPlaneTilt";
-import { Sparkle } from "@phosphor-icons/react/Sparkle";
 import { StopCircle } from "@phosphor-icons/react/StopCircle";
 import { X } from "@phosphor-icons/react/X";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -302,9 +301,6 @@ const AgentContextPanel = ({
   return (
     <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-violet-600 shadow-sm">
-          <Sparkle className="h-3.5 w-3.5" weight={phosphorIconWeight} />
-        </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-zinc-500">当前询问模块</p>
           <p className="mt-1 text-sm font-semibold text-zinc-950">
@@ -325,7 +321,7 @@ const AgentContextPanel = ({
       </div>
 
       {!isCollapsed ? (
-        <div className="mt-2 pl-11">
+        <div className="mt-2">
           {focus.summary ? (
             <p className="text-xs leading-5 text-zinc-600">{focus.summary}</p>
           ) : null}
