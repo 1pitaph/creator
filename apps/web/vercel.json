@@ -7,6 +7,10 @@
     {
       "source": "/health",
       "destination": "https://api.creator.1pitaph.com/health"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }

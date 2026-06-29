@@ -393,7 +393,7 @@ describe("DashboardPage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders module mode switcher and panel-controlled views", () => {
+  it("renders module mode switcher and panel-controlled views", async () => {
     const { rerenderPanel } = renderDashboard();
     const resetButton = screen.getByRole("button", { name: "重置" });
 
@@ -418,7 +418,7 @@ describe("DashboardPage", () => {
     expect(screen.queryByRole("button", { name: "编辑" })).not.toBeInTheDocument();
 
     rerenderPanel("board");
-    expect(screen.getByText("今天")).toBeInTheDocument();
+    expect(await screen.findByText("今天")).toBeInTheDocument();
     expect(
       screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
     ).not.toBeInTheDocument();
@@ -427,7 +427,7 @@ describe("DashboardPage", () => {
     ).not.toBeInTheDocument();
 
     rerenderPanel("table");
-    expect(screen.getByText("名称")).toBeInTheDocument();
+    expect(await screen.findByText("名称")).toBeInTheDocument();
     expect(screen.getByText("AI 诊断摘要")).toBeInTheDocument();
     expect(
       screen.queryByLabelText("拖动卡片：AI 诊断摘要"),
@@ -529,7 +529,7 @@ describe("DashboardPage", () => {
   it("hides a card from Table and removes it from Visual", async () => {
     const { rerenderPanel } = renderDashboard({ panel: "table" });
 
-    fireEvent.click(screen.getByLabelText("隐藏 AI 诊断摘要"));
+    fireEvent.click(await screen.findByLabelText("隐藏 AI 诊断摘要"));
     await waitFor(() => {
       expect(readStoredPreferences()?.cards.summary?.visible).toBe(false);
     });
@@ -546,10 +546,10 @@ describe("DashboardPage", () => {
     const { diagnosis, rerenderPanel } = renderDashboard({ panel: "table" });
     const { cardId, module } = getFirstModuleChartCard(diagnosis);
 
-    expect(screen.getAllByText("模块图表").length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("模块图表")).length).toBeGreaterThan(0);
     expect(screen.queryByText("已加载 AI 模块")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText(`隐藏 ${module.chart!.title}`));
+    fireEvent.click(await screen.findByLabelText(`隐藏 ${module.chart!.title}`));
 
     await waitFor(() => {
       expect(readStoredPreferences()?.cards[cardId]?.visible).toBe(false);
@@ -565,11 +565,15 @@ describe("DashboardPage", () => {
   it("uses current-breakpoint Table width and height grid steppers", async () => {
     renderDashboard({ panel: "table" });
 
-    expect(screen.getByText("宽度(列)")).toBeInTheDocument();
+    expect(await screen.findByText("宽度(列)")).toBeInTheDocument();
     expect(screen.getByText("高度(行)")).toBeInTheDocument();
 
-    const summaryWidthInput = screen.getByLabelText("设置「AI 诊断摘要」宽度列数");
-    const summaryHeightInput = screen.getByLabelText("设置「AI 诊断摘要」高度行数");
+    const summaryWidthInput = await screen.findByLabelText(
+      "设置「AI 诊断摘要」宽度列数",
+    );
+    const summaryHeightInput = await screen.findByLabelText(
+      "设置「AI 诊断摘要」高度行数",
+    );
 
     expect(summaryWidthInput).toHaveValue(8);
     expect(summaryHeightInput).toHaveValue(7);
@@ -618,7 +622,9 @@ describe("DashboardPage", () => {
 
     renderDashboard({ panel: "table" });
 
-    const summaryWidthInput = screen.getByLabelText("设置「AI 诊断摘要」宽度列数");
+    const summaryWidthInput = await screen.findByLabelText(
+      "设置「AI 诊断摘要」宽度列数",
+    );
 
     expect(summaryWidthInput).toHaveValue(4);
     expect(summaryWidthInput).toHaveAttribute("max", "4");
@@ -670,9 +676,12 @@ describe("DashboardPage", () => {
 
     renderDashboard({ panel: "table", moduleLoadMode: "focused" });
 
-    fireEvent.change(screen.getByLabelText("设置「AI 诊断摘要」宽度列数"), {
-      target: { value: "7" },
-    });
+    fireEvent.change(
+      await screen.findByLabelText("设置「AI 诊断摘要」宽度列数"),
+      {
+        target: { value: "7" },
+      },
+    );
 
     await waitFor(() => {
       expect(readStoredLayoutItem(missingModuleChartCard!.id)).toEqual(missingLayout);

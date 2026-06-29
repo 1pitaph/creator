@@ -8,12 +8,12 @@ import { Play } from "@phosphor-icons/react/Play";
 import type { ReactNode } from "react";
 
 import { PhosphorHoverIcon } from "../../components/ui/PhosphorHoverIcon";
-import type { DashboardPanel } from "../../types";
+import type { CreatorRouteId } from "../navigation/creatorRoutes";
 
 type SidebarNavChild = {
   id: string;
   label: string;
-  panel?: DashboardPanel;
+  routeId: CreatorRouteId;
 };
 
 type SidebarNavLeaf = {
@@ -21,7 +21,7 @@ type SidebarNavLeaf = {
   id: string;
   label: string;
   icon: ReactNode;
-  panel: DashboardPanel;
+  routeId: CreatorRouteId;
   primary?: boolean;
   separated?: boolean;
 };
@@ -46,7 +46,7 @@ export const sidebarNavItems: SidebarNavItem[] = [
     id: "home",
     label: "首页",
     icon: <PhosphorHoverIcon className={sidebarIconClassName} icon={House} />,
-    panel: "overview",
+    routeId: "overview",
     primary: true,
   },
   {
@@ -54,7 +54,7 @@ export const sidebarNavItems: SidebarNavItem[] = [
     id: "activity",
     label: "活动管理",
     icon: <PhosphorHoverIcon className={sidebarIconClassName} icon={Flag} />,
-    panel: "board",
+    routeId: "activity",
     separated: true,
   },
   {
@@ -63,10 +63,14 @@ export const sidebarNavItems: SidebarNavItem[] = [
     label: "内容管理",
     icon: <PhosphorHoverIcon className={sidebarIconClassName} icon={Play} />,
     children: [
-      { id: "works", label: "作品管理" },
-      { id: "collections", label: "合集管理" },
-      { id: "co-creation", label: "共创中心" },
-      { id: "original-protection", label: "原创保护中心" },
+      { id: "works", label: "作品管理", routeId: "contentWorks" },
+      { id: "collections", label: "合集管理", routeId: "contentCollections" },
+      { id: "co-creation", label: "共创中心", routeId: "contentCoCreation" },
+      {
+        id: "original-protection",
+        label: "原创保护中心",
+        routeId: "contentOriginalProtection",
+      },
     ],
   },
   {
@@ -77,11 +81,11 @@ export const sidebarNavItems: SidebarNavItem[] = [
       <PhosphorHoverIcon className={sidebarIconClassName} icon={ChatsCircle} />
     ),
     children: [
-      { id: "follows", label: "关注管理" },
-      { id: "fans", label: "粉丝管理" },
-      { id: "comments", label: "评论管理" },
-      { id: "danmaku", label: "弹幕管理" },
-      { id: "messages", label: "私信管理" },
+      { id: "follows", label: "关注管理", routeId: "interactionFollows" },
+      { id: "fans", label: "粉丝管理", routeId: "interactionFans" },
+      { id: "comments", label: "评论管理", routeId: "interactionComments" },
+      { id: "danmaku", label: "弹幕管理", routeId: "interactionDanmaku" },
+      { id: "messages", label: "私信管理", routeId: "interactionMessages" },
     ],
   },
   {
@@ -92,10 +96,14 @@ export const sidebarNavItems: SidebarNavItem[] = [
       <PhosphorHoverIcon className={sidebarIconClassName} icon={ChartLineUp} />
     ),
     children: [
-      { id: "account-overview", label: "账号总览", panel: "table" },
-      { id: "work-analysis", label: "作品分析" },
-      { id: "fan-analysis", label: "粉丝分析" },
-      { id: "key-focus", label: "重点关心" },
+      {
+        id: "account-overview",
+        label: "账号总览",
+        routeId: "dataAccountOverview",
+      },
+      { id: "work-analysis", label: "作品分析", routeId: "dataWorkAnalysis" },
+      { id: "fan-analysis", label: "粉丝分析", routeId: "dataFanAnalysis" },
+      { id: "key-focus", label: "重点关心", routeId: "dataKeyFocus" },
     ],
     separated: true,
   },
@@ -107,9 +115,13 @@ export const sidebarNavItems: SidebarNavItem[] = [
       <PhosphorHoverIcon className={sidebarIconClassName} icon={Diamond} />
     ),
     children: [
-      { id: "monetization-market", label: "变现广场" },
-      { id: "my-tasks", label: "我的任务" },
-      { id: "my-income", label: "我的收入" },
+      {
+        id: "monetization-market",
+        label: "变现广场",
+        routeId: "monetizationMarket",
+      },
+      { id: "my-tasks", label: "我的任务", routeId: "monetizationTasks" },
+      { id: "my-income", label: "我的收入", routeId: "monetizationIncome" },
     ],
     defaultOpen: true,
   },
@@ -121,9 +133,17 @@ export const sidebarNavItems: SidebarNavItem[] = [
       <PhosphorHoverIcon className={sidebarIconClassName} icon={Lightning} />
     ),
     children: [
-      { id: "creative-inspiration", label: "创作灵感" },
-      { id: "learning-center", label: "学习中心" },
-      { id: "douyin-index", label: "抖音指数" },
+      {
+        id: "creative-inspiration",
+        label: "创作灵感",
+        routeId: "creationInspiration",
+      },
+      {
+        id: "learning-center",
+        label: "学习中心",
+        routeId: "creationLearningCenter",
+      },
+      { id: "douyin-index", label: "抖音指数", routeId: "creationDouyinIndex" },
     ],
     separated: true,
   },

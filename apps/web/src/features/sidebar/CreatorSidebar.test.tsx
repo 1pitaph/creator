@@ -6,6 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import { readFileSync } from "node:fs";
+import { MemoryRouter, useLocation } from "react-router";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
@@ -13,6 +14,10 @@ import {
   defaultCreatorId,
 } from "../creator-diagnosis/creatorOptions";
 import { localDiagnosis } from "../creator-diagnosis/api";
+import {
+  getCreatorRoutePath,
+  type CreatorRouteId,
+} from "../navigation/creatorRoutes";
 import { CreatorSidebar } from "./CreatorSidebar";
 
 const creatorTypeShortLabels = {
@@ -42,20 +47,30 @@ afterAll(() => {
 });
 
 const renderSidebar = ({
+  activeRouteId = "overview" as CreatorRouteId,
   onSelectCreator = vi.fn(),
-  onSelectPanel = vi.fn(),
-  selectedPanel = "overview" as const,
+  selectedCreatorId = defaultCreatorId,
 } = {}) =>
   render(
-    <CreatorSidebar
-      selectedCreatorId={defaultCreatorId}
-      onSelectCreator={onSelectCreator}
-      selectedPanel={selectedPanel}
-      onSelectPanel={onSelectPanel}
-      diagnosis={localDiagnosis(defaultCreatorId)}
-      isLoadingDiagnosis={false}
-    />,
+    <MemoryRouter
+      initialEntries={[getCreatorRoutePath(selectedCreatorId, activeRouteId)]}
+    >
+      <CreatorSidebar
+        activeRouteId={activeRouteId}
+        selectedCreatorId={selectedCreatorId}
+        onSelectCreator={onSelectCreator}
+        diagnosis={localDiagnosis(selectedCreatorId)}
+        isLoadingDiagnosis={false}
+      />
+      <LocationProbe />
+    </MemoryRouter>,
   );
+
+const LocationProbe = () => {
+  const location = useLocation();
+
+  return <span data-testid="current-path">{location.pathname}</span>;
+};
 
 const expectPhosphorHoverIcon = (root: HTMLElement) => {
   expect(root).toHaveClass("phosphor-hover-root");
@@ -173,7 +188,7 @@ describe("CreatorSidebar", () => {
       "-right-4",
     );
     expect(
-      within(sidebar).getByRole("button", { name: "首页" }),
+      within(sidebar).getByRole("link", { name: "首页" }),
     ).toBeInTheDocument();
     expect(
       within(sidebar).getByRole("button", { name: "内容管理" }),
@@ -304,7 +319,7 @@ describe("CreatorSidebar", () => {
     renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
-    const homeButton = within(sidebar).getByRole("button", { name: "首页" });
+    const homeLink = within(sidebar).getByRole("link", { name: "首页" });
     const publishButton = within(sidebar).getByRole("button", {
       name: "高清发布",
     });
@@ -345,34 +360,35 @@ describe("CreatorSidebar", () => {
       expect(menuItem).toBeInTheDocument();
       expectPhosphorHoverIcon(menuItem);
     }
-    expect(homeButton).toHaveAttribute("aria-current", "page");
-    expectPhosphorHoverIcon(homeButton);
+    expect(homeLink).toHaveAttribute("aria-current", "page");
+    expectPhosphorHoverIcon(homeLink);
     expect(within(sidebar).queryByText("诊断总览")).not.toBeInTheDocument();
     expect(within(sidebar).queryByText("行动队列")).not.toBeInTheDocument();
 
-    for (const label of [
-      "活动管理",
-      "内容管理",
-      "互动管理",
-      "数据中心",
-      "变现中心",
-      "创作中心",
-    ]) {
+    expect(
+      within(sidebar).getByRole("link", { name: "活动管理" }),
+    ).toBeInTheDocument();
+
+    for (const label of ["内容管理", "互动管理", "数据中心", "变现中心", "创作中心"]) {
       expect(within(sidebar).getByRole("button", { name: label })).toBeInTheDocument();
     }
   });
 
-  it("routes activity and account overview entries through sidebar navigation", () => {
-    const handleSelectPanel = vi.fn();
-    renderSidebar({ onSelectPanel: handleSelectPanel });
+  it("routes activity and account overview entries through URL navigation", () => {
+    renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
-    fireEvent.click(within(sidebar).getByRole("button", { name: "活动管理" }));
-    fireEvent.click(within(sidebar).getByRole("button", { name: "数据中心" }));
-    fireEvent.click(within(sidebar).getByRole("button", { name: "账号总览" }));
+    fireEvent.click(within(sidebar).getByRole("link", { name: "活动管理" }));
+    expect(screen.getByTestId("current-path")).toHaveTextContent(
+      getCreatorRoutePath(defaultCreatorId, "activity"),
+    );
 
-    expect(handleSelectPanel).toHaveBeenCalledWith("board");
-    expect(handleSelectPanel).toHaveBeenCalledWith("table");
+    fireEvent.click(within(sidebar).getByRole("button", { name: "数据中心" }));
+    fireEvent.click(within(sidebar).getByRole("link", { name: "账号总览" }));
+
+    expect(screen.getByTestId("current-path")).toHaveTextContent(
+      getCreatorRoutePath(defaultCreatorId, "dataAccountOverview"),
+    );
   });
 
   it("expands sidebar groups and renders official child items", () => {
@@ -414,7 +430,7 @@ describe("CreatorSidebar", () => {
       "学习中心",
       "抖音指数",
     ]) {
-      expect(within(sidebar).getByRole("button", { name: child })).toBeInTheDocument();
+      expect(within(sidebar).getByRole("link", { name: child })).toBeInTheDocument();
     }
 
     fireEvent.click(within(sidebar).getByRole("button", { name: "内容管理" }));
@@ -423,9 +439,20 @@ describe("CreatorSidebar", () => {
     ).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("opens the active parent group for deep-linked child routes", () => {
+    renderSidebar({ activeRouteId: "dataAccountOverview" });
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    expect(
+      within(sidebar).getByRole("button", { name: "数据中心" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      within(sidebar).getByRole("link", { name: "账号总览" }),
+    ).toHaveAttribute("aria-current", "page");
+  });
+
   it("keeps mobile sidebar open for group toggles and closes on navigation", () => {
-    const handleSelectPanel = vi.fn();
-    renderSidebar({ onSelectPanel: handleSelectPanel });
+    renderSidebar();
 
     const mobileTrigger = screen.getByTestId("mobile-sidebar-trigger");
     fireEvent.click(mobileTrigger);
@@ -435,8 +462,10 @@ describe("CreatorSidebar", () => {
     fireEvent.click(within(mobileSidebar).getByRole("button", { name: "内容管理" }));
     expect(mobileTrigger).toHaveAttribute("aria-expanded", "true");
 
-    fireEvent.click(within(mobileSidebar).getByRole("button", { name: "作品管理" }));
-    expect(handleSelectPanel).not.toHaveBeenCalled();
+    fireEvent.click(within(mobileSidebar).getByRole("link", { name: "作品管理" }));
+    expect(screen.getByTestId("current-path")).toHaveTextContent(
+      getCreatorRoutePath(defaultCreatorId, "contentWorks"),
+    );
     expect(mobileTrigger).toHaveAttribute("aria-expanded", "false");
   });
 
@@ -607,15 +636,24 @@ describe("CreatorSidebar", () => {
       creatorOptions.find((creator) => creator.id !== defaultCreatorId)?.id ??
       defaultCreatorId;
     const secondDiagnosis = localDiagnosis(secondCreatorId);
+    const renderSidebarAvatar = (
+      selectedCreatorId: string,
+      diagnosis: ReturnType<typeof localDiagnosis>,
+    ) => (
+      <MemoryRouter
+        initialEntries={[getCreatorRoutePath(selectedCreatorId, "overview")]}
+      >
+        <CreatorSidebar
+          activeRouteId="overview"
+          selectedCreatorId={selectedCreatorId}
+          onSelectCreator={vi.fn()}
+          diagnosis={diagnosis}
+          isLoadingDiagnosis={false}
+        />
+      </MemoryRouter>
+    );
     const { rerender } = render(
-      <CreatorSidebar
-        selectedCreatorId={defaultCreatorId}
-        onSelectCreator={vi.fn()}
-        selectedPanel="overview"
-        onSelectPanel={vi.fn()}
-        diagnosis={firstDiagnosis}
-        isLoadingDiagnosis={false}
-      />,
+      renderSidebarAvatar(defaultCreatorId, firstDiagnosis),
     );
 
     const desktopSidebar = screen.getByTestId("creator-sidebar-desktop");
@@ -637,16 +675,7 @@ describe("CreatorSidebar", () => {
     expect(avatarSvg).toHaveAttribute("height", "32");
     expect(avatarSvg).toHaveAttribute("focusable", "false");
 
-    rerender(
-      <CreatorSidebar
-        selectedCreatorId={secondCreatorId}
-        onSelectCreator={vi.fn()}
-        selectedPanel="overview"
-        onSelectPanel={vi.fn()}
-        diagnosis={secondDiagnosis}
-        isLoadingDiagnosis={false}
-      />,
-    );
+    rerender(renderSidebarAvatar(secondCreatorId, secondDiagnosis));
 
     expect(
       within(screen.getByTestId("creator-sidebar-desktop")).getByTestId(

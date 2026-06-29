@@ -1,28 +1,46 @@
 import type { DiagnosisResponse, ModuleLoadMode } from "@creator/data-contracts";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { defaultCreatorId } from "./creatorOptions";
 import { fetchDiagnosis, localDiagnosis, type DiagnosisFetcher } from "./api";
 
 type UseCreatorDiagnosisOptions = {
+  creatorId?: string;
   fetcher?: DiagnosisFetcher;
   fallback?: (creatorId: string, moduleLoadMode?: ModuleLoadMode) => DiagnosisResponse;
   initialCreatorId?: string;
   moduleLoadMode?: ModuleLoadMode;
+  onSelectCreator?: (creatorId: string) => void;
 };
 
 const isAbortError = (error: unknown) => error instanceof DOMException && error.name === "AbortError";
 
 export const useCreatorDiagnosis = ({
+  creatorId,
   fetcher = fetchDiagnosis,
   fallback = localDiagnosis,
   initialCreatorId = defaultCreatorId,
-  moduleLoadMode = "focused"
+  moduleLoadMode = "focused",
+  onSelectCreator,
 }: UseCreatorDiagnosisOptions = {}) => {
-  const [selectedCreatorId, setSelectedCreatorId] = useState(initialCreatorId);
-  const [diagnosis, setDiagnosis] = useState<DiagnosisResponse>(() => fallback(initialCreatorId, moduleLoadMode));
+  const [uncontrolledCreatorId, setUncontrolledCreatorId] =
+    useState(initialCreatorId);
+  const selectedCreatorId = creatorId ?? uncontrolledCreatorId;
+  const [diagnosis, setDiagnosis] = useState<DiagnosisResponse>(() =>
+    fallback(selectedCreatorId, moduleLoadMode),
+  );
   const [isLoadingDiagnosis, setIsLoadingDiagnosis] = useState(false);
   const requestIdRef = useRef(0);
+  const setSelectedCreatorId = useCallback(
+    (nextCreatorId: string) => {
+      if (creatorId === undefined) {
+        setUncontrolledCreatorId(nextCreatorId);
+      }
+
+      onSelectCreator?.(nextCreatorId);
+    },
+    [creatorId, onSelectCreator],
+  );
 
   useEffect(() => {
     const controller = new AbortController();

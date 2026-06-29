@@ -8,16 +8,16 @@ import { PlusSquare } from "@phosphor-icons/react/PlusSquare";
 import { Video } from "@phosphor-icons/react/Video";
 import { X } from "@phosphor-icons/react/X";
 import Avatar from "boring-avatars";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { DiagnosisResponse } from "@creator/data-contracts";
 import { cn } from "@creator/ui";
 
 import { PhosphorHoverIcon } from "../../components/ui/PhosphorHoverIcon";
 import { phosphorIconWeight } from "../../constants";
-import type { DashboardPanel } from "../../types";
+import type { CreatorRouteId } from "../navigation/creatorRoutes";
 import { CreatorAccountNotchSelect } from "./CreatorAccountNotchSelect";
-import { sidebarNavItems } from "./navItems";
+import { CreatorSidebarNav } from "./CreatorSidebarNav";
 
 const douyinLogoPath =
   "M12.53.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z";
@@ -29,12 +29,6 @@ const creatorAvatarColors = [
   "#e5e7eb",
   "#38bdf8",
 ];
-
-const navItemIdByPanel = {
-  board: "activity",
-  overview: "home",
-  table: "account-overview",
-} satisfies Record<DashboardPanel, string>;
 
 const publishMenuItems = [
   { label: "发布视频", icon: Video },
@@ -195,17 +189,15 @@ const useScrollBoundaryGuard = (
 };
 
 export const CreatorSidebar = ({
+  activeRouteId,
   selectedCreatorId,
   onSelectCreator,
-  selectedPanel,
-  onSelectPanel,
   diagnosis,
   isLoadingDiagnosis,
 }: {
+  activeRouteId: CreatorRouteId;
   selectedCreatorId: string;
   onSelectCreator: (creatorId: string) => void;
-  selectedPanel: DashboardPanel;
-  onSelectPanel: (panel: DashboardPanel) => void;
   diagnosis: DiagnosisResponse;
   isLoadingDiagnosis: boolean;
 }) => {
@@ -263,11 +255,10 @@ export const CreatorSidebar = ({
           />
         </button>
         <SidebarContent
+          activeRouteId={activeRouteId}
           collapsed={isDesktopCollapsed}
           selectedCreatorId={selectedCreatorId}
           onSelectCreator={onSelectCreator}
-          selectedPanel={selectedPanel}
-          onSelectPanel={onSelectPanel}
           diagnosis={diagnosis}
           isLoadingDiagnosis={isLoadingDiagnosis}
         />
@@ -325,6 +316,7 @@ export const CreatorSidebar = ({
             </button>
           </div>
           <SidebarContent
+            activeRouteId={activeRouteId}
             className="min-h-0 flex-1 pt-2"
             showBrand={false}
             selectedCreatorId={selectedCreatorId}
@@ -332,8 +324,6 @@ export const CreatorSidebar = ({
               onSelectCreator(creatorId);
               closeMobileSidebar();
             }}
-            selectedPanel={selectedPanel}
-            onSelectPanel={onSelectPanel}
             diagnosis={diagnosis}
             isLoadingDiagnosis={isLoadingDiagnosis}
             onNavigate={closeMobileSidebar}
@@ -345,24 +335,22 @@ export const CreatorSidebar = ({
 };
 
 const SidebarContent = ({
+  activeRouteId,
   className,
   collapsed = false,
   showBrand = true,
   selectedCreatorId,
   onSelectCreator,
-  selectedPanel,
-  onSelectPanel,
   diagnosis,
   isLoadingDiagnosis,
   onNavigate,
 }: {
+  activeRouteId: CreatorRouteId;
   className?: string;
   collapsed?: boolean;
   showBrand?: boolean;
   selectedCreatorId: string;
   onSelectCreator: (creatorId: string) => void;
-  selectedPanel: DashboardPanel;
-  onSelectPanel: (panel: DashboardPanel) => void;
   diagnosis: DiagnosisResponse;
   isLoadingDiagnosis: boolean;
   onNavigate?: () => void;
@@ -396,10 +384,10 @@ const SidebarContent = ({
         data-sidebar-scrollable="true"
         data-testid="sidebar-nav-scroll-viewport"
       >
-        <SidebarNav
+        <CreatorSidebarNav
+          activeRouteId={activeRouteId}
           collapsed={collapsed}
-          selectedPanel={selectedPanel}
-          onSelectPanel={onSelectPanel}
+          selectedCreatorId={selectedCreatorId}
           onNavigate={onNavigate}
         />
       </div>
@@ -603,290 +591,4 @@ const SidebarFooterAvatar = ({ seed }: { seed: string }) => (
       variant="beam"
     />
   </span>
-);
-
-const SidebarNav = ({
-  collapsed = false,
-  selectedPanel,
-  onSelectPanel,
-  onNavigate,
-}: {
-  collapsed?: boolean;
-  selectedPanel: DashboardPanel;
-  onSelectPanel: (panel: DashboardPanel) => void;
-  onNavigate?: () => void;
-}) => {
-  const [activeItemId, setActiveItemId] = useState(
-    () => navItemIdByPanel[selectedPanel],
-  );
-  const [openGroupIds, setOpenGroupIds] = useState<Record<string, boolean>>(() =>
-    sidebarNavItems.reduce<Record<string, boolean>>((groups, item) => {
-      if (item.kind === "group" && item.defaultOpen) {
-        groups[item.id] = true;
-      }
-
-      return groups;
-    }, {}),
-  );
-
-  useEffect(() => {
-    setActiveItemId(navItemIdByPanel[selectedPanel]);
-  }, [selectedPanel]);
-
-  return (
-    <nav className="flex flex-col" aria-label="创作者中心导航">
-      {sidebarNavItems.map((item) => {
-        if (item.kind === "leaf") {
-          return (
-            <SidebarLinkItem
-              key={item.id}
-              collapsed={collapsed}
-              label={item.label}
-              active={activeItemId === item.id}
-              icon={item.icon}
-              separated={item.separated}
-              onClick={() => {
-                setActiveItemId(item.id);
-                onSelectPanel(item.panel);
-                onNavigate?.();
-              }}
-            />
-          );
-        }
-
-        const open = Boolean(openGroupIds[item.id]);
-        const active = item.children.some((child) => child.id === activeItemId);
-
-        return (
-          <SidebarGroupItem
-            key={item.id}
-            active={active}
-            collapsed={collapsed}
-            icon={item.icon}
-            itemId={item.id}
-            label={item.label}
-            open={open}
-            separated={item.separated}
-            onToggle={() => {
-              setOpenGroupIds((groupIds) => ({
-                ...groupIds,
-                [item.id]: !groupIds[item.id],
-              }));
-            }}
-          >
-            {item.children.map((child) => (
-              <SidebarChildLink
-                key={child.id}
-                active={activeItemId === child.id}
-                label={child.label}
-                onClick={() => {
-                  setActiveItemId(child.id);
-                  if (child.panel) {
-                    onSelectPanel(child.panel);
-                  }
-                  onNavigate?.();
-                }}
-              />
-            ))}
-          </SidebarGroupItem>
-        );
-      })}
-    </nav>
-  );
-};
-
-const SidebarLinkItem = ({
-  collapsed = false,
-  label,
-  icon,
-  active,
-  separated = false,
-  onClick,
-}: {
-  collapsed?: boolean;
-  label: string;
-  icon: ReactNode;
-  active?: boolean;
-  separated?: boolean;
-  onClick?: () => void;
-}) => {
-  const [isIntent, setIsIntent] = useState(false);
-
-  return (
-    <button
-      type="button"
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "phosphor-hover-root group/sidebar relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
-        collapsed ? "w-full px-0 text-center" : "mx-2 w-[calc(100%-16px)] px-2 text-left",
-        separated && "mt-3 border-t border-neutral-200 pt-3",
-      )}
-      title={collapsed ? label : undefined}
-      onClick={onClick}
-      onFocus={() => setIsIntent(true)}
-      onBlur={() => setIsIntent(false)}
-      onMouseDown={() => setIsIntent(true)}
-      onMouseEnter={() => setIsIntent(true)}
-      onMouseLeave={() => setIsIntent(false)}
-      onPointerEnter={() => setIsIntent(true)}
-      onPointerLeave={() => setIsIntent(false)}
-    >
-      <span
-        className={cn(
-          "pointer-events-none absolute inset-x-0 z-10 rounded-lg bg-neutral-200 transition-opacity duration-150 ease-out",
-          separated ? "top-3.5 bottom-0.5" : "inset-y-0.5",
-          active || isIntent
-            ? "opacity-100"
-            : "opacity-0 group-focus/sidebar:opacity-100 group-hover/sidebar:opacity-100",
-        )}
-      />
-      <span
-        className={cn(
-          "relative z-20 flex h-10 items-center gap-3",
-          collapsed ? "justify-center" : "justify-start",
-        )}
-      >
-        <span
-          className={cn(
-            "shrink-0 transition-colors duration-150",
-            active ? "text-neutral-900" : "text-neutral-500",
-          )}
-        >
-          {icon}
-        </span>
-        <span
-          className={cn(
-            "type-control-sm inline-block whitespace-pre transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
-            isIntent && "translate-x-1",
-            active ? "text-neutral-950" : "text-neutral-500",
-            collapsed && "sr-only",
-          )}
-        >
-          {label}
-        </span>
-      </span>
-    </button>
-  );
-};
-
-const SidebarGroupItem = ({
-  active = false,
-  children,
-  collapsed = false,
-  icon,
-  itemId,
-  label,
-  open,
-  separated = false,
-  onToggle,
-}: {
-  active?: boolean;
-  children: ReactNode;
-  collapsed?: boolean;
-  icon: ReactNode;
-  itemId: string;
-  label: string;
-  open: boolean;
-  separated?: boolean;
-  onToggle: () => void;
-}) => {
-  const [isIntent, setIsIntent] = useState(false);
-
-  return (
-    <div className={cn(separated && "mt-3 border-t border-neutral-200 pt-3")}>
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={`sidebar-group-${itemId}`}
-        className={cn(
-          "phosphor-hover-root group/sidebar relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
-          collapsed ? "w-full px-0 text-center" : "mx-2 w-[calc(100%-16px)] px-2 text-left",
-        )}
-        title={collapsed ? label : undefined}
-        data-testid={`sidebar-nav-group-${itemId}`}
-        onClick={onToggle}
-        onFocus={() => setIsIntent(true)}
-        onBlur={() => setIsIntent(false)}
-        onMouseDown={() => setIsIntent(true)}
-        onMouseEnter={() => setIsIntent(true)}
-        onMouseLeave={() => setIsIntent(false)}
-        onPointerEnter={() => setIsIntent(true)}
-        onPointerLeave={() => setIsIntent(false)}
-      >
-        <span
-          className={cn(
-            "pointer-events-none absolute inset-x-0 inset-y-0.5 z-10 rounded-lg bg-neutral-200 transition-opacity duration-150 ease-out",
-            active || isIntent
-              ? "opacity-100"
-              : "opacity-0 group-focus/sidebar:opacity-100 group-hover/sidebar:opacity-100",
-          )}
-        />
-        <span
-          className={cn(
-            "relative z-20 flex h-10 items-center gap-3",
-            collapsed ? "justify-center" : "justify-start",
-          )}
-        >
-          <span
-            className={cn(
-              "shrink-0 transition-colors duration-150",
-              active ? "text-neutral-900" : "text-neutral-500",
-            )}
-          >
-            {icon}
-          </span>
-          <span
-            className={cn(
-              "type-control-sm inline-block whitespace-pre transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
-              isIntent && "translate-x-1",
-              active ? "text-neutral-950" : "text-neutral-500",
-              collapsed && "sr-only",
-            )}
-          >
-            {label}
-          </span>
-          <PhosphorHoverIcon
-            className={cn(
-              "ml-auto h-4 w-4 shrink-0 text-neutral-500 transition-transform duration-200",
-              open && "rotate-180",
-              collapsed && "hidden",
-            )}
-            icon={CaretDown}
-          />
-        </span>
-      </button>
-
-      {open && !collapsed ? (
-        <div
-          id={`sidebar-group-${itemId}`}
-          className="flex flex-col py-1.5"
-          data-testid={`sidebar-nav-children-${itemId}`}
-        >
-          {children}
-        </div>
-      ) : null}
-    </div>
-  );
-};
-
-const SidebarChildLink = ({
-  active = false,
-  label,
-  onClick,
-}: {
-  active?: boolean;
-  label: string;
-  onClick: () => void;
-}) => (
-  <button
-    type="button"
-    aria-current={active ? "page" : undefined}
-    className={cn(
-      "type-body-sm-tight mx-2 h-9 w-[calc(100%-16px)] rounded-lg pl-[52px] pr-3 text-left transition hover:bg-neutral-200/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
-      active ? "bg-neutral-200 text-neutral-950" : "text-neutral-500",
-    )}
-    onClick={onClick}
-  >
-    {label}
-  </button>
 );

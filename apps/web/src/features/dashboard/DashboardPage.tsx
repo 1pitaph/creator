@@ -1,5 +1,7 @@
 import {
+  lazy,
   memo,
+  Suspense,
   useCallback,
   useLayoutEffect,
   useMemo,
@@ -26,8 +28,6 @@ import {
   buildDashboardCards,
 } from "./customization";
 import { useDashboardPreferences } from "./useDashboardPreferences";
-import { BoardDashboardView } from "./views/BoardDashboardView";
-import { TableDashboardView } from "./views/TableDashboardView";
 import { VisualDashboardView } from "./views/VisualDashboardView";
 
 const moduleLoadModeOptions: Array<{
@@ -41,6 +41,29 @@ const moduleLoadModeOptions: Array<{
 
 const modeIndicatorTransition =
   "transition-[transform,width] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none";
+
+const loadBoardDashboardView = () =>
+  import("./views/BoardDashboardView").then(({ BoardDashboardView }) => ({
+    default: BoardDashboardView,
+  }));
+
+const loadTableDashboardView = () =>
+  import("./views/TableDashboardView").then(({ TableDashboardView }) => ({
+    default: TableDashboardView,
+  }));
+
+const BoardDashboardView = lazy(loadBoardDashboardView);
+const TableDashboardView = lazy(loadTableDashboardView);
+
+export const preloadDashboardPanel = (panel: DashboardPanel) => {
+  if (panel === "board") {
+    void loadBoardDashboardView();
+  }
+
+  if (panel === "table") {
+    void loadTableDashboardView();
+  }
+};
 
 export const DashboardPage = memo(function DashboardPage({
   creatorId,
@@ -129,39 +152,49 @@ export const DashboardPage = memo(function DashboardPage({
             </div>
           </div>
 
-          {panel === "overview" ? (
-            <VisualDashboardView
-              actions={actions}
-              cards={cards}
-              diagnosis={diagnosis}
-              onAsk={onAskAgent}
-              preferences={preferences}
-              updatePreferences={updatePreferences}
-              viewModel={viewModel}
-            />
-          ) : null}
+          <Suspense fallback={<DashboardPanelFallback />}>
+            {panel === "overview" ? (
+              <VisualDashboardView
+                actions={actions}
+                cards={cards}
+                diagnosis={diagnosis}
+                onAsk={onAskAgent}
+                preferences={preferences}
+                updatePreferences={updatePreferences}
+                viewModel={viewModel}
+              />
+            ) : null}
 
-          {panel === "board" ? (
-            <BoardDashboardView
-              actions={actions}
-              editing={editing}
-              preferences={preferences}
-              updatePreferences={updatePreferences}
-            />
-          ) : null}
+            {panel === "board" ? (
+              <BoardDashboardView
+                actions={actions}
+                editing={editing}
+                preferences={preferences}
+                updatePreferences={updatePreferences}
+              />
+            ) : null}
 
-          {panel === "table" ? (
-            <TableDashboardView
-              cards={cards}
-              preferences={preferences}
-              updatePreferences={updatePreferences}
-            />
-          ) : null}
+            {panel === "table" ? (
+              <TableDashboardView
+                cards={cards}
+                preferences={preferences}
+                updatePreferences={updatePreferences}
+              />
+            ) : null}
+          </Suspense>
         </div>
       </AuroraBackground>
     </section>
   );
 });
+
+const DashboardPanelFallback = () => (
+  <div
+    aria-label="页面加载中"
+    className="min-h-[360px] rounded-[18px] bg-white/80 shadow-[0_1px_1px_rgba(24,24,27,0.025),0_8px_28px_rgba(24,24,27,0.04)]"
+    role="status"
+  />
+);
 
 const ModuleLoadModeSwitcher = ({
   onModeChange,
