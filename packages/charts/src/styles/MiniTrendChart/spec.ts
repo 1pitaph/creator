@@ -30,7 +30,9 @@ export const buildMiniTrendSpec = (
   return {
     ...baseChartSpec,
     type: "line",
-    padding: compact ? 0 : { top: 2, right: 2, bottom: 2, left: 2 },
+    padding: compact
+      ? { top: 3, right: 0, bottom: 3, left: 0 }
+      : { top: 2, right: 2, bottom: 2, left: 2 },
     animation: false,
     data: [{ id: "trend", values }],
     xField: "date",

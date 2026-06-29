@@ -75,7 +75,7 @@ describe("buildMiniTrendSpec", () => {
       yField?: unknown;
     };
 
-    expect(spec.padding).toBe(0);
+    expect(spec.padding).toEqual({ top: 3, right: 0, bottom: 3, left: 0 });
     expect(spec.animation).toBe(false);
     expect(spec.yField).toBe("normalizedValue");
   });
