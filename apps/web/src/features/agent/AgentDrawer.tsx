@@ -310,14 +310,6 @@ const AgentContextPanel = ({
           <p className="mt-1 text-sm font-semibold text-zinc-950">
             {focus.title}
           </p>
-          {!isCollapsed && focus.summary ? (
-            <p className="mt-1 text-xs leading-5 text-zinc-600">
-              {focus.summary}
-            </p>
-          ) : null}
-          {!isCollapsed && focus.evidence && focus.evidence.length > 0 ? (
-            <EvidenceTagList className="mt-2" evidence={focus.evidence} />
-          ) : null}
         </div>
         <button
           type="button"
@@ -333,11 +325,19 @@ const AgentContextPanel = ({
       </div>
 
       {!isCollapsed ? (
-        <PresetQuestionList
-          className="mt-3 border-t border-zinc-200/70 pt-3"
-          isChatting={isChatting}
-          onAskPreset={onAskPreset}
-        />
+        <div className="mt-2 pl-11">
+          {focus.summary ? (
+            <p className="text-xs leading-5 text-zinc-600">{focus.summary}</p>
+          ) : null}
+          {focus.evidence && focus.evidence.length > 0 ? (
+            <EvidenceTagList className="mt-2" evidence={focus.evidence} />
+          ) : null}
+          <PresetQuestionList
+            className="mt-3 border-t border-zinc-200/70 pt-3"
+            isChatting={isChatting}
+            onAskPreset={onAskPreset}
+          />
+        </div>
       ) : null}
     </div>
   );

@@ -52,6 +52,10 @@ export const EvidenceTagList = ({
     items={evidence.map((item) => ({
       id: item,
       label: item,
+      className:
+        item.length > 18
+          ? "max-w-full items-start rounded-lg py-1.5 text-left leading-5 whitespace-normal break-words"
+          : "whitespace-nowrap",
       tone: "neutral"
     }))}
     limit={limit}

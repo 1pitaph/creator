@@ -14,7 +14,11 @@ const focusTarget = {
   prompt: "诊断增长瓶颈",
   moduleId: "fan-operation",
   summary: "建议把结尾关注理由、主页合集和评论回访做成一套承接链路。",
-  evidence: ["7 日转粉率 0.4%", "新增粉丝 5,180"],
+  evidence: [
+    "7 日转粉率 0.4%",
+    "新增粉丝 5,180",
+    "主要受众：短剧付费用户、题材尝鲜用户、团队选题成员",
+  ],
 };
 
 describe("AgentDrawer", () => {
@@ -84,6 +88,12 @@ describe("AgentDrawer", () => {
 
     expect(screen.getByText(focusTarget.summary)).toBeInTheDocument();
     expect(screen.getByText("7 日转粉率 0.4%")).toBeInTheDocument();
+    expect(screen.getByText(focusTarget.evidence[2]!)).toHaveClass(
+      "max-w-full",
+      "rounded-lg",
+      "whitespace-normal",
+      "break-words",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /下一条视频拍什么/ }));
 
