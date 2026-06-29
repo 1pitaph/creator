@@ -7,6 +7,54 @@ import { defaultCreatorId } from "../creator-diagnosis/creatorOptions";
 import { ChatBubble } from "./ChatBubble";
 
 describe("ChatBubble", () => {
+  it("renders assistant markdown content", async () => {
+    render(
+      <ChatBubble
+        message={{
+          id: "message-markdown",
+          role: "assistant",
+          content:
+            "# 短剧热度研究室\n\n## 核心问题判断\n\n你的账号**增长诊断**已完成。\n\n- 播放健康\n- 转粉偏低",
+        }}
+        moduleById={new Map()}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "短剧热度研究室" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "核心问题判断" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("增长诊断").tagName).toBe("STRONG");
+    expect(screen.getByText("播放健康").closest("li")).not.toBeNull();
+    expect(screen.getByText("转粉偏低").closest("li")).not.toBeNull();
+  });
+
+  it("keeps user messages as plain text", () => {
+    render(
+      <ChatBubble
+        message={{
+          id: "message-user-markdown",
+          role: "user",
+          content: "# 这不是标题\n\n**这不是强调**",
+        }}
+        moduleById={new Map()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("heading", { name: "这不是标题" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (content, element) =>
+          element?.tagName === "P" &&
+          element.textContent === "# 这不是标题\n\n**这不是强调**",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("shows tool error status inside the AgentRun audit panel", () => {
     const diagnosis = localDiagnosis(defaultCreatorId);
     const agentRun = createStructuredAgentRun({

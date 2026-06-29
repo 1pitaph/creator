@@ -1,13 +1,17 @@
-import { memo } from "react";
+import { lazy, memo, Suspense } from "react";
 
-import type {
-  AgentRun,
-  AiModuleMetadata,
-} from "@creator/data-contracts";
+import type { AgentRun, AiModuleMetadata } from "@creator/data-contracts";
 import { cn } from "@creator/ui";
 
 import type { UiMessage } from "../../types";
-import { ActionTimeframeTag, AgentRunModeTag, MessageContextTags, ToolCallTagList } from "./AgentTags";
+import {
+  ActionTimeframeTag,
+  AgentRunModeTag,
+  MessageContextTags,
+  ToolCallTagList,
+} from "./AgentTags";
+
+const AssistantMarkdown = lazy(() => import("./AssistantMarkdown"));
 
 export const ChatBubble = memo(function ChatBubble({
   message,
@@ -39,12 +43,27 @@ export const ChatBubble = memo(function ChatBubble({
             {message.notice.label}
           </p>
         ) : null}
-        <p className="whitespace-pre-wrap">{message.content}</p>
+        {isAssistant ? (
+          <Suspense
+            fallback={
+              <p className="whitespace-pre-wrap break-words">
+                {message.content}
+              </p>
+            }
+          >
+            <AssistantMarkdown content={message.content} />
+          </Suspense>
+        ) : (
+          <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        )}
         {isAssistant && message.agentRun ? (
           <AgentRunPanel run={message.agentRun} />
         ) : null}
         {isAssistant && usedModuleNames && usedModuleNames.length > 0 ? (
-          <MessageContextTags mode={message.mode} moduleNames={usedModuleNames} />
+          <MessageContextTags
+            mode={message.mode}
+            moduleNames={usedModuleNames}
+          />
         ) : null}
       </div>
     </div>
