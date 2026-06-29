@@ -36,6 +36,10 @@ describe("AgentDrawer", () => {
     });
 
     expect(screen.getByText(diagnosis.modules[0]!.name)).toBeInTheDocument();
+    expect(screen.getByTestId("agent-composer-card")).toHaveClass(
+      "rounded-[22px]",
+    );
+    expect(screen.getByLabelText("输入 AI 消息")).toBeInTheDocument();
     expect(screen.getByLabelText("发送消息")).toBeDisabled();
   });
 
@@ -70,21 +74,22 @@ describe("AgentDrawer", () => {
     const details = screen.getByTestId("agent-context-details");
 
     expect(screen.getByText("当前询问模块")).toBeInTheDocument();
-    expect(screen.getByText("AI 诊断优先级")).toBeInTheDocument();
+    expect(screen.getAllByText("AI 诊断优先级")).toHaveLength(2);
     expect(details).toHaveAttribute("data-state", "collapsed");
     expect(details).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByText(focusTarget.summary)).not.toBeInTheDocument();
     expect(screen.queryByText("7 日转粉率 0.4%")).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /下一条视频拍什么/ }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: /下一条视频拍什么/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("按当前模块回答")).toBeInTheDocument();
     const toggle = screen.getByRole("button", { name: "展开当前询问模块" });
 
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(toggle).toHaveAttribute("aria-controls", details.id);
   });
 
-  it("toggles focused module details and preset questions", () => {
+  it("toggles focused module details while composer presets stay available", () => {
     const onAskPreset = vi.fn();
 
     renderAgentDrawer({ focus: focusTarget, onAskPreset });
@@ -107,7 +112,6 @@ describe("AgentDrawer", () => {
     expect(revealItems.map((item) => item.dataset.revealIndex)).toEqual([
       "0",
       "1",
-      "2",
     ]);
 
     fireEvent.click(screen.getByRole("button", { name: /下一条视频拍什么/ }));
@@ -122,14 +126,14 @@ describe("AgentDrawer", () => {
     expect(details).toHaveAttribute("data-state", "collapsed");
     expect(details).toHaveAttribute("aria-hidden", "true");
     expect(
-      screen.queryByRole("button", { name: /下一条视频拍什么/ }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: /下一条视频拍什么/ }),
+    ).toBeInTheDocument();
   });
 
   it("resets focused module context to collapsed when focus changes", () => {
     const nextFocus = {
       ...focusTarget,
-      title: "下一条视频拍什么",
+      title: "内容表现优先级",
       moduleId: "content-diagnosis",
       summary: "从高完播视频的开头钩子里提炼下一条选题。",
     };
@@ -141,7 +145,7 @@ describe("AgentDrawer", () => {
 
     view.rerender(<AgentDrawer {...agentDrawerProps({ focus: nextFocus })} />);
 
-    expect(screen.getByText("下一条视频拍什么")).toBeInTheDocument();
+    expect(screen.getAllByText("内容表现优先级")).toHaveLength(2);
     expect(screen.getByTestId("agent-context-details")).toHaveAttribute(
       "data-state",
       "collapsed",
@@ -155,6 +159,8 @@ describe("AgentDrawer", () => {
   it("keeps preset questions visible when no module is focused", () => {
     renderAgentDrawer();
 
+    expect(screen.getByTestId("agent-composer-card")).toBeInTheDocument();
+    expect(screen.getByText("按全部已加载模块回答")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /下一条视频拍什么/ }),
     ).toBeInTheDocument();

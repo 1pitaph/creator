@@ -393,21 +393,14 @@ export const AgentDrawer = ({
             {focus ? (
               <AgentContextPanel
                 focus={focus}
-                isChatting={isChatting}
                 isExpanded={expandedFocusKey === focusKey}
-                onAskPreset={onAskPreset}
                 onToggleExpanded={() => {
                   setExpandedFocusKey((currentKey) =>
                     currentKey === focusKey ? null : focusKey,
                   );
                 }}
               />
-            ) : (
-              <PresetQuestionSection
-                isChatting={isChatting}
-                onAskPreset={onAskPreset}
-              />
-            )}
+            ) : null}
 
             <ThreadPrimitive.Root className="min-h-0 flex-1">
               <ThreadPrimitive.Viewport
@@ -438,16 +431,6 @@ export const AgentDrawer = ({
                   {isChatting ? (
                     <div className="type-caption-xs flex items-center justify-between gap-3 text-zinc-500">
                       <AgentStreamingStatus toolCalls={liveToolCalls} />
-                      <ComposerPrimitive.Cancel
-                        className="phosphor-hover-root type-control-sm inline-flex h-8 items-center justify-center gap-2 rounded-md border border-transparent bg-transparent px-3 text-zinc-700 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
-                        aria-label="停止生成"
-                      >
-                        <PhosphorHoverIcon
-                          className="h-3.5 w-3.5"
-                          icon={StopCircle}
-                        />
-                        停止
-                      </ComposerPrimitive.Cancel>
                     </div>
                   ) : null}
                 </div>
@@ -494,22 +477,11 @@ export const AgentDrawer = ({
               </div>
             ) : null}
 
-            <ComposerPrimitive.Root className="border-t border-zinc-100 p-4">
-              <div className="flex items-end gap-2">
-                <ComposerPrimitive.Input
-                  className="type-body-sm min-h-[74px] flex-1 resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="围绕当前模块继续追问..."
-                  submitMode="enter"
-                  rows={3}
-                />
-                <ComposerPrimitive.Send
-                  className="phosphor-hover-root type-control-sm inline-flex h-9 w-9 items-center justify-center gap-2 rounded-md border border-transparent bg-zinc-950 text-white transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-label="发送消息"
-                >
-                  <PhosphorHoverIcon className="h-4 w-4" icon={PaperPlaneTilt} />
-                </ComposerPrimitive.Send>
-              </div>
-            </ComposerPrimitive.Root>
+            <AgentComposerCard
+              focus={focus}
+              isChatting={isChatting}
+              onAskPreset={onAskPreset}
+            />
           </AssistantRuntimeProvider>
         </Dialog.Content>
       </Dialog.Portal>
@@ -519,15 +491,11 @@ export const AgentDrawer = ({
 
 const AgentContextPanel = ({
   focus,
-  isChatting,
   isExpanded,
-  onAskPreset,
   onToggleExpanded,
 }: {
   focus: AskTarget;
-  isChatting: boolean;
   isExpanded: boolean;
-  onAskPreset: (question: string) => void;
   onToggleExpanded: () => void;
 }) => {
   const detailsId = useId();
@@ -558,11 +526,7 @@ const AgentContextPanel = ({
       </div>
 
       <AgentContextDisclosure detailsId={detailsId} isExpanded={isExpanded}>
-        <AgentContextDetails
-          focus={focus}
-          isChatting={isChatting}
-          onAskPreset={onAskPreset}
-        />
+        <AgentContextDetails focus={focus} />
       </AgentContextDisclosure>
     </div>
   );
@@ -619,15 +583,7 @@ const AgentContextDisclosure = ({
   );
 };
 
-const AgentContextDetails = ({
-  focus,
-  isChatting,
-  onAskPreset,
-}: {
-  focus: AskTarget;
-  isChatting: boolean;
-  onAskPreset: (question: string) => void;
-}) => {
+const AgentContextDetails = ({ focus }: { focus: AskTarget }) => {
   let revealIndex = 0;
   const nextRevealIndex = () => revealIndex++;
 
@@ -643,27 +599,6 @@ const AgentContextDetails = ({
           <EvidenceTagList className="mt-2" evidence={focus.evidence} />
         </AgentContextRevealItem>
       ) : null}
-      <AgentContextRevealItem
-        className="mt-3 border-t border-zinc-200/70 pt-3"
-        index={nextRevealIndex()}
-      >
-        <div className="flex flex-wrap gap-2">
-          {presetQuestions.map((question) => (
-            <Button
-              key={question}
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="phosphor-hover-root"
-              disabled={isChatting}
-              onClick={() => onAskPreset(question)}
-            >
-              <PhosphorHoverIcon className="h-3.5 w-3.5" icon={ChatText} />
-              {question}
-            </Button>
-          ))}
-        </div>
-      </AgentContextRevealItem>
     </>
   );
 };
@@ -693,15 +628,76 @@ const AgentContextRevealItem = ({
   );
 };
 
-const PresetQuestionSection = ({
+const AgentComposerCard = ({
+  focus,
   isChatting,
   onAskPreset,
 }: {
+  focus: AskTarget | null;
   isChatting: boolean;
   onAskPreset: (question: string) => void;
 }) => (
-  <div className="border-b border-zinc-100 px-4 py-3">
-    <PresetQuestionList isChatting={isChatting} onAskPreset={onAskPreset} />
+  <div className="shrink-0 border-t border-zinc-100 bg-white px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
+    <ComposerPrimitive.Root
+      className="rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04),0_14px_36px_rgba(24,24,27,0.08)] transition focus-within:border-zinc-300 focus-within:ring-2 focus-within:ring-zinc-200/80"
+      data-testid="agent-composer-card"
+    >
+      {focus ? (
+        <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-2.5">
+          <span className="type-label-xs shrink-0 rounded-full bg-zinc-100 px-2 py-1 text-zinc-600">
+            当前模块
+          </span>
+          <span className="type-control-sm min-w-0 truncate text-zinc-800">
+            {focus.title}
+          </span>
+        </div>
+      ) : null}
+      <ComposerPrimitive.Input
+        aria-label="输入 AI 消息"
+        className="type-body-sm max-h-44 min-h-[84px] w-full resize-none border-0 bg-transparent px-4 py-4 outline-none placeholder:text-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
+        placeholder="围绕当前模块继续追问..."
+        submitMode="enter"
+        rows={2}
+        maxRows={6}
+      />
+      <div className="flex items-center justify-between gap-3 px-3 pb-3">
+        <div className="min-w-0">
+          <span className="type-label-xs inline-flex max-w-full items-center gap-1.5 truncate rounded-full bg-zinc-50 px-2.5 py-1.5 text-zinc-500 ring-1 ring-inset ring-zinc-200">
+            <ChatText
+              className="h-3.5 w-3.5 shrink-0"
+              weight={phosphorIconWeight}
+            />
+            <span className="truncate">
+              {focus ? "按当前模块回答" : "按全部已加载模块回答"}
+            </span>
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {isChatting ? (
+            <ComposerPrimitive.Cancel
+              className="phosphor-hover-root type-control-sm inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="停止生成"
+              title="停止生成"
+            >
+              <PhosphorHoverIcon className="h-4 w-4" icon={StopCircle} />
+            </ComposerPrimitive.Cancel>
+          ) : null}
+          <ComposerPrimitive.Send
+            className="phosphor-hover-root type-control-sm inline-flex h-10 w-10 items-center justify-center rounded-full border border-transparent bg-zinc-950 text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:opacity-45"
+            aria-label="发送消息"
+            title="发送消息"
+          >
+            <PhosphorHoverIcon className="h-4 w-4" icon={PaperPlaneTilt} />
+          </ComposerPrimitive.Send>
+        </div>
+      </div>
+    </ComposerPrimitive.Root>
+    <PresetQuestionList
+      className="mt-3 flex-nowrap overflow-x-auto pb-1"
+      isChatting={isChatting}
+      onAskPreset={onAskPreset}
+      variant="composer"
+    />
   </div>
 );
 
@@ -709,10 +705,12 @@ const PresetQuestionList = ({
   className,
   isChatting,
   onAskPreset,
+  variant = "default",
 }: {
   className?: string;
   isChatting: boolean;
   onAskPreset: (question: string) => void;
+  variant?: "default" | "composer";
 }) => (
   <div className={cn("flex flex-wrap gap-2", className)}>
     {presetQuestions.map((question) => (
@@ -721,7 +719,11 @@ const PresetQuestionList = ({
         type="button"
         size="sm"
         variant="ghost"
-        className="phosphor-hover-root"
+        className={cn(
+          "phosphor-hover-root",
+          variant === "composer" &&
+            "shrink-0 rounded-full border-zinc-200 bg-white px-3 text-zinc-700 shadow-sm hover:bg-zinc-50",
+        )}
         disabled={isChatting}
         onClick={() => onAskPreset(question)}
       >
