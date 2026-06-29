@@ -135,7 +135,7 @@ const SidebarLinkItem = ({
               separated ? "top-3.5 bottom-0.5" : "inset-y-0.5",
               isActive
                 ? "opacity-100"
-                : "opacity-0 group-focus/sidebar:opacity-100 group-hover/sidebar:opacity-100",
+                : "opacity-0 group-hover/sidebar:opacity-100 group-focus-visible/sidebar:opacity-100",
             )}
           />
           <span
@@ -154,7 +154,7 @@ const SidebarLinkItem = ({
             </span>
             <span
               className={cn(
-                "type-control-sm inline-block whitespace-pre transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
+                "type-control-sm inline-block whitespace-pre transition duration-150 group-hover/sidebar:translate-x-1 group-focus-visible/sidebar:translate-x-1",
                 isActive ? "text-neutral-950" : "text-neutral-500",
                 collapsed && "sr-only",
               )}
@@ -209,7 +209,7 @@ const SidebarGroupItem = ({
           "pointer-events-none absolute inset-x-0 inset-y-0.5 z-10 rounded-lg bg-neutral-200 transition-opacity duration-150 ease-out",
           active
             ? "opacity-100"
-            : "opacity-0 group-focus/sidebar:opacity-100 group-hover/sidebar:opacity-100",
+            : "opacity-0 group-hover/sidebar:opacity-100 group-focus-visible/sidebar:opacity-100",
         )}
       />
       <span
@@ -228,7 +228,7 @@ const SidebarGroupItem = ({
         </span>
         <span
           className={cn(
-            "type-control-sm inline-block whitespace-pre transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
+            "type-control-sm inline-block whitespace-pre transition duration-150 group-hover/sidebar:translate-x-1 group-focus-visible/sidebar:translate-x-1",
             active ? "text-neutral-950" : "text-neutral-500",
             collapsed && "sr-only",
           )}
@@ -275,8 +275,8 @@ const SidebarChildLink = ({
     <NavLink
       className={({ isActive, isPending }) =>
         cn(
-          "type-body-sm-tight mx-2 block h-9 w-[calc(100%-16px)] rounded-lg pl-[52px] pr-3 text-left leading-9 transition hover:bg-neutral-200/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
-          isActive ? "bg-neutral-200 text-neutral-950" : "text-neutral-500",
+          "group/sidebar-child type-body-sm-tight relative mx-2 flex h-9 w-[calc(100%-16px)] items-center rounded-lg pl-[52px] pr-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
+          isActive ? "text-neutral-950" : "text-neutral-500",
           isPending && "opacity-80",
         )
       }
@@ -286,7 +286,21 @@ const SidebarChildLink = ({
       onMouseEnter={preloadRoute}
       onPointerEnter={preloadRoute}
     >
-      {label}
+      {({ isActive }) => (
+        <>
+          <span
+            className={cn(
+              "pointer-events-none absolute inset-x-0 inset-y-0.5 z-10 rounded-lg bg-neutral-200 transition-opacity duration-150 ease-out",
+              isActive
+                ? "opacity-100"
+                : "opacity-0 group-hover/sidebar-child:opacity-100 group-focus-visible/sidebar-child:opacity-100",
+            )}
+          />
+          <span className="relative z-20 inline-block translate-y-px">
+            {label}
+          </span>
+        </>
+      )}
     </NavLink>
   );
 };

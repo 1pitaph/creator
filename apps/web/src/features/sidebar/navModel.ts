@@ -1,14 +1,7 @@
 import type { CreatorRouteId } from "../navigation/creatorRoutes";
 import { sidebarNavItems } from "./navItems";
 
-export const getDefaultSidebarOpenGroups = () =>
-  sidebarNavItems.reduce<Record<string, boolean>>((groups, item) => {
-    if (item.kind === "group" && item.defaultOpen) {
-      groups[item.id] = true;
-    }
-
-    return groups;
-  }, {});
+export const getDefaultSidebarOpenGroups = (): Record<string, boolean> => ({});
 
 export const getSidebarGroupIdForRoute = (routeId: CreatorRouteId) => {
   for (const item of sidebarNavItems) {

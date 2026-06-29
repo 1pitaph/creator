@@ -652,6 +652,12 @@ const AgentComposerCard = ({
           </span>
         </div>
       ) : null}
+      <PresetQuestionList
+        className="border-b border-zinc-100 px-3 py-3"
+        isChatting={isChatting}
+        onAskPreset={onAskPreset}
+        variant="composer"
+      />
       <ComposerPrimitive.Input
         aria-label="输入 AI 消息"
         className="type-body-sm max-h-44 min-h-[84px] w-full resize-none border-0 bg-transparent px-4 py-4 outline-none placeholder:text-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
@@ -692,12 +698,6 @@ const AgentComposerCard = ({
         </div>
       </div>
     </ComposerPrimitive.Root>
-    <PresetQuestionList
-      className="mt-3 flex-nowrap overflow-x-auto pb-1"
-      isChatting={isChatting}
-      onAskPreset={onAskPreset}
-      variant="composer"
-    />
   </div>
 );
 
@@ -712,7 +712,10 @@ const PresetQuestionList = ({
   onAskPreset: (question: string) => void;
   variant?: "default" | "composer";
 }) => (
-  <div className={cn("flex flex-wrap gap-2", className)}>
+  <div
+    className={cn("flex flex-wrap gap-2", className)}
+    data-testid={variant === "composer" ? "agent-composer-presets" : undefined}
+  >
     {presetQuestions.map((question) => (
       <Button
         key={question}

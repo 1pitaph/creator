@@ -32,13 +32,12 @@ type SidebarNavGroup = {
   label: string;
   icon: ReactNode;
   children: SidebarNavChild[];
-  defaultOpen?: boolean;
   separated?: boolean;
 };
 
 export type SidebarNavItem = SidebarNavLeaf | SidebarNavGroup;
 
-const sidebarIconClassName = "h-6 w-6 shrink-0";
+const sidebarIconClassName = "h-5 w-5 translate-y-[3px] shrink-0";
 
 export const sidebarNavItems: SidebarNavItem[] = [
   {
@@ -123,7 +122,6 @@ export const sidebarNavItems: SidebarNavItem[] = [
       { id: "my-tasks", label: "我的任务", routeId: "monetizationTasks" },
       { id: "my-income", label: "我的收入", routeId: "monetizationIncome" },
     ],
-    defaultOpen: true,
   },
   {
     kind: "group",

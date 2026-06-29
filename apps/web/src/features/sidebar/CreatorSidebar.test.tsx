@@ -374,6 +374,41 @@ describe("CreatorSidebar", () => {
     }
   });
 
+  it("does not keep sidebar nav labels shifted after pointer focus", () => {
+    renderSidebar();
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const homeLabel = within(sidebar).getByText("首页");
+    const contentGroupLabel = within(sidebar).getByText("内容管理");
+
+    for (const label of [homeLabel, contentGroupLabel]) {
+      expect(label).toHaveClass("group-hover/sidebar:translate-x-1");
+      expect(label).toHaveClass("group-focus-visible/sidebar:translate-x-1");
+      expect(label).not.toHaveClass("group-focus/sidebar:translate-x-1");
+    }
+  });
+
+  it("centers sidebar child nav labels inside their row", () => {
+    renderSidebar({ activeRouteId: "interactionFollows" });
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const childLink = within(sidebar).getByRole("link", { name: "关注管理" });
+    const childBackground =
+      childLink.querySelector<HTMLElement>(".bg-neutral-200");
+
+    if (!childBackground) {
+      throw new Error("Expected sidebar child nav background to render.");
+    }
+
+    expect(childLink).toHaveClass("flex", "items-center");
+    expect(childLink).not.toHaveClass("leading-9");
+    expect(childLink).not.toHaveClass("bg-neutral-200");
+    expect(childBackground).toHaveClass("absolute", "inset-y-0.5");
+    expect(within(childLink).getByText("关注管理")).toHaveClass(
+      "translate-y-px",
+    );
+  });
+
   it("routes activity and account overview entries through URL navigation", () => {
     renderSidebar();
 
@@ -395,14 +430,13 @@ describe("CreatorSidebar", () => {
     renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
-    expect(
-      within(sidebar).getByRole("button", { name: "变现中心" }),
-    ).toHaveAttribute("aria-expanded", "true");
-    expect(
-      within(sidebar).getByRole("button", { name: "内容管理" }),
-    ).toHaveAttribute("aria-expanded", "false");
+    for (const group of ["内容管理", "互动管理", "数据中心", "变现中心", "创作中心"]) {
+      expect(
+        within(sidebar).getByRole("button", { name: group }),
+      ).toHaveAttribute("aria-expanded", "false");
+    }
 
-    for (const group of ["内容管理", "互动管理", "数据中心", "创作中心"]) {
+    for (const group of ["内容管理", "互动管理", "数据中心", "变现中心", "创作中心"]) {
       fireEvent.click(within(sidebar).getByRole("button", { name: group }));
       expect(
         within(sidebar).getByRole("button", { name: group }),

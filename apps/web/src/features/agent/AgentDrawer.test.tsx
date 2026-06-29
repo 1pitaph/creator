@@ -159,7 +159,20 @@ describe("AgentDrawer", () => {
   it("keeps preset questions visible when no module is focused", () => {
     renderAgentDrawer();
 
-    expect(screen.getByTestId("agent-composer-card")).toBeInTheDocument();
+    const composerCard = screen.getByTestId("agent-composer-card");
+    const composerPresets = screen.getByTestId("agent-composer-presets");
+    const composerInput = screen.getByLabelText("输入 AI 消息");
+
+    expect(composerCard).toBeInTheDocument();
+    expect(composerCard).toContainElement(composerPresets);
+    expect(composerCard).toContainElement(composerInput);
+    expect(
+      composerPresets.compareDocumentPosition(composerInput) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(composerPresets).toHaveClass("flex-wrap");
+    expect(composerPresets).not.toHaveClass("flex-nowrap");
+    expect(composerPresets).not.toHaveClass("overflow-x-auto");
     expect(screen.getByText("按全部已加载模块回答")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /下一条视频拍什么/ }),
