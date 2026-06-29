@@ -3,6 +3,7 @@ import type { ChartIntent, CreatorMetrics } from "@creator/data-contracts";
 
 import { buildDualAxisTrendSpec } from "../../../../../packages/charts/src/styles/DualAxisTrendChart/spec";
 import { buildMultiMetricTrendSpec } from "../../../../../packages/charts/src/styles/MultiMetricTrendChart/spec";
+import { chartEvidenceColors } from "../../../../../packages/charts/src/theme/creatorChartTheme";
 
 const metrics: CreatorMetrics = {
   summary: {
@@ -90,6 +91,7 @@ describe("compact trend chart specs", () => {
     };
     const spec = buildDualAxisTrendSpec(intent, metrics, true) as {
       axes?: Array<Record<string, any>>;
+      color?: string[];
       padding?: unknown;
       series?: Array<Record<string, any>>;
     };
@@ -97,6 +99,18 @@ describe("compact trend chart specs", () => {
     expect(spec.padding).toEqual({ top: 2, right: 28, bottom: 24, left: 34 });
     expect(spec.series?.[0]).toMatchObject({ type: "bar", dataIndex: 0 });
     expect(spec.series?.[1]).toMatchObject({ type: "line", dataIndex: 1 });
+    expect(spec.series?.[0]?.bar?.style).toMatchObject({
+      fill: chartEvidenceColors.neutralBar,
+      fillOpacity: 0.82,
+    });
+    expect(spec.series?.[1]?.line?.style).toMatchObject({
+      stroke: chartEvidenceColors.rateLine,
+      lineWidth: 2,
+    });
+    expect(spec.color).toEqual([
+      chartEvidenceColors.neutralBar,
+      chartEvidenceColors.rateLine,
+    ]);
     expect(spec.axes?.[0]).toMatchObject({
       trimPadding: true,
       bandPadding: 0,

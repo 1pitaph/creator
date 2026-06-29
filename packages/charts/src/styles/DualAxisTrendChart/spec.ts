@@ -6,6 +6,7 @@ import {
   formatCompactAxisValue,
   metricMeta,
 } from "../../adapters/metricSeries";
+import { chartEvidenceColors } from "../../theme/creatorChartTheme";
 import { baseChartSpec, defaultTooltip } from "../shared/spec";
 
 const readAxisValue = (text: string | string[]) => {
@@ -49,6 +50,7 @@ export const buildDualAxisTrendSpec = (
           },
           style: {
             fontSize: 11,
+            fill: chartEvidenceColors.axisText,
           },
         }
       : undefined;
@@ -72,8 +74,11 @@ export const buildDualAxisTrendSpec = (
         ? {
             bar: {
               style: {
-                fill: "#18181b",
-                fillOpacity: 0.88,
+                fill: chartEvidenceColors.neutralBar,
+                fillOpacity: 0.82,
+                stroke: chartEvidenceColors.neutralBarStroke,
+                strokeOpacity: 0.32,
+                lineWidth: 0.5,
                 cornerRadius: [5, 5, 0, 0],
               },
             },
@@ -83,15 +88,23 @@ export const buildDualAxisTrendSpec = (
               visible: true,
               style: {
                 fill: "#ffffff",
-                lineWidth: 2,
-                size: compact ? 4 : 5,
+                lineWidth: compact ? 1.35 : 1.5,
+                size: compact ? 3.5 : 4.5,
+                stroke:
+                  usesBarLine && index === 1
+                    ? chartEvidenceColors.rateLine
+                    : undefined,
               },
             },
             line: {
               style: {
-                lineWidth: compact ? 2.25 : 2.5,
+                lineWidth: compact ? 2 : 2.25,
+                strokeOpacity: 0.9,
                 curveType: "monotone",
-                stroke: usesBarLine && index === 1 ? "#0284c7" : undefined,
+                stroke:
+                  usesBarLine && index === 1
+                    ? chartEvidenceColors.rateLine
+                    : undefined,
               },
             },
           }),
@@ -128,6 +141,7 @@ export const buildDualAxisTrendSpec = (
               space: 4,
               style: {
                 fontSize: 11,
+                fill: chartEvidenceColors.axisText,
               },
             }
           : undefined,
@@ -140,6 +154,11 @@ export const buildDualAxisTrendSpec = (
         title: {
           visible: !compact,
           text: keys[0] ? metricMeta[keys[0]].label : "",
+          style: {
+            fill: chartEvidenceColors.axisText,
+            fontSize: 12,
+            fontWeight: 600,
+          },
         },
         nice: true,
         zero: usesBarLine ? true : compact ? false : undefined,
@@ -154,6 +173,11 @@ export const buildDualAxisTrendSpec = (
         title: {
           visible: !compact,
           text: keys[1] ? metricMeta[keys[1]].label : "",
+          style: {
+            fill: chartEvidenceColors.axisText,
+            fontSize: 12,
+            fontWeight: 600,
+          },
         },
         nice: true,
         zero: false,
@@ -180,12 +204,16 @@ export const buildDualAxisTrendSpec = (
               space: 4,
               style: {
                 fontSize: 12,
+                fill: chartEvidenceColors.axisText,
               },
             },
           }
         : undefined,
       maxRow: compact ? 1 : undefined,
     },
+    color: usesBarLine
+      ? [chartEvidenceColors.neutralBar, chartEvidenceColors.rateLine]
+      : undefined,
     tooltip: defaultTooltip,
   } as ISpec;
 };

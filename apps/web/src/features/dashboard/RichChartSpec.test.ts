@@ -10,6 +10,7 @@ import {
   buildHeatmapCalendarSpec,
   getHeatmapCellColor,
 } from "../../../../../packages/charts/src/styles/HeatmapCalendarChart/spec";
+import { chartEvidenceColors } from "../../../../../packages/charts/src/theme/creatorChartTheme";
 
 const metrics: CreatorMetrics = {
   summary: {
@@ -73,9 +74,26 @@ describe("rich dashboard chart specs", () => {
   it("keeps the conversion funnel to real content stages", () => {
     const funnelData = buildFunnelData(metrics);
     const spec = buildFunnelConversionSpec(metrics) as {
-      data?: Array<{ values?: Array<{ stage: string }> }>;
-      label?: { visible?: boolean };
+      data?: Array<{
+        values?: Array<{
+          labelText: string;
+          stage: string;
+          stageColor: string;
+        }>;
+      }>;
+      funnel?: {
+        style?: { fill?: (datum: { stageColor?: string }) => string };
+      };
+      label?: {
+        visible?: boolean;
+        style?: { lineWidth?: number; stroke?: string };
+        formatMethod?: (
+          text: string,
+          datum?: { labelText?: string; stage?: string; displayValue?: string },
+        ) => string;
+      };
     };
+    const values = spec.data?.[0]?.values ?? [];
 
     expect(funnelData.map((item) => item.stage)).toEqual([
       "7 日播放",
@@ -86,10 +104,24 @@ describe("rich dashboard chart specs", () => {
     expect(funnelData.map((item) => item.value)).toEqual(
       [...funnelData].map((item) => item.value).sort((a, b) => b - a),
     );
-    expect(spec.data?.[0]?.values?.map((item) => item.stage)).toEqual(
+    expect(values.map((item) => item.stage)).toEqual(
       funnelData.map((item) => item.stage),
     );
+    expect(values.map((item) => item.stageColor)).toEqual(
+      chartEvidenceColors.funnelStages,
+    );
+    expect(values[1]?.labelText).toBe("有效完播 59.2万");
+    expect(spec.funnel?.style?.fill?.(values[1] ?? {})).toBe(
+      chartEvidenceColors.funnelStages[1],
+    );
     expect(spec.label?.visible).toBe(true);
+    expect(spec.label?.style).toMatchObject({
+      lineWidth: 0,
+      stroke: "transparent",
+    });
+    expect(spec.label?.formatMethod?.("有效完播 591560", values[1])).toBe(
+      "有效完播 59.2万",
+    );
   });
 
   it("builds a multi-lane heatmap with stable colors and original tooltip values", () => {
