@@ -21,6 +21,14 @@ export const buildDualAxisTrendSpec = (
   compact = false,
 ): ISpec => {
   const keys = intent.metricKeys.slice(0, 2);
+  const leftKey = keys[0];
+  const rightKey = keys[1];
+  const leftUnit = leftKey ? metricMeta[leftKey].unit : undefined;
+  const rightUnit = rightKey ? metricMeta[rightKey].unit : undefined;
+  const usesBarLine =
+    keys.length === 2 &&
+    (leftUnit === "count" || leftUnit === "currency") &&
+    rightUnit === "percent";
   const padding = compact
     ? { top: 2, right: 28, bottom: 24, left: 34 }
     : { top: 12, right: 48, bottom: 36, left: 52 };
@@ -55,21 +63,52 @@ export const buildDualAxisTrendSpec = (
     padding,
     data,
     series: keys.map((key, index) => ({
-      type: "line",
+      type: usesBarLine && index === 0 ? "bar" : "line",
       dataIndex: index,
       xField: "date",
       yField: "value",
       seriesField: "label",
-      point: {
+      ...(usesBarLine && index === 0
+        ? {
+            bar: {
+              style: {
+                fill: "#18181b",
+                fillOpacity: 0.88,
+                cornerRadius: [5, 5, 0, 0],
+              },
+            },
+          }
+        : {
+            point: {
+              visible: true,
+              style: {
+                fill: "#ffffff",
+                lineWidth: 2,
+                size: compact ? 4 : 5,
+              },
+            },
+            line: {
+              style: {
+                lineWidth: compact ? 2.25 : 2.5,
+                curveType: "monotone",
+                stroke: usesBarLine && index === 1 ? "#0284c7" : undefined,
+              },
+            },
+          }),
+      tooltip: {
         visible: true,
-        style: {
-          size: compact ? 4 : 5,
-        },
-      },
-      line: {
-        style: {
-          lineWidth: compact ? 2.25 : 2.5,
-          curveType: "monotone",
+        mark: {
+          title: {
+            key: "date",
+            value: (datum: { date?: string }) => datum.date ?? "",
+          },
+          content: [
+            {
+              key: (datum: { label?: string }) => datum.label ?? "",
+              value: (datum: { displayValue?: string }) =>
+                datum.displayValue ?? "",
+            },
+          ],
         },
       },
     })),
@@ -103,7 +142,7 @@ export const buildDualAxisTrendSpec = (
           text: keys[0] ? metricMeta[keys[0]].label : "",
         },
         nice: true,
-        zero: compact ? false : undefined,
+        zero: usesBarLine ? true : compact ? false : undefined,
         domainLine: { visible: false },
         label: buildAxisLabel(keys[0]),
       },
@@ -117,7 +156,7 @@ export const buildDualAxisTrendSpec = (
           text: keys[1] ? metricMeta[keys[1]].label : "",
         },
         nice: true,
-        zero: compact ? false : undefined,
+        zero: false,
         grid: { visible: false },
         domainLine: { visible: false },
         label: buildAxisLabel(keys[1]),

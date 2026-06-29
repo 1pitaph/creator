@@ -230,7 +230,7 @@ describe("DashboardCardRenderer module chart cards", () => {
       expect.objectContaining({
         className: expect.stringContaining("flex-1"),
         intent: module!.chart,
-        compact: true,
+        compact: false,
         height: "100%",
       }),
     );
@@ -261,7 +261,7 @@ describe("DashboardCardRenderer module chart cards", () => {
 });
 
 describe("DashboardCardRenderer metric cards", () => {
-  it("lets the commerce metric use the filled medium chart height", () => {
+  it("lets the commerce metric use the filled medium chart height without compacting its dual-axis chart", () => {
     const diagnosis = localDiagnosis(defaultCreatorId, "focused");
     const viewModel = buildDashboardViewModel(diagnosis);
     const card = buildDashboardCards(diagnosis, viewModel).find(
@@ -288,13 +288,13 @@ describe("DashboardCardRenderer metric cards", () => {
       "100%",
     );
     expect(chartSlotMock).toHaveBeenCalledWith(
-      expect.objectContaining({ compact: true, height: "100%" }),
+      expect.objectContaining({ compact: false, height: "100%" }),
     );
   });
 });
 
 describe("DashboardCardRenderer trend cards", () => {
-  it("renders one main trend chart plus compact metric summaries", () => {
+  it("renders one main trend chart plus metric summaries", () => {
     const diagnosis = localDiagnosis(defaultCreatorId, "focused");
     const viewModel = buildDashboardViewModel(diagnosis);
     const card = buildDashboardCards(diagnosis, viewModel).find(
@@ -318,7 +318,7 @@ describe("DashboardCardRenderer trend cards", () => {
     expect(screen.getAllByTestId("chart-slot")).toHaveLength(1);
     expect(chartSlotMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        compact: true,
+        compact: false,
         height: "100%",
         intent: viewModel.trendComparisonChart,
       }),

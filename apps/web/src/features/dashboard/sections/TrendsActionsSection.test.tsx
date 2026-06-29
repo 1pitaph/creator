@@ -43,7 +43,7 @@ describe("TrendsActionsSection", () => {
     expect(screen.getAllByTestId("chart-slot")).toHaveLength(1);
     expect(chartSlotMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        compact: true,
+        compact: false,
         height: 260,
         intent: viewModel.trendComparisonChart,
       }),

@@ -36,7 +36,7 @@ export const TrendsActionsSection = ({
         intent={viewModel.trendComparisonChart}
         metrics={viewModel.metrics}
         tone="zinc"
-        compact
+        compact={false}
       />
       <TrendMetricSummaryRail
         className="mt-3"

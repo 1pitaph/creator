@@ -12,11 +12,41 @@ describe("dashboard view model", () => {
 
     expect(calculateHealthScore(diagnosis)).toBeGreaterThanOrEqual(42);
     expect(viewModel.healthScore).toBe(calculateHealthScore(diagnosis));
-    expect(viewModel.activeModuleIds).toEqual(diagnosis.modules.map((module) => module.id));
-    expect(viewModel.metricCards.map((metric) => metric.id)).toContain("views7d");
-    expect(viewModel.metricCards[0]?.askTarget.moduleId).toBe("content-diagnosis");
-    expect(viewModel.moduleById.get(diagnosis.modules[0]!.id)).toBe(diagnosis.modules[0]);
-    expect(viewModel.actionQueue).toHaveLength(Math.min(4, diagnosis.insights.flatMap((insight) => insight.actions).length));
+    expect(viewModel.activeModuleIds).toEqual(
+      diagnosis.modules.map((module) => module.id),
+    );
+    expect(viewModel.metricCards.map((metric) => metric.id)).toContain(
+      "views7d",
+    );
+    expect(viewModel.trendComparisonChart).toMatchObject({
+      style: "heatmap-calendar",
+      metricKeys: [
+        "views",
+        "completionRate",
+        "interactionRate",
+        "followerConversionRate",
+      ],
+    });
+    expect(
+      viewModel.metricCards.find((metric) => metric.id === "commerce")
+        ?.chartIntent,
+    ).toMatchObject({
+      style: "dual-axis-trend",
+      metricKeys: ["liveGmv", "commerceConversionRate"],
+      unit: "mixed",
+    });
+    expect(viewModel.metricCards[0]?.askTarget.moduleId).toBe(
+      "content-diagnosis",
+    );
+    expect(viewModel.moduleById.get(diagnosis.modules[0]!.id)).toBe(
+      diagnosis.modules[0],
+    );
+    expect(viewModel.actionQueue).toHaveLength(
+      Math.min(
+        4,
+        diagnosis.insights.flatMap((insight) => insight.actions).length,
+      ),
+    );
   });
 
   it("keeps formatter behavior available for extracted model code", () => {

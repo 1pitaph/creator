@@ -150,9 +150,6 @@ export const buildFunnelData = (metrics: CreatorMetrics) => {
   const completedViews = Math.round(views * metrics.summary.completionRate);
   const interactions = Math.round(views * metrics.summary.interactionRate);
   const followers = metrics.summary.followerGain7d;
-  const commerce = Math.round(
-    views * (metrics.summary.commerceConversionRate ?? 0),
-  );
 
   return [
     {
@@ -175,46 +172,89 @@ export const buildFunnelData = (metrics: CreatorMetrics) => {
       value: followers,
       displayValue: formatChartValue(followers, "count"),
     },
-    ...(commerce > 0
-      ? [
-          {
-            stage: "成交线索",
-            value: commerce,
-            displayValue: formatChartValue(commerce, "count"),
-          },
-        ]
-      : []),
   ];
+};
+
+const clampScore = (value: number) =>
+  Math.max(0, Math.min(100, Math.round(value)));
+
+const liftScore = (value: number | undefined, baseline: number | undefined) => {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    typeof baseline !== "number" ||
+    !Number.isFinite(baseline) ||
+    baseline <= 0
+  ) {
+    return 50;
+  }
+
+  return clampScore((value / baseline) * 55);
 };
 
 export const buildRadarData = (metrics: CreatorMetrics) => {
   const summary = metrics.summary;
-  const viewGrowthScore = Math.max(
-    0,
-    Math.min(100, 50 + summary.viewsChangePct),
-  );
+  const topContent = metrics.topContents[0];
+
+  if (topContent) {
+    const averagePublishedViews =
+      summary.views7d / Math.max(summary.publishCount7d, 1);
+
+    return [
+      {
+        label: "爆款播放",
+        series: "高表现内容",
+        score: liftScore(topContent.views, averagePublishedViews),
+      },
+      {
+        label: "完播兑现",
+        series: "高表现内容",
+        score: liftScore(topContent.completionRate, summary.completionRate),
+      },
+      {
+        label: "互动触发",
+        series: "高表现内容",
+        score: liftScore(topContent.interactionRate, summary.interactionRate),
+      },
+      {
+        label: "转粉承接",
+        series: "高表现内容",
+        score: liftScore(
+          topContent.followerConversionRate,
+          summary.followerConversionRate,
+        ),
+      },
+      {
+        label: "更新稳定",
+        series: "账号基线",
+        score: clampScore((summary.publishCount7d / 7) * 100),
+      },
+    ];
+  }
+
+  const viewGrowthScore = clampScore(50 + summary.viewsChangePct);
 
   return [
     { label: "播放增长", series: "当前账号", score: viewGrowthScore },
     {
       label: "完播",
       series: "当前账号",
-      score: Math.min(100, summary.completionRate * 160),
+      score: clampScore(summary.completionRate * 160),
     },
     {
       label: "互动",
       series: "当前账号",
-      score: Math.min(100, summary.interactionRate * 1000),
+      score: clampScore(summary.interactionRate * 1000),
     },
     {
       label: "转粉",
       series: "当前账号",
-      score: Math.min(100, summary.followerConversionRate * 10000),
+      score: clampScore(summary.followerConversionRate * 10000),
     },
     {
       label: "更新稳定",
       series: "当前账号",
-      score: Math.min(100, (summary.publishCount7d / 7) * 100),
+      score: clampScore((summary.publishCount7d / 7) * 100),
     },
   ];
 };

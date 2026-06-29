@@ -83,6 +83,12 @@ describe("InitialLoadingOverlay", () => {
       "data-active",
       "true",
     );
+    expect(screen.getByTestId("initial-loading-overlay")).toHaveClass(
+      "bg-[#f5f6f8]",
+    );
+    expect(screen.getByTestId("initial-loading-overlay").className).not.toContain(
+      "backdrop-blur",
+    );
     expect(screen.getByTestId("pixel-logo-loader")).toHaveAttribute(
       "data-active",
       "true",

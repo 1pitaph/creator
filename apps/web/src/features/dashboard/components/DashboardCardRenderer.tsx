@@ -445,7 +445,7 @@ const MetricCardBody = ({
           intent={metric.chartIntent}
           metrics={metrics}
           tone={metric.tone}
-          compact
+          compact={size === "small"}
         />
       </div>
     </div>
@@ -468,7 +468,7 @@ const TrendCardBody = ({
       intent={viewModel.trendComparisonChart}
       metrics={viewModel.metrics}
       tone="zinc"
-      compact
+      compact={size === "small"}
     />
     <TrendMetricSummaryRail
       className="mt-3 shrink-0"
@@ -499,7 +499,7 @@ const ModuleChartCardBody = ({
       intent={chartIntent}
       metrics={viewModel.metrics}
       tone="zinc"
-      compact={fill || size === "small"}
+      compact={size === "small"}
     />
   </div>
 );

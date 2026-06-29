@@ -36,8 +36,20 @@ export const buildMiniTrendSpec = (
     xField: "date",
     yField,
     seriesField: "label",
+    area: {
+      visible: true,
+      style: {
+        fill: chartToneColors[tone],
+        fillOpacity: 0.08,
+      },
+    },
     point: {
-      visible: false,
+      visible: !compact,
+      style: {
+        fill: "#ffffff",
+        lineWidth: 2,
+        size: 4,
+      },
     },
     line: {
       style: {

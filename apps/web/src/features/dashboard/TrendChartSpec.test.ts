@@ -91,16 +91,19 @@ describe("compact trend chart specs", () => {
     const spec = buildDualAxisTrendSpec(intent, metrics, true) as {
       axes?: Array<Record<string, any>>;
       padding?: unknown;
+      series?: Array<Record<string, any>>;
     };
 
     expect(spec.padding).toEqual({ top: 2, right: 28, bottom: 24, left: 34 });
+    expect(spec.series?.[0]).toMatchObject({ type: "bar", dataIndex: 0 });
+    expect(spec.series?.[1]).toMatchObject({ type: "line", dataIndex: 1 });
     expect(spec.axes?.[0]).toMatchObject({
       trimPadding: true,
       bandPadding: 0,
       paddingInner: 0,
       paddingOuter: 0,
     });
-    expect(spec.axes?.[1]).toMatchObject({ seriesIndex: [0], zero: false });
+    expect(spec.axes?.[1]).toMatchObject({ seriesIndex: [0], zero: true });
     expect(spec.axes?.[2]).toMatchObject({ seriesIndex: [1], zero: false });
     expect(spec.axes?.[1]?.label.formatMethod("100000")).toBe("10万");
     expect(spec.axes?.[2]?.label.formatMethod("0.042")).toBe("4.2%");
