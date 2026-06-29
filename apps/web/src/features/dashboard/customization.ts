@@ -225,11 +225,13 @@ const defaultDimensionsForSize = (
   height: size,
 });
 
-export const normalizeDashboardCardDimensions = (
+const trendComparisonCardId = "trend-comparison";
+
+const normalizeDashboardCardDimensionsWithFallback = (
   value: unknown,
-  fallbackSize: DashboardCardSize = "medium",
+  fallback: DashboardCardDimensions,
 ): DashboardCardDimensions => {
-  const fallback = defaultDimensionsForSize(fallbackSize);
+  const fallbackSize = getDashboardCardContentSize(fallback);
 
   if (typeof value === "string") {
     return (
@@ -267,16 +269,41 @@ export const normalizeDashboardCardDimensions = (
   };
 };
 
-export const getDashboardCardContentSize = ({
+export const normalizeDashboardCardDimensions = (
+  value: unknown,
+  fallbackSize: DashboardCardSize = "medium",
+): DashboardCardDimensions =>
+  normalizeDashboardCardDimensionsWithFallback(
+    value,
+    defaultDimensionsForSize(fallbackSize),
+  );
+
+export const getDefaultDashboardCardDimensions = (
+  card: DashboardCardDefinition,
+): DashboardCardDimensions =>
+  card.id === trendComparisonCardId
+    ? { width: "large", height: "medium" }
+    : defaultDimensionsForSize(card.defaultSize);
+
+const normalizeDashboardCardDimensionsForCard = (
+  value: unknown,
+  card: DashboardCardDefinition,
+): DashboardCardDimensions =>
+  normalizeDashboardCardDimensionsWithFallback(
+    value,
+    getDefaultDashboardCardDimensions(card),
+  );
+
+export function getDashboardCardContentSize({
   height,
   width,
-}: DashboardCardDimensions): DashboardCardSize => {
+}: DashboardCardDimensions): DashboardCardSize {
   const widthIndex = dashboardCardSizeOrder.indexOf(width);
   const heightIndex = dashboardCardSizeOrder.indexOf(height);
   const contentIndex = Math.min(widthIndex, heightIndex);
 
   return dashboardCardSizeOrder[contentIndex] ?? "medium";
-};
+}
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -473,7 +500,7 @@ export const buildDashboardCards = (
       ];
     }),
     {
-      id: "trend-comparison",
+      id: trendComparisonCardId,
       kind: "trend",
       title: "7 日趋势对照",
       description: "播放、完播、互动和转粉趋势对照。",
@@ -579,9 +606,7 @@ export const createDashboardGridItem = (
   breakpoint: DashboardBreakpoint,
   x: number,
   y: number,
-  dimensions: DashboardCardDimensions = defaultDimensionsForSize(
-    card.defaultSize,
-  ),
+  dimensions: DashboardCardDimensions = getDefaultDashboardCardDimensions(card),
   cols = dashboardColumnCounts[breakpoint],
 ): DashboardGridItem => {
   const preset = getGridPreset(dimensions, breakpoint, card, cols);
@@ -708,9 +733,9 @@ export const packDashboardMasonryLayout = (
   });
 
   orderedCards.forEach((card) => {
-    const dimensions = normalizeDashboardCardDimensions(
+    const dimensions = normalizeDashboardCardDimensionsForCard(
       cardPreferences[card.id],
-      card.defaultSize,
+      card,
     );
     const item =
       sourceItemById.get(card.id) ??
@@ -783,9 +808,9 @@ export const reconcileDashboardGridLayout = (
       return [];
     }
 
-    const dimensions = normalizeDashboardCardDimensions(
+    const dimensions = normalizeDashboardCardDimensionsForCard(
       cardPreferences[card.id],
-      card.defaultSize,
+      card,
     );
     const item = createDashboardGridItem(
       card,
@@ -893,13 +918,14 @@ const appendMissingModuleChartLayoutItems = (
   return nextLayout;
 };
 
-const withCommerceMetricCardDimensions = (
+const withDashboardCardDimensions = (
   cardPreferences: DashboardPreferencesV1["cards"],
+  cardId: string,
   dimensions: DashboardCardDimensions,
 ): DashboardPreferencesV1["cards"] => ({
   ...cardPreferences,
-  [commerceMetricCardId]: {
-    visible: cardPreferences[commerceMetricCardId]?.visible ?? true,
+  [cardId]: {
+    visible: cardPreferences[cardId]?.visible ?? true,
     ...dimensions,
   },
 });
@@ -927,37 +953,58 @@ const dashboardLayoutsHaveSameFrames = (
   });
 };
 
-const migrateRevenueFocusDefaultLayout = (
+const migrateChangedDefaultLayouts = (
   cards: DashboardCardDefinition[],
   cardPreferences: DashboardPreferencesV1["cards"],
   sourceLayouts: DashboardPreferencesV1["visual"]["layouts"],
 ) => {
-  if (!hasRevenueFocusCards(cards)) {
-    return {
-      cards: cardPreferences,
-      layouts: sourceLayouts,
-    };
-  }
-
+  const migrationEntries: Array<{
+    cardId: string;
+    next: DashboardCardDimensions;
+  }> = [];
   const commerceDimensions = normalizeDashboardCardDimensions(
     cardPreferences[commerceMetricCardId],
     "small",
   );
 
   if (
-    commerceDimensions.width !== "small" ||
-    commerceDimensions.height !== "small"
+    hasRevenueFocusCards(cards) &&
+    commerceDimensions.width === "small" &&
+    commerceDimensions.height === "small"
   ) {
+    migrationEntries.push({
+      cardId: commerceMetricCardId,
+      next: { width: "medium", height: "medium" },
+    });
+  }
+
+  const hasTrendComparisonCard = cards.some(
+    (card) => card.id === trendComparisonCardId,
+  );
+  const trendDimensions = normalizeDashboardCardDimensions(
+    cardPreferences[trendComparisonCardId],
+    "large",
+  );
+
+  if (
+    hasTrendComparisonCard &&
+    trendDimensions.width === "large" &&
+    trendDimensions.height === "large"
+  ) {
+    migrationEntries.push({
+      cardId: trendComparisonCardId,
+      next: { width: "large", height: "medium" },
+    });
+  }
+
+  if (!migrationEntries.length) {
     return {
       cards: cardPreferences,
       layouts: sourceLayouts,
     };
   }
 
-  const legacyCards = withCommerceMetricCardDimensions(cardPreferences, {
-    width: "small",
-    height: "small",
-  });
+  const legacyCards = cardPreferences;
   const legacyLayouts = createDashboardLayouts(cards, legacyCards);
   const matchesLegacyDefaults = dashboardBreakpoints.every((breakpoint) =>
     dashboardLayoutsHaveSameFrames(
@@ -973,10 +1020,11 @@ const migrateRevenueFocusDefaultLayout = (
     };
   }
 
-  const migratedCards = withCommerceMetricCardDimensions(cardPreferences, {
-    width: "medium",
-    height: "medium",
-  });
+  const migratedCards = migrationEntries.reduce(
+    (nextCards, entry) =>
+      withDashboardCardDimensions(nextCards, entry.cardId, entry.next),
+    cardPreferences,
+  );
 
   return {
     cards: migratedCards,
@@ -1020,7 +1068,7 @@ export const buildDefaultDashboardPreferences = (
       card.id,
       {
         visible: true,
-        ...defaultDimensionsForSize(card.defaultSize),
+        ...getDefaultDashboardCardDimensions(card),
       },
     ]),
   ) as DashboardPreferencesV1["cards"];
@@ -1070,7 +1118,7 @@ export const reconcileDashboardPreferences = (
         saved
           ? {
               visible: saved.visible,
-              ...normalizeDashboardCardDimensions(saved, card.defaultSize),
+              ...normalizeDashboardCardDimensionsForCard(saved, card),
             }
           : defaults.cards[card.id],
       ];
@@ -1090,15 +1138,15 @@ export const reconcileDashboardPreferences = (
       ),
     ]),
   ) as DashboardPreferencesV1["visual"]["layouts"];
-  const migratedRevenueFocusDefaults = migrateRevenueFocusDefaultLayout(
+  const migratedChangedDefaults = migrateChangedDefaultLayouts(
     cards,
     reconciledCards,
     sourceLayouts,
   );
   const currentLayouts = createDashboardLayouts(
     cards,
-    migratedRevenueFocusDefaults.cards,
-    migratedRevenueFocusDefaults.layouts,
+    migratedChangedDefaults.cards,
+    migratedChangedDefaults.layouts,
   );
   const layouts = Object.fromEntries(
     dashboardBreakpoints.map((breakpoint) => [
@@ -1156,7 +1204,7 @@ export const reconcileDashboardPreferences = (
     creatorId,
     selectedView: preferences.selectedView,
     updatedAt: preferences.updatedAt,
-    cards: migratedRevenueFocusDefaults.cards,
+    cards: migratedChangedDefaults.cards,
     visual: {
       layouts,
     },

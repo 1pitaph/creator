@@ -110,7 +110,7 @@ describe("dashboard customization", () => {
     });
     expect(preferences.cards["trend-comparison"]).toMatchObject({
       width: "large",
-      height: "large",
+      height: "medium",
     });
     expect(preferences.visual.layouts.lg.map((item) => item.i)).toEqual(
       cards.map((card) => card.id),
@@ -187,6 +187,11 @@ describe("dashboard customization", () => {
       { i: "module-chart:drama-revenue-radar", x: 4, y: 12, w: 4, h: 8 },
       { i: "module-chart:viral-review", x: 8, y: 12, w: 4, h: 8 },
     ]);
+    expect(
+      preferences.visual.layouts.lg.find(
+        (item) => item.i === "trend-comparison",
+      ),
+    ).toMatchObject({ x: 0, y: 28, w: 8, h: 8 });
     dashboardBreakpoints.forEach((breakpoint) => {
       expect(
         preferences.visual.layouts[breakpoint].map((item) => item.i),
@@ -453,6 +458,98 @@ describe("dashboard customization", () => {
     expect(
       reconciled.visual.layouts.lg.find((item) => item.i === "metric:commerce"),
     ).toMatchObject({ x: 1, y: 12, w: 3, h: 5 });
+  });
+
+  it("migrates the old default trend comparison card into the wide medium-height layout", () => {
+    const { actions, cards } = buildFixture();
+    const preferences = buildDefaultDashboardPreferences(
+      defaultCreatorId,
+      cards,
+      actions,
+      "2026-06-28T00:00:00.000Z",
+    );
+    const legacyCards = {
+      ...preferences.cards,
+      "trend-comparison": {
+        visible: true,
+        width: "large" as const,
+        height: "large" as const,
+      },
+    };
+    const legacyPreferences = {
+      ...preferences,
+      cards: legacyCards,
+      visual: {
+        layouts: createDashboardLayouts(cards, legacyCards),
+      },
+    };
+
+    const reconciled = reconcileDashboardPreferences(
+      legacyPreferences,
+      defaultCreatorId,
+      cards,
+      actions,
+      "2026-06-29T00:00:00.000Z",
+    );
+
+    expect(reconciled.cards["trend-comparison"]).toMatchObject({
+      width: "large",
+      height: "medium",
+    });
+    expect(
+      reconciled.visual.layouts.lg.find(
+        (item) => item.i === "trend-comparison",
+      ),
+    ).toMatchObject({ x: 0, y: 28, w: 8, h: 8 });
+  });
+
+  it("does not migrate the trend comparison card when it was manually adjusted", () => {
+    const { actions, cards } = buildFixture();
+    const preferences = buildDefaultDashboardPreferences(
+      defaultCreatorId,
+      cards,
+      actions,
+      "2026-06-28T00:00:00.000Z",
+    );
+    const legacyCards = {
+      ...preferences.cards,
+      "trend-comparison": {
+        visible: true,
+        width: "large" as const,
+        height: "large" as const,
+      },
+    };
+    const legacyLayouts = createDashboardLayouts(cards, legacyCards);
+    const manuallyAdjustedLayouts = {
+      ...legacyLayouts,
+      lg: legacyLayouts.lg.map((item) =>
+        item.i === "trend-comparison" ? { ...item, y: item.y + 1 } : item,
+      ),
+    };
+
+    const reconciled = reconcileDashboardPreferences(
+      {
+        ...preferences,
+        cards: legacyCards,
+        visual: {
+          layouts: manuallyAdjustedLayouts,
+        },
+      },
+      defaultCreatorId,
+      cards,
+      actions,
+      "2026-06-29T00:00:00.000Z",
+    );
+
+    expect(reconciled.cards["trend-comparison"]).toMatchObject({
+      width: "large",
+      height: "large",
+    });
+    expect(
+      reconciled.visual.layouts.lg.find(
+        (item) => item.i === "trend-comparison",
+      ),
+    ).toMatchObject({ x: 0, y: 29, w: 8, h: 11 });
   });
 
   it("keeps independent width and height presets as metadata without resetting saved layouts", () => {

@@ -292,3 +292,42 @@ describe("DashboardCardRenderer metric cards", () => {
     );
   });
 });
+
+describe("DashboardCardRenderer trend cards", () => {
+  it("renders one main trend chart plus compact metric summaries", () => {
+    const diagnosis = localDiagnosis(defaultCreatorId, "focused");
+    const viewModel = buildDashboardViewModel(diagnosis);
+    const card = buildDashboardCards(diagnosis, viewModel).find(
+      (item) => item.id === "trend-comparison",
+    );
+
+    expect(card).toBeDefined();
+
+    render(
+      <DashboardCardRenderer
+        actions={buildDashboardActionCards(diagnosis)}
+        card={card!}
+        diagnosis={diagnosis}
+        fill
+        onAsk={vi.fn()}
+        size="medium"
+        viewModel={viewModel}
+      />,
+    );
+
+    expect(screen.getAllByTestId("chart-slot")).toHaveLength(1);
+    expect(chartSlotMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        compact: true,
+        height: "100%",
+        intent: viewModel.trendComparisonChart,
+      }),
+    );
+
+    viewModel.metricCards.slice(0, 4).forEach((metric) => {
+      expect(screen.getByText(metric.label)).toBeInTheDocument();
+      expect(screen.getByText(metric.value)).toBeInTheDocument();
+      expect(screen.getByText(metric.trendLabel)).toBeInTheDocument();
+    });
+  });
+});

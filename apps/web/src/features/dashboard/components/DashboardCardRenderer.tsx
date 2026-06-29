@@ -28,7 +28,7 @@ import {
 import { InsightRow } from "./InsightRow";
 import { ModuleTile } from "./ModuleTile";
 import { TopContentTile } from "./TopContentTile";
-import { TrendStrip } from "./TrendStrip";
+import { TrendMetricSummaryRail } from "./TrendMetricSummaryRail";
 
 export const DashboardCardRenderer = ({
   actions,
@@ -461,30 +461,19 @@ const TrendCardBody = ({
   size: DashboardCardDefinition["defaultSize"];
   viewModel: DashboardViewModel;
 }) => (
-  <div className={cn(fill && "flex h-full min-h-0 flex-col")}>
+  <div className={cn("flex flex-col", fill && "h-full min-h-0")}>
     <ChartSlot
-      className={cn(
-        fill
-          ? "min-h-0 flex-1"
-          : "rounded-2xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]",
-      )}
+      className={cn(fill ? "min-h-0 flex-1" : "min-h-[220px]")}
       height={fill ? "100%" : chartHeightBySize[size]}
       intent={viewModel.trendComparisonChart}
       metrics={viewModel.metrics}
       tone="zinc"
-      compact={fill || size === "small"}
+      compact
     />
-    {size === "large" ? (
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        {viewModel.metricCards.slice(0, 4).map((metric) => (
-          <TrendStrip
-            key={metric.id}
-            metric={metric}
-            metrics={viewModel.metrics}
-          />
-        ))}
-      </div>
-    ) : null}
+    <TrendMetricSummaryRail
+      className="mt-3 shrink-0"
+      metrics={viewModel.metricCards}
+    />
   </div>
 );
 
