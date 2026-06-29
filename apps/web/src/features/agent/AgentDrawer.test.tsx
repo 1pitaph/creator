@@ -67,16 +67,21 @@ describe("AgentDrawer", () => {
   it("collapses focused module context by default", () => {
     renderAgentDrawer({ focus: focusTarget });
 
+    const details = screen.getByTestId("agent-context-details");
+
     expect(screen.getByText("当前询问模块")).toBeInTheDocument();
     expect(screen.getByText("AI 诊断优先级")).toBeInTheDocument();
+    expect(details).toHaveAttribute("data-state", "collapsed");
+    expect(details).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByText(focusTarget.summary)).not.toBeInTheDocument();
     expect(screen.queryByText("7 日转粉率 0.4%")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /下一条视频拍什么/ }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "展开当前询问模块" }),
-    ).toHaveAttribute("aria-expanded", "false");
+    const toggle = screen.getByRole("button", { name: "展开当前询问模块" });
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAttribute("aria-controls", details.id);
   });
 
   it("toggles focused module details and preset questions", () => {
@@ -86,6 +91,11 @@ describe("AgentDrawer", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "展开当前询问模块" }));
 
+    const details = screen.getByTestId("agent-context-details");
+    const revealItems = screen.getAllByTestId("agent-context-reveal-item");
+
+    expect(details).toHaveAttribute("data-state", "expanded");
+    expect(details).toHaveAttribute("aria-hidden", "false");
     expect(screen.getByText(focusTarget.summary)).toBeInTheDocument();
     expect(screen.getByText("7 日转粉率 0.4%")).toBeInTheDocument();
     expect(screen.getByText(focusTarget.evidence[2]!)).toHaveClass(
@@ -94,6 +104,11 @@ describe("AgentDrawer", () => {
       "whitespace-normal",
       "break-words",
     );
+    expect(revealItems.map((item) => item.dataset.revealIndex)).toEqual([
+      "0",
+      "1",
+      "2",
+    ]);
 
     fireEvent.click(screen.getByRole("button", { name: /下一条视频拍什么/ }));
 
@@ -104,7 +119,8 @@ describe("AgentDrawer", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "收起当前询问模块" }));
 
-    expect(screen.queryByText(focusTarget.summary)).not.toBeInTheDocument();
+    expect(details).toHaveAttribute("data-state", "collapsed");
+    expect(details).toHaveAttribute("aria-hidden", "true");
     expect(
       screen.queryByRole("button", { name: /下一条视频拍什么/ }),
     ).not.toBeInTheDocument();
@@ -126,6 +142,10 @@ describe("AgentDrawer", () => {
     view.rerender(<AgentDrawer {...agentDrawerProps({ focus: nextFocus })} />);
 
     expect(screen.getByText("下一条视频拍什么")).toBeInTheDocument();
+    expect(screen.getByTestId("agent-context-details")).toHaveAttribute(
+      "data-state",
+      "collapsed",
+    );
     expect(screen.queryByText(nextFocus.summary)).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "展开当前询问模块" }),
@@ -182,7 +202,7 @@ describe("AgentDrawer", () => {
 
     const drawer = screen.getByTestId("agent-drawer-content");
 
-    expect(drawer).toHaveClass("agent-drawer-content");
+    expect(drawer).toHaveClass("agent-drawer-content", "scroll-isolated");
     expect(drawer).toHaveAttribute("data-state", "open");
   });
 
@@ -194,6 +214,58 @@ describe("AgentDrawer", () => {
       "scroll-isolated",
       "overflow-y-auto",
     );
+  });
+
+  it("prevents drawer wheel gestures from scrolling the page outside the panel", async () => {
+    renderAgentDrawer({ focus: focusTarget });
+
+    const drawer = screen.getByTestId("agent-drawer-content");
+
+    await waitFor(() => {
+      const wheelEvent = new WheelEvent("wheel", {
+        bubbles: true,
+        cancelable: true,
+        deltaY: 80,
+      });
+
+      drawer.dispatchEvent(wheelEvent);
+
+      expect(wheelEvent.defaultPrevented).toBe(true);
+    });
+  });
+
+  it("keeps wheel scrolling available inside the message viewport", async () => {
+    renderAgentDrawer({
+      messages: Array.from({ length: 6 }, (_, index) => ({
+        id: `message-${index}`,
+        role: "assistant" as const,
+        content: `回答内容 ${index}`,
+      })),
+    });
+
+    const viewport = screen.getByTestId("agent-thread-viewport");
+
+    Object.defineProperty(viewport, "clientHeight", {
+      configurable: true,
+      value: 100,
+    });
+    Object.defineProperty(viewport, "scrollHeight", {
+      configurable: true,
+      value: 320,
+    });
+    viewport.scrollTop = 80;
+
+    await waitFor(() => {
+      const wheelEvent = new WheelEvent("wheel", {
+        bubbles: true,
+        cancelable: true,
+        deltaY: 80,
+      });
+
+      viewport.dispatchEvent(wheelEvent);
+
+      expect(wheelEvent.defaultPrevented).toBe(false);
+    });
   });
 
   it("closes through Radix dialog escape handling", async () => {

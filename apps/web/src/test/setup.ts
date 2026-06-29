@@ -8,7 +8,12 @@ afterEach(() => {
 
 Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
   configurable: true,
-  value: vi.fn()
+  value: vi.fn(),
+});
+
+Object.defineProperty(window.HTMLElement.prototype, "scrollTo", {
+  configurable: true,
+  value: vi.fn(),
 });
 
 if (!window.PointerEvent) {

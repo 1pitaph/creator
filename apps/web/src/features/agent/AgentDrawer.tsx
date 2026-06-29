@@ -16,7 +16,21 @@ import { PaperPlaneTilt } from "@phosphor-icons/react/PaperPlaneTilt";
 import { StopCircle } from "@phosphor-icons/react/StopCircle";
 import { X } from "@phosphor-icons/react/X";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "motion/react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import type {
   AgentApprovalRequest,
@@ -30,6 +44,145 @@ import { AgentMarkIcon } from "./AgentMarkIcon";
 import { EvidenceTagList } from "./AgentTags";
 import { ChatBubble } from "./ChatBubble";
 import { presetQuestions } from "./presetQuestions";
+
+const CONTEXT_ENTER_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const CONTEXT_EXIT_EASE: [number, number, number, number] = [0.7, 0, 0.84, 0];
+
+const CONTEXT_PANEL_VARIANTS: Variants = {
+  collapsed: {
+    height: 0,
+    opacity: 0,
+    transition: {
+      when: "afterChildren",
+      height: { duration: 0.16, ease: CONTEXT_EXIT_EASE },
+      opacity: { duration: 0.1, ease: CONTEXT_EXIT_EASE },
+    },
+  },
+  expanded: {
+    height: "auto",
+    opacity: 1,
+    transition: {
+      when: "beforeChildren",
+      height: { duration: 0.22, ease: CONTEXT_ENTER_EASE },
+      opacity: { duration: 0.12, ease: CONTEXT_ENTER_EASE },
+    },
+  },
+};
+
+const CONTEXT_CONTENT_VARIANTS: Variants = {
+  collapsed: {
+    transition: {
+      staggerChildren: 0.018,
+      staggerDirection: -1,
+    },
+  },
+  expanded: {
+    transition: {
+      delayChildren: 0.02,
+      staggerChildren: 0.032,
+    },
+  },
+};
+
+const CONTEXT_CHILD_VARIANTS: Variants = {
+  collapsed: {
+    opacity: 0,
+    y: 4,
+    transition: { duration: 0.09, ease: CONTEXT_EXIT_EASE },
+  },
+  expanded: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.14, ease: CONTEXT_ENTER_EASE },
+  },
+};
+
+const CONTEXT_PANEL_REDUCED_VARIANTS: Variants = {
+  collapsed: { height: 0, opacity: 0, transition: { duration: 0 } },
+  expanded: { height: "auto", opacity: 1, transition: { duration: 0 } },
+};
+
+const CONTEXT_CONTENT_REDUCED_VARIANTS: Variants = {
+  collapsed: { transition: { duration: 0 } },
+  expanded: { transition: { duration: 0 } },
+};
+
+const CONTEXT_CHILD_REDUCED_VARIANTS: Variants = {
+  collapsed: { opacity: 1, y: 0, transition: { duration: 0 } },
+  expanded: { opacity: 1, y: 0, transition: { duration: 0 } },
+};
+
+const createFocusKey = (focus: AskTarget) =>
+  `${focus.moduleId ?? "__all__"}:${focus.title}`;
+
+const SCROLL_EPSILON = 1;
+
+const canElementScrollVertically = (element: HTMLElement) => {
+  if (element.dataset.agentScrollable !== "true") {
+    const overflowY = window.getComputedStyle(element).overflowY;
+
+    if (!/(auto|scroll|overlay)/.test(overflowY)) {
+      return false;
+    }
+  }
+
+  return element.scrollHeight - element.clientHeight > SCROLL_EPSILON;
+};
+
+const getScrollableAncestor = (
+  target: EventTarget | null,
+  boundary: HTMLElement,
+) => {
+  let element =
+    target instanceof Element
+      ? target
+      : target instanceof Node
+        ? target.parentElement
+        : null;
+
+  while (element && boundary.contains(element)) {
+    if (element instanceof HTMLElement && canElementScrollVertically(element)) {
+      return element;
+    }
+
+    if (element === boundary) {
+      break;
+    }
+
+    element = element.parentElement;
+  }
+
+  return null;
+};
+
+const canScrollInDirection = (element: HTMLElement, deltaY: number) => {
+  if (Math.abs(deltaY) <= SCROLL_EPSILON) {
+    return true;
+  }
+
+  if (deltaY < 0) {
+    return element.scrollTop > SCROLL_EPSILON;
+  }
+
+  return (
+    element.scrollTop + element.clientHeight <
+    element.scrollHeight - SCROLL_EPSILON
+  );
+};
+
+const shouldBlockDrawerScroll = (
+  target: EventTarget | null,
+  boundary: HTMLElement,
+  deltaY: number,
+) => {
+  if (Math.abs(deltaY) <= SCROLL_EPSILON) {
+    return false;
+  }
+
+  const scrollable = getScrollableAncestor(target, boundary);
+
+  return !scrollable || !canScrollInDirection(scrollable, deltaY);
+};
 
 export const AgentDrawer = ({
   open,
@@ -46,7 +199,11 @@ export const AgentDrawer = ({
   moduleById,
   focus,
 }: AgentDrawerProps) => {
-  const [isContextCollapsed, setIsContextCollapsed] = useState(true);
+  const [expandedFocusKey, setExpandedFocusKey] = useState<string | null>(null);
+  const [drawerContentElement, setDrawerContentElement] =
+    useState<HTMLDivElement | null>(null);
+  const lastTouchYRef = useRef<number | null>(null);
+  const focusKey = focus ? createFocusKey(focus) : null;
   const messagesById = useMemo(
     () => new Map(messages.map((message) => [message.id, message])),
     [messages],
@@ -105,14 +262,81 @@ export const AgentDrawer = ({
   };
 
   useEffect(() => {
-    setIsContextCollapsed(true);
-  }, [focus?.moduleId, focus?.title]);
+    const drawer = drawerContentElement;
+
+    if (!drawer || !open) {
+      return undefined;
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      if (shouldBlockDrawerScroll(event.target, drawer, event.deltaY)) {
+        event.preventDefault();
+      }
+
+      event.stopPropagation();
+    };
+    const handleTouchStart = (event: TouchEvent) => {
+      lastTouchYRef.current = event.touches[0]?.clientY ?? null;
+    };
+    const handleTouchMove = (event: TouchEvent) => {
+      const currentY = event.touches[0]?.clientY;
+
+      if (typeof currentY !== "number") {
+        return;
+      }
+
+      const previousY = lastTouchYRef.current ?? currentY;
+      const deltaY = previousY - currentY;
+      lastTouchYRef.current = currentY;
+
+      if (shouldBlockDrawerScroll(event.target, drawer, deltaY)) {
+        event.preventDefault();
+      }
+
+      event.stopPropagation();
+    };
+    const handleTouchEnd = () => {
+      lastTouchYRef.current = null;
+    };
+
+    drawer.addEventListener("wheel", handleWheel, {
+      capture: true,
+      passive: false,
+    });
+    drawer.addEventListener("touchmove", handleTouchMove, {
+      capture: true,
+      passive: false,
+    });
+    drawer.addEventListener("touchstart", handleTouchStart, {
+      capture: true,
+      passive: true,
+    });
+    drawer.addEventListener("touchend", handleTouchEnd, { capture: true });
+    drawer.addEventListener("touchcancel", handleTouchEnd, { capture: true });
+
+    return () => {
+      drawer.removeEventListener("wheel", handleWheel, { capture: true });
+      drawer.removeEventListener("touchmove", handleTouchMove, {
+        capture: true,
+      });
+      drawer.removeEventListener("touchstart", handleTouchStart, {
+        capture: true,
+      });
+      drawer.removeEventListener("touchend", handleTouchEnd, {
+        capture: true,
+      });
+      drawer.removeEventListener("touchcancel", handleTouchEnd, {
+        capture: true,
+      });
+    };
+  }, [drawerContentElement, open]);
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange} modal={false}>
       <Dialog.Portal>
         <Dialog.Content
-          className="agent-drawer-content fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-[430px] flex-col border-l border-zinc-200 bg-white shadow-2xl outline-none"
+          ref={setDrawerContentElement}
+          className="agent-drawer-content scroll-isolated fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-[430px] flex-col border-l border-zinc-200 bg-white shadow-2xl outline-none"
           data-testid="agent-drawer-content"
         >
           <AssistantRuntimeProvider runtime={runtime}>
@@ -153,11 +377,13 @@ export const AgentDrawer = ({
               <AgentContextPanel
                 focus={focus}
                 isChatting={isChatting}
-                isCollapsed={isContextCollapsed}
+                isExpanded={expandedFocusKey === focusKey}
                 onAskPreset={onAskPreset}
-                onToggleCollapsed={() =>
-                  setIsContextCollapsed((collapsed) => !collapsed)
-                }
+                onToggleExpanded={() => {
+                  setExpandedFocusKey((currentKey) =>
+                    currentKey === focusKey ? null : focusKey,
+                  );
+                }}
               />
             ) : (
               <PresetQuestionSection
@@ -169,6 +395,7 @@ export const AgentDrawer = ({
             <ThreadPrimitive.Root className="min-h-0 flex-1">
               <ThreadPrimitive.Viewport
                 className="hover-scrollbar scroll-isolated h-full overflow-y-auto p-4"
+                data-agent-scrollable="true"
                 data-testid="agent-thread-viewport"
                 autoScroll
               >
@@ -285,21 +512,22 @@ export const AgentDrawer = ({
 const AgentContextPanel = ({
   focus,
   isChatting,
-  isCollapsed,
+  isExpanded,
   onAskPreset,
-  onToggleCollapsed,
+  onToggleExpanded,
 }: {
   focus: AskTarget;
   isChatting: boolean;
-  isCollapsed: boolean;
+  isExpanded: boolean;
   onAskPreset: (question: string) => void;
-  onToggleCollapsed: () => void;
+  onToggleExpanded: () => void;
 }) => {
-  const toggleLabel = isCollapsed ? "展开当前询问模块" : "收起当前询问模块";
-  const ToggleIcon = isCollapsed ? CaretDown : CaretUp;
+  const detailsId = useId();
+  const toggleLabel = isExpanded ? "收起当前询问模块" : "展开当前询问模块";
+  const ToggleIcon = isExpanded ? CaretUp : CaretDown;
 
   return (
-    <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3">
+    <div className="shrink-0 border-b border-zinc-100 bg-zinc-50 px-4 py-3">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-zinc-500">当前询问模块</p>
@@ -310,32 +538,149 @@ const AgentContextPanel = ({
         <button
           type="button"
           className="mt-5 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-zinc-600 transition hover:bg-white hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
-          aria-expanded={!isCollapsed}
+          aria-controls={detailsId}
+          aria-expanded={isExpanded}
           aria-label={toggleLabel}
           title={toggleLabel}
-          onClick={onToggleCollapsed}
+          onClick={onToggleExpanded}
         >
-          <span>{isCollapsed ? "展开" : "收起"}</span>
+          <span>{isExpanded ? "收起" : "展开"}</span>
           <ToggleIcon className="h-3.5 w-3.5" weight={phosphorIconWeight} />
         </button>
       </div>
 
-      {!isCollapsed ? (
-        <div className="mt-2">
-          {focus.summary ? (
-            <p className="text-xs leading-5 text-zinc-600">{focus.summary}</p>
-          ) : null}
-          {focus.evidence && focus.evidence.length > 0 ? (
-            <EvidenceTagList className="mt-2" evidence={focus.evidence} />
-          ) : null}
-          <PresetQuestionList
-            className="mt-3 border-t border-zinc-200/70 pt-3"
-            isChatting={isChatting}
-            onAskPreset={onAskPreset}
-          />
-        </div>
-      ) : null}
+      <AgentContextDisclosure detailsId={detailsId} isExpanded={isExpanded}>
+        <AgentContextDetails
+          focus={focus}
+          isChatting={isChatting}
+          onAskPreset={onAskPreset}
+        />
+      </AgentContextDisclosure>
     </div>
+  );
+};
+
+const AgentContextDisclosure = ({
+  children,
+  detailsId,
+  isExpanded,
+}: {
+  children: ReactNode;
+  detailsId: string;
+  isExpanded: boolean;
+}) => {
+  const reduceMotion = useReducedMotion();
+  const panelVariants = reduceMotion
+    ? CONTEXT_PANEL_REDUCED_VARIANTS
+    : CONTEXT_PANEL_VARIANTS;
+  const contentVariants = reduceMotion
+    ? CONTEXT_CONTENT_REDUCED_VARIANTS
+    : CONTEXT_CONTENT_VARIANTS;
+  const state = isExpanded ? "expanded" : "collapsed";
+
+  return (
+    <motion.div
+      id={detailsId}
+      role="region"
+      aria-label="当前询问模块详情"
+      aria-hidden={!isExpanded}
+      inert={!isExpanded}
+      className={cn("overflow-hidden", !isExpanded && "pointer-events-none")}
+      data-state={state}
+      data-testid="agent-context-details"
+      initial="collapsed"
+      animate={state}
+      variants={panelVariants}
+    >
+      <AnimatePresence initial={false}>
+        {isExpanded ? (
+          <motion.div
+            key="agent-context-details-content"
+            className="mt-2"
+            data-testid="agent-context-details-content"
+            initial="collapsed"
+            animate="expanded"
+            exit="collapsed"
+            variants={contentVariants}
+          >
+            {children}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+const AgentContextDetails = ({
+  focus,
+  isChatting,
+  onAskPreset,
+}: {
+  focus: AskTarget;
+  isChatting: boolean;
+  onAskPreset: (question: string) => void;
+}) => {
+  let revealIndex = 0;
+  const nextRevealIndex = () => revealIndex++;
+
+  return (
+    <>
+      {focus.summary ? (
+        <AgentContextRevealItem index={nextRevealIndex()}>
+          <p className="text-xs leading-5 text-zinc-600">{focus.summary}</p>
+        </AgentContextRevealItem>
+      ) : null}
+      {focus.evidence && focus.evidence.length > 0 ? (
+        <AgentContextRevealItem index={nextRevealIndex()}>
+          <EvidenceTagList className="mt-2" evidence={focus.evidence} />
+        </AgentContextRevealItem>
+      ) : null}
+      <AgentContextRevealItem
+        className="mt-3 border-t border-zinc-200/70 pt-3"
+        index={nextRevealIndex()}
+      >
+        <div className="flex flex-wrap gap-2">
+          {presetQuestions.map((question) => (
+            <Button
+              key={question}
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={isChatting}
+              onClick={() => onAskPreset(question)}
+            >
+              <ChatText className="h-3.5 w-3.5" weight={phosphorIconWeight} />
+              {question}
+            </Button>
+          ))}
+        </div>
+      </AgentContextRevealItem>
+    </>
+  );
+};
+
+const AgentContextRevealItem = ({
+  children,
+  className,
+  index,
+}: {
+  children: ReactNode;
+  className?: string;
+  index: number;
+}) => {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <motion.div
+      className={className}
+      data-reveal-index={index}
+      data-testid="agent-context-reveal-item"
+      variants={
+        reduceMotion ? CONTEXT_CHILD_REDUCED_VARIANTS : CONTEXT_CHILD_VARIANTS
+      }
+    >
+      {children}
+    </motion.div>
   );
 };
 

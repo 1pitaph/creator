@@ -271,7 +271,12 @@ textarea {
   z-index: 45;
 }
 
-.dashboard-visual-grid-shell .react-grid-placeholder {
+.dashboard-visual-grid-shell .react-grid-item.react-grid-placeholder {
+  box-sizing: border-box;
+  border: 1px dashed rgba(113, 113, 122, 0.42);
+  border-radius: 20px;
+  background: rgba(244, 244, 245, 0.72);
+  opacity: 1;
   transition-duration: 100ms;
 }
 

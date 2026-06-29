@@ -761,6 +761,9 @@ describe("DashboardPage", () => {
     expect(dashboardStyles).toContain(".dashboard-visual-grid-shell .react-grid-item:hover");
     expect(dashboardStyles).toContain("z-index: 35;");
     expect(dashboardStyles).toContain("z-index: 45;");
+    expect(dashboardStyles).toMatch(/react-grid-item\.react-grid-placeholder \{[\s\S]*?background: rgba\(244, 244, 245, 0\.72\);/);
+    expect(dashboardStyles).toMatch(/react-grid-item\.react-grid-placeholder \{[\s\S]*?border: 1px dashed rgba\(113, 113, 122, 0\.42\);/);
+    expect(dashboardStyles).toMatch(/react-grid-item\.react-grid-placeholder \{[\s\S]*?border-radius: 20px;/);
     expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e \{[\s\S]*?right: -4px;/);
     expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e \{[\s\S]*?width: 8px;/);
     expect(dashboardStyles).not.toMatch(/dashboard-card-resize-edge--e \{[\s\S]*?right: -10px;/);
