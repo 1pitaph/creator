@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://api.creator.1pitaph.com/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://api.creator.1pitaph.com/health"
+    }
+  ]
+}
