@@ -172,7 +172,12 @@ const Scrollable = ({
   children: ReactNode;
   fill: boolean;
 }) => (
-  <div className={cn("space-y-3", fill && "h-full overflow-auto pr-1")}>
+  <div
+    className={cn(
+      "space-y-3",
+      fill && "dashboard-card-scrollable h-full overflow-auto pr-1",
+    )}
+  >
     {children}
   </div>
 );
