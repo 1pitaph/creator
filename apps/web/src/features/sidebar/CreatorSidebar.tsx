@@ -1,16 +1,20 @@
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { CaretLeft } from "@phosphor-icons/react/CaretLeft";
+import { Article } from "@phosphor-icons/react/Article";
+import { Image } from "@phosphor-icons/react/Image";
 import { List } from "@phosphor-icons/react/List";
+import { Panorama } from "@phosphor-icons/react/Panorama";
 import { PlusSquare } from "@phosphor-icons/react/PlusSquare";
+import { Video } from "@phosphor-icons/react/Video";
 import { X } from "@phosphor-icons/react/X";
-import * as ScrollArea from "@radix-ui/react-scroll-area";
 import Avatar from "boring-avatars";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import type { DiagnosisResponse } from "@creator/data-contracts";
 import { cn } from "@creator/ui";
 
 import { PhosphorHoverIcon } from "../../components/ui/PhosphorHoverIcon";
+import { phosphorIconWeight } from "../../constants";
 import type { DashboardPanel } from "../../types";
 import { CreatorAccountNotchSelect } from "./CreatorAccountNotchSelect";
 import { sidebarNavItems } from "./navItems";
@@ -32,6 +36,164 @@ const navItemIdByPanel = {
   table: "account-overview",
 } satisfies Record<DashboardPanel, string>;
 
+const publishMenuItems = [
+  { label: "发布视频", icon: Video },
+  { label: "发布图文", icon: Image },
+  { label: "发布全景视频", icon: Panorama },
+  { label: "发布文章", icon: Article },
+] as const;
+
+const SCROLL_EPSILON = 1;
+const SCROLLABLE_OVERFLOW_PATTERN = /^(auto|scroll|overlay)$/;
+
+const canElementScrollVertically = (element: HTMLElement) => {
+  if (element.dataset.sidebarScrollable !== "true") {
+    const overflowY = window.getComputedStyle(element).overflowY;
+
+    if (!SCROLLABLE_OVERFLOW_PATTERN.test(overflowY)) {
+      return false;
+    }
+  }
+
+  return element.scrollHeight - element.clientHeight > SCROLL_EPSILON;
+};
+
+const getScrollableAncestor = (
+  target: EventTarget | null,
+  boundary: HTMLElement,
+) => {
+  let element =
+    target instanceof Element
+      ? target
+      : target instanceof Node
+        ? target.parentElement
+        : null;
+
+  while (element && boundary.contains(element)) {
+    if (element instanceof HTMLElement && canElementScrollVertically(element)) {
+      return element;
+    }
+
+    if (element === boundary) {
+      break;
+    }
+
+    element = element.parentElement;
+  }
+
+  return null;
+};
+
+const canScrollInDirection = (element: HTMLElement, deltaY: number) => {
+  if (Math.abs(deltaY) <= SCROLL_EPSILON) {
+    return true;
+  }
+
+  if (deltaY < 0) {
+    return element.scrollTop > SCROLL_EPSILON;
+  }
+
+  return (
+    element.scrollTop + element.clientHeight <
+    element.scrollHeight - SCROLL_EPSILON
+  );
+};
+
+const shouldBlockBoundaryScroll = (
+  target: EventTarget | null,
+  boundary: HTMLElement,
+  deltaY: number,
+) => {
+  if (Math.abs(deltaY) <= SCROLL_EPSILON) {
+    return false;
+  }
+
+  const scrollable = getScrollableAncestor(target, boundary);
+
+  return !scrollable || !canScrollInDirection(scrollable, deltaY);
+};
+
+const useScrollBoundaryGuard = (
+  boundaryElement: HTMLElement | null,
+  active = true,
+) => {
+  const lastTouchYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!boundaryElement || !active) {
+      return undefined;
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      if (shouldBlockBoundaryScroll(event.target, boundaryElement, event.deltaY)) {
+        event.preventDefault();
+      }
+
+      event.stopPropagation();
+    };
+    const handleTouchStart = (event: TouchEvent) => {
+      lastTouchYRef.current = event.touches[0]?.clientY ?? null;
+    };
+    const handleTouchMove = (event: TouchEvent) => {
+      const currentY = event.touches[0]?.clientY;
+
+      if (typeof currentY !== "number") {
+        return;
+      }
+
+      const previousY = lastTouchYRef.current ?? currentY;
+      const deltaY = previousY - currentY;
+      lastTouchYRef.current = currentY;
+
+      if (shouldBlockBoundaryScroll(event.target, boundaryElement, deltaY)) {
+        event.preventDefault();
+      }
+
+      event.stopPropagation();
+    };
+    const handleTouchEnd = () => {
+      lastTouchYRef.current = null;
+    };
+
+    boundaryElement.addEventListener("wheel", handleWheel, {
+      capture: true,
+      passive: false,
+    });
+    boundaryElement.addEventListener("touchmove", handleTouchMove, {
+      capture: true,
+      passive: false,
+    });
+    boundaryElement.addEventListener("touchstart", handleTouchStart, {
+      capture: true,
+      passive: true,
+    });
+    boundaryElement.addEventListener("touchend", handleTouchEnd, {
+      capture: true,
+    });
+    boundaryElement.addEventListener("touchcancel", handleTouchEnd, {
+      capture: true,
+    });
+
+    return () => {
+      boundaryElement.removeEventListener("wheel", handleWheel, {
+        capture: true,
+      });
+      boundaryElement.removeEventListener("touchmove", handleTouchMove, {
+        capture: true,
+      });
+      boundaryElement.removeEventListener("touchstart", handleTouchStart, {
+        capture: true,
+      });
+      boundaryElement.removeEventListener("touchend", handleTouchEnd, {
+        capture: true,
+      });
+      boundaryElement.removeEventListener("touchcancel", handleTouchEnd, {
+        capture: true,
+      });
+    };
+  }, [active, boundaryElement]);
+};
+
 export const CreatorSidebar = ({
   selectedCreatorId,
   onSelectCreator,
@@ -49,8 +211,15 @@ export const CreatorSidebar = ({
 }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
+  const [desktopScrollBoundaryElement, setDesktopScrollBoundaryElement] =
+    useState<HTMLElement | null>(null);
+  const [mobileScrollBoundaryElement, setMobileScrollBoundaryElement] =
+    useState<HTMLElement | null>(null);
 
   const closeMobileSidebar = () => setIsMobileOpen(false);
+
+  useScrollBoundaryGuard(desktopScrollBoundaryElement);
+  useScrollBoundaryGuard(mobileScrollBoundaryElement, isMobileOpen);
 
   return (
     <>
@@ -69,6 +238,7 @@ export const CreatorSidebar = ({
       </div>
 
       <aside
+        ref={setDesktopScrollBoundaryElement}
         className={cn(
           "group/sidebar-shell relative sticky top-0 z-40 hidden h-screen shrink-0 bg-neutral-100 transition-[width] duration-300 ease-in-out md:flex",
           isDesktopCollapsed ? "w-[72px]" : "w-[260px]",
@@ -131,6 +301,7 @@ export const CreatorSidebar = ({
         }}
       >
         <div
+          ref={setMobileScrollBoundaryElement}
           className={cn(
             "relative z-10 flex h-dvh w-[min(330px,calc(100vw-28px))] transform flex-col border-r border-neutral-200 bg-neutral-100 shadow-2xl transition duration-300",
             isMobileOpen
@@ -203,7 +374,7 @@ const SidebarContent = ({
   return (
     <div
       className={cn(
-        "flex h-full w-full flex-col overflow-visible py-4",
+        "flex h-full min-h-0 w-full flex-col overflow-visible py-4",
         collapsed ? "px-2" : "px-4",
         className,
       )}
@@ -217,24 +388,21 @@ const SidebarContent = ({
         onClick={handlePublish}
       />
 
-      <ScrollArea.Root className="mt-7 min-h-0 flex-1 overflow-hidden">
-        <ScrollArea.Viewport
-          className={cn(
-            "sidebar-nav-scroll-viewport h-full scroll-isolated",
-            collapsed ? "pr-0" : "pr-1",
-          )}
-          data-testid="sidebar-nav-scroll-viewport"
-        >
-          <div>
-            <SidebarNav
-              collapsed={collapsed}
-              selectedPanel={selectedPanel}
-              onSelectPanel={onSelectPanel}
-              onNavigate={onNavigate}
-            />
-          </div>
-        </ScrollArea.Viewport>
-      </ScrollArea.Root>
+      <div
+        className={cn(
+          "sidebar-nav-scroll-viewport scroll-isolated mt-7 min-h-0 flex-1 overflow-y-auto",
+          collapsed ? "pr-0" : "pr-1",
+        )}
+        data-sidebar-scrollable="true"
+        data-testid="sidebar-nav-scroll-viewport"
+      >
+        <SidebarNav
+          collapsed={collapsed}
+          selectedPanel={selectedPanel}
+          onSelectPanel={onSelectPanel}
+          onNavigate={onNavigate}
+        />
+      </div>
 
       <div className={cn("mt-4", collapsed && "mt-3")}>
         <CreatorAccountNotchSelect
@@ -302,32 +470,81 @@ const SidebarPublishButton = ({
   className?: string;
   collapsed?: boolean;
   onClick: () => void;
-}) => (
-  <button
-    type="button"
-    className={cn(
-      "phosphor-hover-root group/publish flex h-10 items-center justify-center rounded-lg bg-[#fe2c55] text-white shadow-[0_12px_24px_rgba(254,44,85,0.18)] transition hover:bg-[#f12850] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fe2c55]",
-      collapsed ? "w-full px-0" : "ml-2 mr-3 w-[calc(100%-20px)] gap-2 px-3",
-      className,
-    )}
-    aria-label="高清发布"
-    title={collapsed ? "高清发布" : undefined}
-    data-testid="sidebar-publish-button"
-    onClick={onClick}
-  >
-    <PhosphorHoverIcon className="h-5 w-5 shrink-0" icon={PlusSquare} />
-    <span className={cn("type-card-title-base", collapsed && "sr-only")}>
-      高清发布
-    </span>
-    <PhosphorHoverIcon
+}) => {
+  const menuId = "sidebar-publish-menu";
+
+  return (
+    <div
       className={cn(
-        "ml-auto h-4 w-4 shrink-0 transition group-hover/publish:translate-y-0.5",
-        collapsed && "hidden",
+        "group/publish-menu relative z-40",
+        collapsed ? "w-full" : "ml-2 mr-3 w-[calc(100%-20px)]",
+        className,
       )}
-      icon={CaretDown}
-    />
-  </button>
-);
+      data-testid="sidebar-publish-shell"
+    >
+      <button
+        type="button"
+        className={cn(
+          "phosphor-hover-root group/publish flex h-10 w-full items-center justify-center rounded-lg bg-[#fe2c55] text-white shadow-[0_12px_24px_rgba(254,44,85,0.18)] transition hover:bg-[#f12850] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fe2c55]",
+          collapsed ? "px-0" : "gap-2 px-3",
+        )}
+        aria-controls={collapsed ? undefined : menuId}
+        aria-label="高清发布"
+        aria-haspopup={collapsed ? undefined : "menu"}
+        title={collapsed ? "高清发布" : undefined}
+        data-testid="sidebar-publish-button"
+        onClick={onClick}
+      >
+        <PhosphorHoverIcon className="h-5 w-5 shrink-0" icon={PlusSquare} />
+        <span className={cn("type-card-title-base", collapsed && "sr-only")}>
+          高清发布
+        </span>
+        <CaretDown
+          aria-hidden="true"
+          className={cn(
+            "ml-auto h-4 w-4 shrink-0 transition group-hover/publish:translate-y-0.5 group-hover/publish-menu:rotate-180 group-focus-within/publish-menu:rotate-180",
+            collapsed && "hidden",
+          )}
+          data-testid="sidebar-publish-chevron"
+          focusable="false"
+          weight={phosphorIconWeight}
+        />
+      </button>
+
+      {!collapsed ? (
+        <>
+          <span
+            aria-hidden="true"
+            className="absolute left-0 right-0 top-full h-2"
+            data-testid="sidebar-publish-hover-bridge"
+          />
+          <div
+            id={menuId}
+            className="invisible absolute left-2 right-2 top-[calc(100%+8px)] z-50 rounded-xl bg-white py-3 opacity-0 shadow-[0_14px_34px_rgba(24,24,27,0.14)] ring-1 ring-neutral-200/50 transition duration-150 group-hover/publish-menu:visible group-hover/publish-menu:opacity-100 group-focus-within/publish-menu:visible group-focus-within/publish-menu:opacity-100"
+            data-testid="sidebar-publish-menu"
+            role="menu"
+          >
+            {publishMenuItems.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                className="phosphor-hover-root type-card-title-base flex h-12 w-full items-center gap-4 px-6 text-left text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-950 focus-visible:bg-neutral-50 focus-visible:text-neutral-950 focus-visible:outline-none"
+                role="menuitem"
+                onClick={onClick}
+              >
+                <PhosphorHoverIcon
+                  className="h-5 w-5 text-neutral-600"
+                  icon={item.icon}
+                />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+};
 
 const SidebarFooter = ({
   collapsed = false,

@@ -5,7 +5,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   creatorOptions,
@@ -27,6 +28,19 @@ const getCreatorTypeShortLabel = (creator: (typeof creatorOptions)[number]) =>
     creator.creatorType as keyof typeof creatorTypeShortLabels
   ] ?? creator.domain.split(/[/／]/)[0]?.slice(0, 2) ?? "账号";
 
+const stylesCss = readFileSync("src/styles.css", "utf8");
+let stylesElement: HTMLStyleElement;
+
+beforeAll(() => {
+  stylesElement = document.createElement("style");
+  stylesElement.textContent = stylesCss;
+  document.head.append(stylesElement);
+});
+
+afterAll(() => {
+  stylesElement.remove();
+});
+
 const renderSidebar = ({
   onSelectCreator = vi.fn(),
   onSelectPanel = vi.fn(),
@@ -47,6 +61,40 @@ const expectPhosphorHoverIcon = (root: HTMLElement) => {
   expect(root).toHaveClass("phosphor-hover-root");
   expect(root.querySelector(".phosphor-hover-icon__regular")).toBeInTheDocument();
   expect(root.querySelector(".phosphor-hover-icon__duotone")).toBeInTheDocument();
+};
+
+const defineScrollableMetrics = ({
+  clientHeight,
+  element,
+  scrollHeight,
+  scrollTop,
+}: {
+  clientHeight: number;
+  element: HTMLElement;
+  scrollHeight: number;
+  scrollTop: number;
+}) => {
+  Object.defineProperty(element, "clientHeight", {
+    configurable: true,
+    value: clientHeight,
+  });
+  Object.defineProperty(element, "scrollHeight", {
+    configurable: true,
+    value: scrollHeight,
+  });
+  element.scrollTop = scrollTop;
+};
+
+const dispatchWheel = (target: HTMLElement, deltaY = 80) => {
+  const wheelEvent = new WheelEvent("wheel", {
+    bubbles: true,
+    cancelable: true,
+    deltaY,
+  });
+
+  target.dispatchEvent(wheelEvent);
+
+  return wheelEvent;
 };
 
 describe("CreatorSidebar", () => {
@@ -136,11 +184,120 @@ describe("CreatorSidebar", () => {
     renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const content = within(sidebar).getByTestId("sidebar-content");
+    const viewport = within(sidebar).getByTestId("sidebar-nav-scroll-viewport");
 
-    expect(within(sidebar).getByTestId("sidebar-nav-scroll-viewport")).toHaveClass(
+    expect(content).toHaveClass("min-h-0");
+    expect(viewport.tagName.toLowerCase()).toBe("div");
+    expect(viewport).toHaveAttribute("data-sidebar-scrollable", "true");
+    expect(viewport).toHaveClass(
       "sidebar-nav-scroll-viewport",
       "scroll-isolated",
+      "overflow-y-auto",
+      "min-h-0",
+      "flex-1",
     );
+    expect(getComputedStyle(viewport).overflowY).toBe("auto");
+    expect(getComputedStyle(viewport).overscrollBehaviorY).toBe("contain");
+    expect(getComputedStyle(viewport).scrollbarWidth).toBe("none");
+  });
+
+  it("prevents sidebar wheel gestures outside the nav viewport from scrolling the page", async () => {
+    renderSidebar();
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const content = within(sidebar).getByTestId("sidebar-content");
+
+    await waitFor(() => {
+      const wheelEvent = dispatchWheel(content);
+
+      expect(wheelEvent.defaultPrevented).toBe(true);
+    });
+  });
+
+  it("keeps wheel scrolling available inside the sidebar nav viewport", async () => {
+    renderSidebar();
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const viewport = within(sidebar).getByTestId("sidebar-nav-scroll-viewport");
+
+    defineScrollableMetrics({
+      clientHeight: 100,
+      element: viewport,
+      scrollHeight: 320,
+      scrollTop: 80,
+    });
+
+    await waitFor(() => {
+      const wheelEvent = dispatchWheel(viewport);
+
+      expect(wheelEvent.defaultPrevented).toBe(false);
+    });
+  });
+
+  it("blocks sidebar nav wheel gestures at scroll boundaries", async () => {
+    renderSidebar();
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const viewport = within(sidebar).getByTestId("sidebar-nav-scroll-viewport");
+
+    defineScrollableMetrics({
+      clientHeight: 100,
+      element: viewport,
+      scrollHeight: 320,
+      scrollTop: 0,
+    });
+
+    await waitFor(() => {
+      const wheelEvent = dispatchWheel(viewport, -80);
+
+      expect(wheelEvent.defaultPrevented).toBe(true);
+    });
+
+    viewport.scrollTop = 220;
+
+    await waitFor(() => {
+      const wheelEvent = dispatchWheel(viewport, 80);
+
+      expect(wheelEvent.defaultPrevented).toBe(true);
+    });
+  });
+
+  it("uses the same hidden-scrollbar scroll boundary in the mobile sidebar", async () => {
+    renderSidebar();
+
+    fireEvent.click(screen.getByTestId("mobile-sidebar-trigger"));
+
+    const mobileSidebar = screen.getByTestId("creator-sidebar-mobile");
+    const content = within(mobileSidebar).getByTestId("sidebar-content");
+    const viewport = within(mobileSidebar).getByTestId(
+      "sidebar-nav-scroll-viewport",
+    );
+
+    expect(viewport).toHaveClass(
+      "sidebar-nav-scroll-viewport",
+      "scroll-isolated",
+      "overflow-y-auto",
+    );
+
+    await waitFor(() => {
+      const wheelEvent = dispatchWheel(content);
+
+      expect(wheelEvent.defaultPrevented).toBe(true);
+    });
+
+    defineScrollableMetrics({
+      clientHeight: 100,
+      element: viewport,
+      scrollHeight: 320,
+      scrollTop: 80,
+    });
+
+    await waitFor(() => {
+      const wheelEvent = dispatchWheel(viewport);
+
+      expect(wheelEvent.defaultPrevented).toBe(false);
+    });
   });
 
   it("renders the Douyin-style sidebar modules and publish CTA", () => {
@@ -148,10 +305,46 @@ describe("CreatorSidebar", () => {
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
     const homeButton = within(sidebar).getByRole("button", { name: "首页" });
+    const publishButton = within(sidebar).getByRole("button", {
+      name: "高清发布",
+    });
+    const publishBridge = within(sidebar).getByTestId(
+      "sidebar-publish-hover-bridge",
+    );
+    const publishMenu = within(sidebar).getByTestId("sidebar-publish-menu");
 
+    expect(publishButton).toBeInTheDocument();
+    expect(publishButton).toHaveAttribute(
+      "aria-controls",
+      "sidebar-publish-menu",
+    );
+    expect(publishButton).toHaveAttribute("aria-haspopup", "menu");
     expect(
-      within(sidebar).getByRole("button", { name: "高清发布" }),
-    ).toBeInTheDocument();
+      publishButton.querySelectorAll("[data-phosphor-hover-icon]"),
+    ).toHaveLength(1);
+    expect(
+      within(publishButton).getByTestId("sidebar-publish-chevron"),
+    ).not.toHaveAttribute("data-phosphor-hover-icon");
+    expect(publishBridge).toHaveClass(
+      "absolute",
+      "top-full",
+      "h-2",
+    );
+    expect(publishBridge).toHaveAttribute("aria-hidden", "true");
+    expect(publishMenu).toHaveClass(
+      "invisible",
+      "absolute",
+      "group-hover/publish-menu:visible",
+      "group-focus-within/publish-menu:visible",
+    );
+    for (const label of ["发布视频", "发布图文", "发布全景视频", "发布文章"]) {
+      const menuItem = within(publishMenu).getByRole("menuitem", {
+        name: label,
+      });
+
+      expect(menuItem).toBeInTheDocument();
+      expectPhosphorHoverIcon(menuItem);
+    }
     expect(homeButton).toHaveAttribute("aria-current", "page");
     expectPhosphorHoverIcon(homeButton);
     expect(within(sidebar).queryByText("诊断总览")).not.toBeInTheDocument();
