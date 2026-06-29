@@ -9,11 +9,22 @@ const MultiMetricTrendChart = memo(function MultiMetricTrendChart({
   metrics,
   className,
   height = 260,
-  ariaLabel
+  ariaLabel,
+  compact = false,
 }: ChartStyleProps) {
-  const spec = useMemo(() => buildMultiMetricTrendSpec(intent, metrics), [intent, metrics]);
+  const spec = useMemo(
+    () => buildMultiMetricTrendSpec(intent, metrics, compact),
+    [intent, metrics, compact],
+  );
 
-  return <VChartCanvas className={className} height={height} spec={spec} ariaLabel={ariaLabel} />;
+  return (
+    <VChartCanvas
+      className={className}
+      height={height}
+      spec={spec}
+      ariaLabel={ariaLabel}
+    />
+  );
 });
 
 export default MultiMetricTrendChart;

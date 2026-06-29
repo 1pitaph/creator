@@ -87,6 +87,15 @@ describe("AgentDrawer", () => {
     expect(onStopGeneration).toHaveBeenCalledTimes(1);
   });
 
+  it("binds the drawer content to the bezier animation hook", () => {
+    renderAgentDrawer();
+
+    const drawer = screen.getByTestId("agent-drawer-content");
+
+    expect(drawer).toHaveClass("agent-drawer-content");
+    expect(drawer).toHaveAttribute("data-state", "open");
+  });
+
   it("closes through Radix dialog escape handling", async () => {
     const onClose = vi.fn();
 

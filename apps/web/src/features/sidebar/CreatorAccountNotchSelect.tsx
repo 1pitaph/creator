@@ -44,15 +44,7 @@ export const CreatorAccountNotchSelect = ({
   const selectedCreator = getSelectedCreator(selectedCreatorId);
   const accountOptions = creatorOptions.map((creator) => ({
     id: creator.id,
-    label: creator.name,
-    icon: (
-      <span
-        className="flex h-4 w-4 items-center justify-center rounded bg-white/10 text-[10px] font-semibold text-white"
-        aria-hidden="true"
-      >
-        {creator.name.slice(0, 1)}
-      </span>
-    ),
+    label: getCreatorTypeShortLabel(creator),
   }));
 
   const items: NotchItem[] = collapsed
@@ -70,12 +62,11 @@ export const CreatorAccountNotchSelect = ({
     : [
         {
           id: "sample",
-          label: "示例",
+          label: "示例数据",
           ariaLabel: "示例数据",
           disabled: true,
-          options: [{ id: "demo", label: "数据" }],
-          triggerValue: "数据",
-          triggerValueClassName: "font-semibold text-neutral-100",
+          options: [{ id: "demo", label: "示例数据" }],
+          showValue: false,
           value: "demo",
         },
         {

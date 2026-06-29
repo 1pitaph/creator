@@ -11,7 +11,6 @@ import {
 import { ChatText } from "@phosphor-icons/react/ChatText";
 import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
 import { PaperPlaneTilt } from "@phosphor-icons/react/PaperPlaneTilt";
-import { Robot } from "@phosphor-icons/react/Robot";
 import { Sparkle } from "@phosphor-icons/react/Sparkle";
 import { StopCircle } from "@phosphor-icons/react/StopCircle";
 import { X } from "@phosphor-icons/react/X";
@@ -26,6 +25,7 @@ import { Button, CardHeader, CardTitle, cn } from "@creator/ui";
 
 import { phosphorIconWeight } from "../../constants";
 import type { AskTarget, UiMessage } from "../../types";
+import { AgentMarkIcon } from "./AgentMarkIcon";
 import { EvidenceTagList } from "./AgentTags";
 import { ChatBubble } from "./ChatBubble";
 import { presetQuestions } from "./presetQuestions";
@@ -105,12 +105,23 @@ export const AgentDrawer = ({
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange} modal={false}>
       <Dialog.Portal>
-        <Dialog.Content className="fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-[430px] flex-col border-l border-zinc-200 bg-white shadow-2xl outline-none">
+        <Dialog.Content
+          className="agent-drawer-content fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-[430px] flex-col border-l border-zinc-200 bg-white shadow-2xl outline-none"
+          data-testid="agent-drawer-content"
+        >
           <AssistantRuntimeProvider runtime={runtime}>
             <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-zinc-100">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-950 text-white">
-                  <Robot className="h-4 w-4" weight={phosphorIconWeight} />
+                <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-900 bg-zinc-950 text-white shadow-[0_14px_32px_rgba(24,24,27,0.22)]">
+                  <span className="pointer-events-none absolute inset-1 rounded-full border border-white/10" />
+                  <AgentMarkIcon
+                    className="relative z-10 h-5 w-5"
+                    data-testid="agent-drawer-icon"
+                  />
+                  <span
+                    className="absolute right-0.5 top-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400"
+                    aria-hidden="true"
+                  />
                 </div>
                 <div>
                   <Dialog.Title asChild>
@@ -154,7 +165,10 @@ export const AgentDrawer = ({
                       </p>
                     ) : null}
                     {focus.evidence && focus.evidence.length > 0 ? (
-                      <EvidenceTagList className="mt-2" evidence={focus.evidence} />
+                      <EvidenceTagList
+                        className="mt-2"
+                        evidence={focus.evidence}
+                      />
                     ) : null}
                   </div>
                 </div>

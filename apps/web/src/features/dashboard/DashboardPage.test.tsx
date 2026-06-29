@@ -693,17 +693,19 @@ describe("DashboardPage", () => {
     );
   });
 
-  it("keeps resize hitboxes inside Visual cards and centers slim rails on card edges", () => {
+  it("centers slim resize hitboxes and rails on Visual card edges", () => {
     expect(dashboardStyles).toContain(".dashboard-visual-grid-shell .react-grid-item:hover");
     expect(dashboardStyles).toContain("z-index: 35;");
     expect(dashboardStyles).toContain("z-index: 45;");
-    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e \{[\s\S]*?right: 0;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e \{[\s\S]*?right: -4px;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e \{[\s\S]*?width: 8px;/);
     expect(dashboardStyles).not.toMatch(/dashboard-card-resize-edge--e \{[\s\S]*?right: -10px;/);
-    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e::before \{[\s\S]*?right: -1px;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e::before \{[\s\S]*?right: 3px;/);
     expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e::before \{[\s\S]*?width: 2px;/);
-    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--s \{[\s\S]*?bottom: 0;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--s \{[\s\S]*?bottom: -4px;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--s \{[\s\S]*?height: 8px;/);
     expect(dashboardStyles).not.toMatch(/dashboard-card-resize-edge--s \{[\s\S]*?bottom: -10px;/);
-    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--s::before \{[\s\S]*?bottom: -1px;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--s::before \{[\s\S]*?bottom: 3px;/);
     expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--s::before \{[\s\S]*?height: 2px;/);
   });
 

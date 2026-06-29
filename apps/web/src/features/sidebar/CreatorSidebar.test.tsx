@@ -14,6 +14,19 @@ import {
 import { localDiagnosis } from "../creator-diagnosis/api";
 import { CreatorSidebar } from "./CreatorSidebar";
 
+const creatorTypeShortLabels = {
+  short_drama_strategy: "短剧",
+  personal_daily_diagnosis: "日常",
+  growth_review: "职场",
+  plateau_repair: "健身",
+  series_operation: "城市",
+} as const;
+
+const getCreatorTypeShortLabel = (creator: (typeof creatorOptions)[number]) =>
+  creatorTypeShortLabels[
+    creator.creatorType as keyof typeof creatorTypeShortLabels
+  ] ?? creator.domain.split(/[/／]/)[0]?.slice(0, 2) ?? "账号";
+
 const renderSidebar = ({
   onSelectCreator = vi.fn(),
   onSelectPanel = vi.fn(),
@@ -140,14 +153,16 @@ describe("CreatorSidebar", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(notchShell).toHaveClass("bg-neutral-950/95");
-    const sampleLabel = within(accountNotch).getByText("示例");
-    const sampleValue = within(accountNotch).getByText("数据");
+    const sampleLabel = within(accountNotch).getByText("示例数据");
 
     expect(sampleLabel).toHaveClass("font-semibold", "text-neutral-100");
-    expect(sampleValue).toHaveClass("font-semibold", "text-neutral-100");
+    expect(within(accountNotch).queryByText("示例")).not.toBeInTheDocument();
+    expect(within(accountNotch).queryByText("数据")).not.toBeInTheDocument();
     expect(within(accountNotch).getByText("账号")).toBeInTheDocument();
     expect(within(accountNotch).getByText("短剧")).toBeInTheDocument();
-    expect(within(accountNotch).queryByText(creatorOptions[0]!.name)).not.toBeInTheDocument();
+    expect(
+      within(accountNotch).queryByText(creatorOptions[0]!.name),
+    ).not.toBeInTheDocument();
     expect(within(accountNotch).getByTestId("notch-divider")).toBeInTheDocument();
     expect(
       within(accountNotch).getByTestId("notch-static-sample"),
@@ -162,9 +177,12 @@ describe("CreatorSidebar", () => {
 
   it("opens the desktop creator notch and selects another creator", async () => {
     const handleSelectCreator = vi.fn();
+    const firstCreator = creatorOptions[0]!;
     const secondCreator =
       creatorOptions.find((creator) => creator.id !== defaultCreatorId) ??
-      creatorOptions[0]!;
+      firstCreator;
+    const firstCreatorShortLabel = getCreatorTypeShortLabel(firstCreator);
+    const secondCreatorShortLabel = getCreatorTypeShortLabel(secondCreator);
 
     renderSidebar({ onSelectCreator: handleSelectCreator });
 
@@ -175,11 +193,15 @@ describe("CreatorSidebar", () => {
 
     const listbox = await screen.findByRole("listbox", { name: "账号" });
     expect(
-      within(listbox).getByRole("option", { name: new RegExp(creatorOptions[0]!.name) }),
+      within(listbox).getByRole("option", { name: firstCreatorShortLabel }),
     ).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(within(listbox).getByRole("option", {
-      name: new RegExp(secondCreator.name),
-    }));
+    expect(within(listbox).queryByText(firstCreator.name)).not.toBeInTheDocument();
+    expect(within(listbox).queryByText(secondCreator.name)).not.toBeInTheDocument();
+    fireEvent.click(
+      within(listbox).getByRole("option", {
+        name: secondCreatorShortLabel,
+      }),
+    );
 
     expect(handleSelectCreator).toHaveBeenCalledWith(secondCreator.id);
     await waitFor(() =>
@@ -209,6 +231,7 @@ describe("CreatorSidebar", () => {
     const secondCreator =
       creatorOptions.find((creator) => creator.id !== defaultCreatorId) ??
       creatorOptions[0]!;
+    const secondCreatorShortLabel = getCreatorTypeShortLabel(secondCreator);
 
     renderSidebar({ onSelectCreator: handleSelectCreator });
 
@@ -221,9 +244,11 @@ describe("CreatorSidebar", () => {
 
     fireEvent.click(accountTrigger);
     const listbox = await screen.findByRole("listbox", { name: "账号" });
-    fireEvent.click(within(listbox).getByRole("option", {
-      name: new RegExp(secondCreator.name),
-    }));
+    fireEvent.click(
+      within(listbox).getByRole("option", {
+        name: secondCreatorShortLabel,
+      }),
+    );
 
     expect(handleSelectCreator).toHaveBeenCalledWith(secondCreator.id);
     expect(mobileTrigger).toHaveAttribute("aria-expanded", "false");

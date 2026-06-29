@@ -8,7 +8,7 @@ const intent: ChartIntent = {
   title: "7 日播放趋势",
   metricKeys: ["views"],
   unit: "count",
-  timeRangeDays: 7
+  timeRangeDays: 7,
 };
 
 const metrics: CreatorMetrics = {
@@ -19,7 +19,7 @@ const metrics: CreatorMetrics = {
     interactionRate: 0.057,
     followerGain7d: 5180,
     followerConversionRate: 0.004,
-    publishCount7d: 7
+    publishCount7d: 7,
   },
   history: [
     {
@@ -28,7 +28,7 @@ const metrics: CreatorMetrics = {
       completionRate: 0.42,
       interactionRate: 0.05,
       followerConversionRate: 0.003,
-      followersGained: 700
+      followersGained: 700,
     },
     {
       date: "2026-06-02",
@@ -36,10 +36,10 @@ const metrics: CreatorMetrics = {
       completionRate: 0.46,
       interactionRate: 0.057,
       followerConversionRate: 0.004,
-      followersGained: 820
-    }
+      followersGained: 820,
+    },
   ],
-  topContents: []
+  topContents: [],
 };
 
 describe("buildMiniTrendSpec", () => {
@@ -54,7 +54,7 @@ describe("buildMiniTrendSpec", () => {
         label: { visible: false },
         tick: { visible: false },
         domainLine: { visible: false },
-        grid: { visible: false }
+        grid: { visible: false },
       },
       {
         orient: "left",
@@ -63,15 +63,33 @@ describe("buildMiniTrendSpec", () => {
         label: { visible: false },
         tick: { visible: false },
         domainLine: { visible: false },
-        grid: { visible: false }
-      }
+        grid: { visible: false },
+      },
     ]);
   });
 
   it("uses stable compact layout settings", () => {
-    const spec = buildMiniTrendSpec(intent, metrics) as { animation?: unknown; padding?: unknown };
+    const spec = buildMiniTrendSpec(intent, metrics) as {
+      animation?: unknown;
+      padding?: unknown;
+      yField?: unknown;
+    };
 
-    expect(spec.padding).toEqual({ top: 2, right: 2, bottom: 2, left: 2 });
+    expect(spec.padding).toBe(0);
     expect(spec.animation).toBe(false);
+    expect(spec.yField).toBe("normalizedValue");
+  });
+
+  it("trims band padding so compact sparklines reach the card edges", () => {
+    const spec = buildMiniTrendSpec(intent, metrics) as {
+      axes?: Array<Record<string, unknown>>;
+    };
+
+    expect(spec.axes?.[0]).toMatchObject({
+      trimPadding: true,
+      bandPadding: 0,
+      paddingInner: 0,
+      paddingOuter: 0,
+    });
   });
 });

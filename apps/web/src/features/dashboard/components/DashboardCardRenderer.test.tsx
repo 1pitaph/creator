@@ -15,11 +15,24 @@ import { DashboardCardRenderer } from "./DashboardCardRenderer";
 const chartSlotMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@creator/charts", () => ({
-  ChartSlot: (props: { compact?: boolean; height?: number | string; intent: { title: string } }) => {
+  ChartSlot: (props: {
+    className?: string;
+    compact?: boolean;
+    height?: number | string;
+    intent: { title: string };
+  }) => {
     chartSlotMock(props);
 
-    return <div data-compact={String(props.compact ?? false)} data-height={String(props.height ?? "")} data-testid="chart-slot" data-title={props.intent.title} />;
-  }
+    return (
+      <div
+        data-class={props.className ?? ""}
+        data-compact={String(props.compact ?? false)}
+        data-height={String(props.height ?? "")}
+        data-testid="chart-slot"
+        data-title={props.intent.title}
+      />
+    );
+  },
 }));
 
 const renderInsightsCard = (moduleLoadMode: ModuleLoadMode = "focused") => {
@@ -181,7 +194,9 @@ describe("DashboardCardRenderer module chart cards", () => {
     const diagnosis = localDiagnosis(defaultCreatorId, "focused");
     const viewModel = buildDashboardViewModel(diagnosis);
     const module = diagnosis.modules.find((item) => item.chart);
-    const card = buildDashboardCards(diagnosis, viewModel).find((item) => item.id === `module-chart:${module?.id}`);
+    const card = buildDashboardCards(diagnosis, viewModel).find(
+      (item) => item.id === `module-chart:${module?.id}`,
+    );
     const onAsk = vi.fn();
 
     expect(module).toBeDefined();
@@ -196,17 +211,84 @@ describe("DashboardCardRenderer module chart cards", () => {
         onAsk={onAsk}
         size={card!.defaultSize}
         viewModel={viewModel}
-      />
+      />,
     );
 
-    expect(screen.getByRole("heading", { name: module!.chart!.title })).toBeInTheDocument();
-    expect(screen.getByTestId("chart-slot")).toHaveAttribute("data-title", module!.chart!.title);
-    expect(screen.getByTestId("chart-slot")).toHaveAttribute("data-height", "min(100%, 360px)");
+    expect(
+      screen.getByRole("heading", { name: module!.chart!.title }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("chart-slot")).toHaveAttribute(
+      "data-title",
+      module!.chart!.title,
+    );
+    expect(screen.getByTestId("chart-slot")).toHaveAttribute(
+      "data-height",
+      "100%",
+    );
     expect(chartSlotMock).toHaveBeenCalledTimes(1);
-    expect(chartSlotMock).toHaveBeenCalledWith(expect.objectContaining({ intent: module!.chart, compact: false }));
+    expect(chartSlotMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        className: expect.stringContaining("flex-1"),
+        intent: module!.chart,
+        compact: true,
+        height: "100%",
+      }),
+    );
+    expect(chartSlotMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        className: expect.not.stringContaining("p-2"),
+      }),
+    );
+    expect(chartSlotMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        className: expect.not.stringContaining("rounded-2xl"),
+      }),
+    );
 
-    fireEvent.click(screen.getByLabelText(`询问 AI Agent：${module!.name} · ${module!.chart!.title}`));
+    fireEvent.click(
+      screen.getByLabelText(
+        `询问 AI Agent：${module!.name} · ${module!.chart!.title}`,
+      ),
+    );
 
-    expect(onAsk).toHaveBeenCalledWith(expect.objectContaining({ moduleId: module!.id, title: `${module!.name} · ${module!.chart!.title}` }));
+    expect(onAsk).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moduleId: module!.id,
+        title: `${module!.name} · ${module!.chart!.title}`,
+      }),
+    );
+  });
+});
+
+describe("DashboardCardRenderer metric cards", () => {
+  it("lets the commerce metric use the filled medium chart height", () => {
+    const diagnosis = localDiagnosis(defaultCreatorId, "focused");
+    const viewModel = buildDashboardViewModel(diagnosis);
+    const card = buildDashboardCards(diagnosis, viewModel).find(
+      (item) => item.id === "metric:commerce",
+    );
+
+    expect(card).toBeDefined();
+    expect(card!.defaultSize).toBe("medium");
+
+    render(
+      <DashboardCardRenderer
+        actions={buildDashboardActionCards(diagnosis)}
+        card={card!}
+        diagnosis={diagnosis}
+        fill
+        onAsk={vi.fn()}
+        size={card!.defaultSize}
+        viewModel={viewModel}
+      />,
+    );
+
+    expect(screen.getByTestId("chart-slot")).toHaveAttribute(
+      "data-height",
+      "100%",
+    );
+    expect(chartSlotMock).toHaveBeenCalledWith(
+      expect.objectContaining({ compact: true, height: "100%" }),
+    );
   });
 });

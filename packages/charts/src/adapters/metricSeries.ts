@@ -1,4 +1,9 @@
-import type { ChartIntent, CreatorMetrics, MetricPoint, MetricSeriesKey } from "@creator/data-contracts";
+import type {
+  ChartIntent,
+  CreatorMetrics,
+  MetricPoint,
+  MetricSeriesKey,
+} from "@creator/data-contracts";
 
 import type { ChartDatum } from "../types";
 
@@ -12,50 +17,50 @@ export const metricMeta: Record<MetricSeriesKey, MetricMeta> = {
   views: {
     label: "播放",
     unit: "count",
-    getValue: (point) => point.views
+    getValue: (point) => point.views,
   },
   completionRate: {
     label: "完播率",
     unit: "percent",
-    getValue: (point) => point.completionRate
+    getValue: (point) => point.completionRate,
   },
   interactionRate: {
     label: "互动率",
     unit: "percent",
-    getValue: (point) => point.interactionRate
+    getValue: (point) => point.interactionRate,
   },
   followerConversionRate: {
     label: "转粉率",
     unit: "percent",
-    getValue: (point) => point.followerConversionRate
+    getValue: (point) => point.followerConversionRate,
   },
   followersGained: {
     label: "新增粉丝",
     unit: "count",
-    getValue: (point) => point.followersGained
+    getValue: (point) => point.followersGained,
   },
   commerceConversionRate: {
     label: "商品转化率",
     unit: "percent",
-    getValue: (point) => point.commerceConversionRate
+    getValue: (point) => point.commerceConversionRate,
   },
   liveGmv: {
     label: "GMV",
     unit: "currency",
-    getValue: (point) => point.liveGmv
-  }
+    getValue: (point) => point.liveGmv,
+  },
 };
 
 const compactFormatter = new Intl.NumberFormat("zh-CN", {
   notation: "compact",
-  maximumFractionDigits: 1
+  maximumFractionDigits: 1,
 });
 
 const currencyFormatter = new Intl.NumberFormat("zh-CN", {
   notation: "compact",
   maximumFractionDigits: 1,
   style: "currency",
-  currency: "CNY"
+  currency: "CNY",
 });
 
 export const formatChartValue = (value: number, unit: ChartDatum["unit"]) => {
@@ -65,6 +70,25 @@ export const formatChartValue = (value: number, unit: ChartDatum["unit"]) => {
 
   if (unit === "currency") {
     return currencyFormatter.format(value);
+  }
+
+  return compactFormatter.format(value);
+};
+
+export const formatCompactAxisValue = (
+  value: number,
+  unit: ChartDatum["unit"],
+) => {
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+
+  if (unit === "percent") {
+    const percentValue = value * 100;
+    const fractionDigits =
+      Math.abs(percentValue) > 0 && Math.abs(percentValue) < 10 ? 1 : 0;
+
+    return `${percentValue.toFixed(fractionDigits)}%`;
   }
 
   return compactFormatter.format(value);
@@ -82,14 +106,22 @@ const normalize = (value: number, values: number[]) => {
   return ((value - min) / range) * 100;
 };
 
-export const buildChartSeries = (intent: ChartIntent, metrics: CreatorMetrics): ChartDatum[] => {
-  const selectedHistory = intent.timeRangeDays ? metrics.history.slice(-intent.timeRangeDays) : metrics.history;
+export const buildChartSeries = (
+  intent: ChartIntent,
+  metrics: CreatorMetrics,
+): ChartDatum[] => {
+  const selectedHistory = intent.timeRangeDays
+    ? metrics.history.slice(-intent.timeRangeDays)
+    : metrics.history;
 
   return intent.metricKeys.flatMap((key) => {
     const meta = metricMeta[key];
     const rawValues = selectedHistory
       .map((point) => meta.getValue(point))
-      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+      .filter(
+        (value): value is number =>
+          typeof value === "number" && Number.isFinite(value),
+      );
 
     return selectedHistory.flatMap((point) => {
       const value = meta.getValue(point);
@@ -106,8 +138,8 @@ export const buildChartSeries = (intent: ChartIntent, metrics: CreatorMetrics): 
           value,
           normalizedValue: normalize(value, rawValues),
           displayValue: formatChartValue(value, meta.unit),
-          unit: meta.unit
-        }
+          unit: meta.unit,
+        },
       ];
     });
   });
@@ -118,26 +150,71 @@ export const buildFunnelData = (metrics: CreatorMetrics) => {
   const completedViews = Math.round(views * metrics.summary.completionRate);
   const interactions = Math.round(views * metrics.summary.interactionRate);
   const followers = metrics.summary.followerGain7d;
-  const commerce = Math.round(views * (metrics.summary.commerceConversionRate ?? 0));
+  const commerce = Math.round(
+    views * (metrics.summary.commerceConversionRate ?? 0),
+  );
 
   return [
-    { stage: "7 日播放", value: views, displayValue: formatChartValue(views, "count") },
-    { stage: "有效完播", value: completedViews, displayValue: formatChartValue(completedViews, "count") },
-    { stage: "互动行为", value: interactions, displayValue: formatChartValue(interactions, "count") },
-    { stage: "新增粉丝", value: followers, displayValue: formatChartValue(followers, "count") },
-    ...(commerce > 0 ? [{ stage: "成交线索", value: commerce, displayValue: formatChartValue(commerce, "count") }] : [])
+    {
+      stage: "7 日播放",
+      value: views,
+      displayValue: formatChartValue(views, "count"),
+    },
+    {
+      stage: "有效完播",
+      value: completedViews,
+      displayValue: formatChartValue(completedViews, "count"),
+    },
+    {
+      stage: "互动行为",
+      value: interactions,
+      displayValue: formatChartValue(interactions, "count"),
+    },
+    {
+      stage: "新增粉丝",
+      value: followers,
+      displayValue: formatChartValue(followers, "count"),
+    },
+    ...(commerce > 0
+      ? [
+          {
+            stage: "成交线索",
+            value: commerce,
+            displayValue: formatChartValue(commerce, "count"),
+          },
+        ]
+      : []),
   ];
 };
 
 export const buildRadarData = (metrics: CreatorMetrics) => {
   const summary = metrics.summary;
-  const viewGrowthScore = Math.max(0, Math.min(100, 50 + summary.viewsChangePct));
+  const viewGrowthScore = Math.max(
+    0,
+    Math.min(100, 50 + summary.viewsChangePct),
+  );
 
   return [
     { label: "播放增长", series: "当前账号", score: viewGrowthScore },
-    { label: "完播", series: "当前账号", score: Math.min(100, summary.completionRate * 160) },
-    { label: "互动", series: "当前账号", score: Math.min(100, summary.interactionRate * 1000) },
-    { label: "转粉", series: "当前账号", score: Math.min(100, summary.followerConversionRate * 10000) },
-    { label: "更新稳定", series: "当前账号", score: Math.min(100, (summary.publishCount7d / 7) * 100) }
+    {
+      label: "完播",
+      series: "当前账号",
+      score: Math.min(100, summary.completionRate * 160),
+    },
+    {
+      label: "互动",
+      series: "当前账号",
+      score: Math.min(100, summary.interactionRate * 1000),
+    },
+    {
+      label: "转粉",
+      series: "当前账号",
+      score: Math.min(100, summary.followerConversionRate * 10000),
+    },
+    {
+      label: "更新稳定",
+      series: "当前账号",
+      score: Math.min(100, (summary.publishCount7d / 7) * 100),
+    },
   ];
 };

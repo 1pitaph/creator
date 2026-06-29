@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { cn } from "@creator/ui";
@@ -46,15 +46,62 @@ export interface NotchProps {
   optionsListClassName?: string;
 }
 
-const SHELL_SPRING = { type: "spring" as const, stiffness: 380, damping: 34 };
+const SHELL_AXIS_SPRING = {
+  type: "spring" as const,
+  stiffness: 380,
+  damping: 34,
+};
+const SHELL_AXIS_TWEEN = {
+  type: "tween" as const,
+  duration: 0.16,
+  ease: "easeOut" as const,
+};
+const SELECTED_STATE_FADE_DURATION = 0.1;
+const SELECTED_STATE_FADE = {
+  duration: SELECTED_STATE_FADE_DURATION,
+  ease: "easeOut" as const,
+};
+const SHELL_CLOSE_HEIGHT_DELAY = SELECTED_STATE_FADE_DURATION;
+const SHELL_CLOSE_WIDTH_DELAY =
+  SELECTED_STATE_FADE_DURATION + SHELL_AXIS_TWEEN.duration;
+
+const getShellTransition = (isOpen: boolean) => ({
+  opacity: { duration: 0.15 },
+  y: SHELL_AXIS_SPRING,
+  filter: { duration: 0.15 },
+  width: isOpen
+    ? SHELL_AXIS_SPRING
+    : { ...SHELL_AXIS_TWEEN, delay: SHELL_CLOSE_WIDTH_DELAY },
+  height: isOpen
+    ? SHELL_AXIS_SPRING
+    : { ...SHELL_AXIS_TWEEN, delay: SHELL_CLOSE_HEIGHT_DELAY },
+});
 
 const LIST_VARIANTS = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.045, delayChildren: 0.08 } },
+  hidden: {
+    transition: {
+      staggerChildren: 0.045,
+      staggerDirection: -1,
+      when: "afterChildren",
+    },
+  },
+  visible: {
+    transition: { staggerChildren: 0.045, delayChildren: 0.08 },
+  },
 };
 
 const OPTION_VARIANTS = {
-  hidden: { opacity: 0, y: -10, filter: "blur(4px)" },
+  hidden: {
+    opacity: 0,
+    y: -10,
+    filter: "blur(4px)",
+    transition: {
+      type: "spring" as const,
+      stiffness: 420,
+      damping: 30,
+      delay: SELECTED_STATE_FADE_DURATION,
+    },
+  },
   visible: {
     opacity: 1,
     y: 0,
@@ -63,8 +110,21 @@ const OPTION_VARIANTS = {
   },
 };
 
+const SELECTED_STATE_VARIANTS = {
+  hidden: { opacity: 0, transition: SELECTED_STATE_FADE },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.12, ease: "easeOut" as const },
+  },
+};
+
 const labelToString = (label: React.ReactNode, fallback: string) =>
   typeof label === "string" ? label : fallback;
+
+const toStableSize = ({ height, width }: DOMRect) => ({
+  height: Math.ceil(height),
+  width: Math.ceil(width),
+});
 
 const NotchDivider = () => (
   <span
@@ -86,76 +146,62 @@ const NotchOptionsPanel = ({
   item,
   optionsListClassName,
   onSelect,
-  panelClassName,
 }: {
   accentColor: string;
   activeId?: string;
   item: NotchItem;
   optionsListClassName?: string;
   onSelect: (option: NotchOption) => void;
-  panelClassName?: string;
 }) => (
-    <motion.div
-      key={item.id}
-      role="listbox"
-      aria-label={labelToString(item.label, item.id)}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      className={cn("w-fit", panelClassName)}
-    >
-      <motion.div
-        className={cn("flex flex-col gap-1.5 p-2", optionsListClassName)}
-        variants={LIST_VARIANTS}
-        initial="hidden"
-        animate="visible"
-      >
-        {item.options.map((option) => {
-          const active = option.id === activeId;
+  <div className={cn("flex flex-col gap-1.5 p-2", optionsListClassName)}>
+    {item.options.map((option) => {
+      const active = option.id === activeId;
 
-          return (
-            <motion.button
-              key={option.id}
-              role="option"
-              aria-selected={active}
-              type="button"
-              variants={OPTION_VARIANTS}
-              onClick={() => onSelect(option)}
-              className={cn(
-                "flex w-full items-center justify-between gap-6 rounded-md px-3 py-2 text-left text-xs font-medium whitespace-nowrap transition-colors",
-                active
-                  ? "text-white"
-                  : "text-neutral-300 hover:bg-white/5 hover:text-white",
-              )}
-              style={
-                active
-                  ? {
-                      background: `color-mix(in oklab, ${accentColor} 85%, transparent)`,
-                      boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${accentColor} 40%, transparent)`,
-                    }
-                  : undefined
-              }
-            >
-              <span className="flex items-center gap-2.5">
-                {option.icon ? (
-                  <span className="flex shrink-0 items-center justify-center">
-                    {option.icon}
-                  </span>
-                ) : null}
-                <span>{option.label}</span>
+      return (
+        <motion.button
+          key={option.id}
+          role="option"
+          aria-selected={active}
+          type="button"
+          variants={OPTION_VARIANTS}
+          onClick={() => onSelect(option)}
+          className={cn(
+            "relative flex w-full items-center justify-between gap-6 overflow-hidden rounded-md px-3 py-2 text-left text-xs font-medium whitespace-nowrap transition-colors",
+            active
+              ? "text-white"
+              : "text-neutral-300 hover:bg-white/5 hover:text-white",
+          )}
+        >
+          {active ? (
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-md"
+              variants={SELECTED_STATE_VARIANTS}
+              style={{
+                background: `color-mix(in oklab, ${accentColor} 85%, transparent)`,
+                boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${accentColor} 40%, transparent)`,
+              }}
+            />
+          ) : null}
+          <span className="relative z-10 flex items-center gap-2.5">
+            {option.icon ? (
+              <span className="flex shrink-0 items-center justify-center">
+                {option.icon}
               </span>
-              {active ? (
-                <span
-                  className="size-1.5 shrink-0 rounded-full"
-                  style={{ background: accentColor }}
-                />
-              ) : null}
-            </motion.button>
-          );
-        })}
-      </motion.div>
-    </motion.div>
+            ) : null}
+            <span>{option.label}</span>
+          </span>
+          {active ? (
+            <motion.span
+              className="relative z-10 size-1.5 shrink-0 rounded-full"
+              variants={SELECTED_STATE_VARIANTS}
+              style={{ background: accentColor }}
+            />
+          ) : null}
+        </motion.button>
+      );
+    })}
+  </div>
 );
 
 export const Notch = ({
@@ -176,8 +222,12 @@ export const Notch = ({
   optionsListClassName,
 }: NotchProps) => {
   const shellRef = useRef<HTMLDivElement>(null);
-  const shellLayoutId = useId();
+  const contentRef = useRef<HTMLDivElement>(null);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
+  const [shellSize, setShellSize] = useState<{
+    height: number;
+    width: number;
+  } | null>(null);
   const [internalSelected, setInternalSelected] = useState<
     Record<string, string>
   >(() => {
@@ -256,23 +306,67 @@ export const Notch = ({
   const edgeOffset = (offset + 20) * (position === "top" ? -1 : 1);
   const openItem =
     items.find((item) => item.id === openItemId && !item.disabled) ?? null;
+  const isOpen = Boolean(openItem);
+
+  useLayoutEffect(() => {
+    const node = contentRef.current;
+
+    if (!node) {
+      return undefined;
+    }
+
+    const measure = () => {
+      const nextSize = toStableSize(node.getBoundingClientRect());
+
+      setShellSize((previousSize) =>
+        previousSize?.height === nextSize.height &&
+        previousSize.width === nextSize.width
+          ? previousSize
+          : nextSize,
+      );
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(node);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isOpen, items]);
 
   const optionsPanel = openItem ? (
-    <NotchOptionsPanel
-      accentColor={accentColor}
-      activeId={getSelectedId(openItem)}
-      item={openItem}
-      optionsListClassName={optionsListClassName}
-      onSelect={(option) => handleSelect(openItem, option)}
-      panelClassName={panelClassName}
-    />
+    <motion.div
+      ref={contentRef}
+      key={openItem.id}
+      role="listbox"
+      aria-label={labelToString(openItem.label, openItem.id)}
+      variants={LIST_VARIANTS}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+      className={cn("w-fit", panelClassName)}
+    >
+      <NotchOptionsPanel
+        accentColor={accentColor}
+        activeId={getSelectedId(openItem)}
+        item={openItem}
+        optionsListClassName={optionsListClassName}
+        onSelect={(option) => handleSelect(openItem, option)}
+      />
+    </motion.div>
   ) : (
     <motion.div
+      ref={contentRef}
       key="__notch-triggers"
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
+      animate={{ opacity: 1, transition: { delay: 0.14, duration: 0.12 } }}
+      exit={{ opacity: 0, transition: { duration: 0.12 } }}
       className="flex w-fit items-center gap-1 p-1"
       data-testid="notch-trigger-row"
     >
@@ -341,15 +435,20 @@ export const Notch = ({
   const shell = (
     <motion.div
       ref={shellRef}
-      layoutId={shellLayoutId}
-      layout
       initial={
         reveal ? { opacity: 0, y: edgeOffset, filter: "blur(6px)" } : false
       }
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={SHELL_SPRING}
+      animate={{
+        opacity: 1,
+        y: 0,
+        filter: "blur(0px)",
+        ...(shellSize
+          ? { height: shellSize.height, width: shellSize.width }
+          : null),
+      }}
+      transition={getShellTransition(isOpen)}
       className={cn(
-        "pointer-events-auto flex w-fit flex-col overflow-hidden rounded-xl border border-white/10 bg-neutral-950/95 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-neutral-800 ring-inset backdrop-blur-2xl",
+        "pointer-events-auto relative flex w-fit flex-col overflow-hidden rounded-xl border border-white/10 bg-neutral-950/95 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-neutral-800 ring-inset backdrop-blur-2xl",
         className,
       )}
       data-testid="notch-shell"
