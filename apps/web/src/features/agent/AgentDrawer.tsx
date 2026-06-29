@@ -184,6 +184,10 @@ const shouldBlockDrawerScroll = (
   return !scrollable || !canScrollInDirection(scrollable, deltaY);
 };
 
+const preventOutsideDismiss = (event: Event) => {
+  event.preventDefault();
+};
+
 export const AgentDrawer = ({
   open,
   onClose,
@@ -338,6 +342,7 @@ export const AgentDrawer = ({
           ref={setDrawerContentElement}
           className="agent-drawer-content scroll-isolated fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-[430px] flex-col border-l border-zinc-200 bg-white shadow-2xl outline-none"
           data-testid="agent-drawer-content"
+          onInteractOutside={preventOutsideDismiss}
         >
           <AssistantRuntimeProvider runtime={runtime}>
             <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-zinc-100">

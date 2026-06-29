@@ -268,6 +268,43 @@ describe("AgentDrawer", () => {
     });
   });
 
+  it("keeps the drawer open when an outside card asks AI", async () => {
+    const onClose = vi.fn();
+    const onOutsideAsk = vi.fn();
+
+    render(
+      <>
+        <button type="button" onClick={onOutsideAsk}>
+          询问 AI Agent：外部卡片
+        </button>
+        <AgentDrawer {...agentDrawerProps({ onClose })} />
+      </>,
+    );
+
+    const outsideAskButton = screen.getByRole("button", {
+      name: "询问 AI Agent：外部卡片",
+    });
+
+    await waitForDialogOutsideHandler();
+
+    fireEvent.pointerDown(outsideAskButton, {
+      button: 0,
+      pointerType: "mouse",
+    });
+    fireEvent.mouseDown(outsideAskButton);
+    fireEvent.mouseUp(outsideAskButton);
+    fireEvent.click(outsideAskButton);
+
+    await waitForDialogOutsideHandler();
+
+    expect(onOutsideAsk).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId("agent-drawer-content")).toHaveAttribute(
+      "data-state",
+      "open",
+    );
+  });
+
   it("closes through Radix dialog escape handling", async () => {
     const onClose = vi.fn();
 
@@ -283,6 +320,11 @@ type AgentDrawerOverrides = Partial<Parameters<typeof AgentDrawer>[0]>;
 
 const renderAgentDrawer = (overrides: AgentDrawerOverrides = {}) =>
   render(<AgentDrawer {...agentDrawerProps(overrides)} />);
+
+const waitForDialogOutsideHandler = () =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, 0);
+  });
 
 const agentDrawerProps = (overrides: AgentDrawerOverrides = {}) => ({
   open: true,
