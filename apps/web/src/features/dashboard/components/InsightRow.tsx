@@ -42,11 +42,11 @@ export const InsightRow = ({
     <div className={cn("flex min-w-0 items-start justify-between", compact ? "gap-3 pr-8" : "gap-4 pr-10")}>
       <div className="min-w-0">
         <div className={cn(compact ? "flex min-w-0 items-center gap-2 overflow-hidden" : "flex flex-wrap items-center gap-2")}>
-          <InsightModuleTag className={compact ? "min-h-5 px-1.5 text-[11px]" : undefined} label={module?.name ?? insight.moduleId} severity={insight.severity} />
-          {insight.metricLabel ? <span className={cn("text-xs text-zinc-500", compact && "truncate text-[11px] leading-none")}>{`${insight.metricLabel} ${insight.metricValue ?? ""}`}</span> : null}
+          <InsightModuleTag className={compact ? "min-h-5 px-1.5" : undefined} label={module?.name ?? insight.moduleId} severity={insight.severity} size={compact ? "micro" : undefined} />
+          {insight.metricLabel ? <span className={cn("text-zinc-500", compact ? "type-meta-2xs-tight truncate" : "type-body-xs")}>{`${insight.metricLabel} ${insight.metricValue ?? ""}`}</span> : null}
         </div>
-        <h3 className={cn("font-semibold text-zinc-950", compact ? "mt-2 line-clamp-2 break-words text-[13px] leading-5" : "mt-3 text-sm")}>{insight.title}</h3>
-        <p className={cn("text-zinc-600", compact ? "mt-1 line-clamp-2 break-words text-xs leading-5" : "mt-1 text-sm leading-6")}>{insight.summary}</p>
+        <h3 className={cn("text-zinc-950", compact ? "type-card-title-sm mt-2 line-clamp-2 break-words" : "type-card-title-base mt-3")}>{insight.title}</h3>
+        <p className={cn("text-zinc-600", compact ? "type-body-xs mt-1 line-clamp-2 break-words" : "type-body-sm mt-1")}>{insight.summary}</p>
       </div>
       <CheckCircle className={cn("shrink-0", compact ? "h-4 w-4" : "h-5 w-5", insight.severity === "warning" ? "text-amber-500" : "text-emerald-500")} weight={phosphorIconWeight} />
     </div>
@@ -56,8 +56,8 @@ export const InsightRow = ({
           key={action.label}
           className={cn(compact ? "rounded-md bg-white/75 px-2.5 py-2 shadow-[inset_0_0_0_1px_rgba(228,228,231,0.72)]" : "rounded-lg bg-zinc-50/70 p-3 shadow-[inset_0_0_0_1px_rgba(244,244,245,0.75)]")}
         >
-          <p className={cn("font-semibold text-zinc-900", compact ? "line-clamp-1 break-words text-[11px] leading-4" : "text-xs")}>{action.label}</p>
-          <p className={cn("text-zinc-600", compact ? "mt-0.5 line-clamp-2 break-words text-[11px] leading-4" : "mt-1 text-xs leading-5")}>{action.detail}</p>
+          <p className={cn("text-zinc-900", compact ? "type-meta-2xs-strong line-clamp-1 break-words" : "type-table-head")}>{action.label}</p>
+          <p className={cn("text-zinc-600", compact ? "type-meta-2xs-regular mt-0.5 line-clamp-2 break-words" : "type-body-xs mt-1")}>{action.detail}</p>
         </div>
       ))}
     </div>

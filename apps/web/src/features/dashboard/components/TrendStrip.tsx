@@ -8,8 +8,8 @@ export const TrendStrip = ({ metric, metrics }: { metric: MetricDefinition; metr
   <div className="rounded-2xl bg-white p-4 shadow-[0_1px_1px_rgba(24,24,27,0.024),0_3px_10px_rgba(24,24,27,0.026)]">
     <div className="flex items-center justify-between gap-3">
       <div>
-        <p className="text-xs font-medium text-zinc-500">{metric.label}</p>
-        <p className="mt-1 text-2xl font-semibold text-zinc-950">{metric.value}</p>
+        <p className="type-label-xs text-zinc-500">{metric.label}</p>
+        <p className="type-metric-value-sm mt-1 text-zinc-950">{metric.value}</p>
       </div>
       <MetricTrendTag metric={metric} />
     </div>

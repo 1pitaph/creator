@@ -6,6 +6,7 @@ import {
   formatCompactAxisValue,
   metricMeta,
 } from "../../adapters/metricSeries";
+import { chartTypography } from "../../theme/creatorChartTheme";
 import { baseChartSpec, defaultTooltip } from "../shared/spec";
 
 const readAxisValue = (text: string | string[]) => {
@@ -43,7 +44,7 @@ export const buildMultiMetricTrendSpec = (
             : `${Math.round(value)}`;
         },
         style: {
-          fontSize: 11,
+          fontSize: chartTypography.axis.fontSize,
         },
       }
     : undefined;
@@ -84,7 +85,7 @@ export const buildMultiMetricTrendSpec = (
           ? {
               space: 4,
               style: {
-                fontSize: 11,
+                fontSize: chartTypography.axis.fontSize,
               },
             }
           : undefined,
@@ -114,7 +115,7 @@ export const buildMultiMetricTrendSpec = (
             label: {
               space: 4,
               style: {
-                fontSize: 12,
+                fontSize: chartTypography.legend.fontSize,
               },
             },
           }

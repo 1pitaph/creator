@@ -2,7 +2,10 @@ import type { CreatorMetrics } from "@creator/data-contracts";
 import type { ISpec } from "@visactor/react-vchart";
 
 import { buildFunnelData } from "../../adapters/metricSeries";
-import { chartEvidenceColors } from "../../theme/creatorChartTheme";
+import {
+  chartEvidenceColors,
+  chartTypography,
+} from "../../theme/creatorChartTheme";
 import { baseChartSpec } from "../shared/spec";
 
 const buildStyledFunnelData = (metrics: CreatorMetrics) =>
@@ -52,8 +55,8 @@ export const buildFunnelConversionSpec = (
       visible: !compact,
       style: {
         fill: chartEvidenceColors.labelInk,
-        fontSize: 12,
-        fontWeight: 650,
+        fontSize: chartTypography.funnelLabel.fontSize,
+        fontWeight: chartTypography.funnelLabel.fontWeight,
         stroke: "transparent",
         lineWidth: 0,
         strokeOpacity: 0,

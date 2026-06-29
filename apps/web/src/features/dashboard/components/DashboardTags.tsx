@@ -1,5 +1,5 @@
 import type { CreatorProfile, DashboardBoardColumn, Insight, InsightAction } from "@creator/data-contracts";
-import { Badge, TagList, type BadgeTone, type TagListItem } from "@creator/ui";
+import { Badge, TagList, type BadgeSize, type BadgeTone, type TagListItem } from "@creator/ui";
 
 import { creatorTypeLabels, lifecycleLabels, severityTone } from "../../../constants";
 import type { MetricDefinition } from "../../../types";
@@ -121,12 +121,14 @@ export const DashboardCardKindTag = ({ kind }: { kind: DashboardCardKind }) => (
 export const InsightModuleTag = ({
   className,
   label,
+  size,
   severity
 }: {
   className?: string;
   label: string;
+  size?: BadgeSize;
   severity: Insight["severity"];
-}) => <Badge className={className} tone={severityTone[severity]}>{label}</Badge>;
+}) => <Badge className={className} size={size} tone={severityTone[severity]}>{label}</Badge>;
 
 export const MetricToneTag = ({
   label,

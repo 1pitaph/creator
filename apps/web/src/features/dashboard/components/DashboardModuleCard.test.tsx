@@ -113,7 +113,7 @@ describe("DashboardModuleCard", () => {
     const content = screen.getByText("内容").parentElement;
 
     expect(header).toHaveClass("!py-3", "!pl-4", "!pr-16");
-    expect(heading).toHaveClass("truncate", "text-[13px]");
+    expect(heading).toHaveClass("truncate", "type-card-title-sm");
     expect(screen.queryByText("7 日播放量")).not.toBeInTheDocument();
     expect(content).toHaveClass("!px-4", "!py-3");
   });

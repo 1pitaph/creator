@@ -2,6 +2,7 @@ import type { ChartIntent, CreatorMetrics } from "@creator/data-contracts";
 import type { ISpec } from "@visactor/react-vchart";
 
 import { buildChartSeries } from "../../adapters/metricSeries";
+import { chartTypography } from "../../theme/creatorChartTheme";
 import { baseChartSpec, defaultTooltip } from "../shared/spec";
 
 export const getHeatmapCellColor = (value: number | undefined) => {
@@ -66,7 +67,7 @@ export const buildHeatmapCalendarSpec = (
           ? {
               space: 4,
               style: {
-                fontSize: 11,
+                fontSize: chartTypography.axis.fontSize,
               },
             }
           : undefined,
@@ -79,7 +80,9 @@ export const buildHeatmapCalendarSpec = (
         label: {
           space: compact ? 4 : 8,
           style: {
-            fontSize: compact ? 11 : 12,
+            fontSize: compact
+              ? chartTypography.axis.fontSize
+              : chartTypography.legend.fontSize,
             fill: "#52525b",
           },
         },

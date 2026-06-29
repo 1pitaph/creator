@@ -220,7 +220,7 @@ const SidebarContent = ({
       <ScrollArea.Root className="mt-7 min-h-0 flex-1 overflow-hidden">
         <ScrollArea.Viewport
           className={cn(
-            "h-full scroll-isolated",
+            "sidebar-nav-scroll-viewport h-full scroll-isolated",
             collapsed ? "pr-0" : "pr-1",
           )}
           data-testid="sidebar-nav-scroll-viewport"
@@ -262,7 +262,7 @@ const SidebarBrand = ({
 }) => (
   <div
     className={cn(
-      "relative z-20 flex items-center gap-2 py-1 text-sm text-neutral-950",
+      "type-body-sm-tight relative z-20 flex items-center gap-2 py-1 text-neutral-950",
       collapsed ? "justify-center px-0" : "px-4",
       className,
     )}
@@ -271,10 +271,10 @@ const SidebarBrand = ({
       <DouyinLogoMark />
     </div>
     <div className={cn("min-w-0", collapsed && "hidden")}>
-      <p className="truncate font-medium leading-5 text-neutral-950">
+      <p className="type-control-sm truncate text-neutral-950">
         Creator AI
       </p>
-      <p className="truncate text-xs leading-4 text-neutral-500">
+      <p className="type-caption-xs truncate text-neutral-500">
         抖音创作者中心 Demo
       </p>
     </div>
@@ -316,7 +316,7 @@ const SidebarPublishButton = ({
     onClick={onClick}
   >
     <PhosphorHoverIcon className="h-5 w-5 shrink-0" icon={PlusSquare} />
-    <span className={cn("text-sm font-semibold", collapsed && "sr-only")}>
+    <span className={cn("type-card-title-base", collapsed && "sr-only")}>
       高清发布
     </span>
     <PhosphorHoverIcon
@@ -354,10 +354,10 @@ const SidebarFooter = ({
     >
       <SidebarFooterAvatar seed={diagnosis.creator.id} />
       <div className={cn("min-w-0 flex-1", collapsed && "hidden")}>
-        <p className="truncate text-sm font-medium text-neutral-800 transition duration-150 group-hover/sidebar:translate-x-1">
+        <p className="type-control-sm truncate text-neutral-800 transition duration-150 group-hover/sidebar:translate-x-1">
           {diagnosis.creator.displayName}
         </p>
-        <p className="truncate text-xs text-neutral-500">
+        <p className="type-caption-xs truncate text-neutral-500">
           {isLoadingDiagnosis ? "画像同步中" : "AI 模块在线"} ·{" "}
           {diagnosis.modules.length} tools
         </p>
@@ -539,7 +539,7 @@ const SidebarLinkItem = ({
         </span>
         <span
           className={cn(
-            "inline-block whitespace-pre text-sm font-medium transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
+            "type-control-sm inline-block whitespace-pre transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
             isIntent && "translate-x-1",
             active ? "text-neutral-950" : "text-neutral-500",
             collapsed && "sr-only",
@@ -620,7 +620,7 @@ const SidebarGroupItem = ({
           </span>
           <span
             className={cn(
-              "inline-block whitespace-pre text-sm font-medium transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
+              "type-control-sm inline-block whitespace-pre transition duration-150 group-hover/sidebar:translate-x-1 group-focus/sidebar:translate-x-1",
               isIntent && "translate-x-1",
               active ? "text-neutral-950" : "text-neutral-500",
               collapsed && "sr-only",
@@ -665,7 +665,7 @@ const SidebarChildLink = ({
     type="button"
     aria-current={active ? "page" : undefined}
     className={cn(
-      "mx-2 h-9 w-[calc(100%-16px)] rounded-lg pl-[52px] pr-3 text-left text-sm font-normal transition hover:bg-neutral-200/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
+      "type-body-sm-tight mx-2 h-9 w-[calc(100%-16px)] rounded-lg pl-[52px] pr-3 text-left transition hover:bg-neutral-200/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
       active ? "bg-neutral-200 text-neutral-950" : "text-neutral-500",
     )}
     onClick={onClick}

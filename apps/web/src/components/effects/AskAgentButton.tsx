@@ -37,7 +37,7 @@ export const HoverBorderGradientButton = ({ ariaLabel, onClick }: { ariaLabel: s
   >
     <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(75%_181.15942028985506%_at_50%_50%,#3275F8_0%,rgba(255,255,255,0)_100%)] opacity-0 blur-[2px] transition duration-300 group-hover/ask:opacity-100 group-focus-visible/ask:opacity-100" />
     <span className="absolute inset-[2px] z-[1] rounded-full bg-white" />
-    <span className="relative z-10 flex h-full w-auto items-center gap-1.5 rounded-[inherit] bg-white px-3 text-[13px] font-medium leading-none text-black">
+    <span className="type-control-compact-tight relative z-10 flex h-full w-auto items-center gap-1.5 rounded-[inherit] bg-white px-3 text-black">
       <AceternityLogo />
       <span className="whitespace-nowrap">询问 AI</span>
     </span>

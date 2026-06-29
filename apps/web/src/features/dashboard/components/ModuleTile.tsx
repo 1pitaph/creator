@@ -32,8 +32,8 @@ export const ModuleTile = ({ module, onAsk }: { module: AiModuleMetadata; onAsk:
           <Icon className="h-4 w-4" weight={phosphorIconWeight} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-zinc-950">{module.name}</p>
-          <p className="mt-1 text-xs leading-5 text-zinc-600">{module.description}</p>
+          <p className="type-card-title-base text-zinc-950">{module.name}</p>
+          <p className="type-body-xs mt-1 text-zinc-600">{module.description}</p>
         </div>
       </div>
       <ModuleTagList className="mt-3" tags={module.tags} />

@@ -166,7 +166,7 @@ const NotchOptionsPanel = ({
           variants={OPTION_VARIANTS}
           onClick={() => onSelect(option)}
           className={cn(
-            "relative flex w-full items-center justify-between gap-6 overflow-hidden rounded-md px-3 py-2 text-left text-xs font-medium whitespace-nowrap transition-colors",
+            "type-label-xs relative flex w-full items-center justify-between gap-6 overflow-hidden rounded-md px-3 py-2 text-left whitespace-nowrap transition-colors",
             active
               ? "text-white"
               : "text-neutral-300 hover:bg-white/5 hover:text-white",
@@ -381,7 +381,7 @@ export const Notch = ({
                 {item.icon}
               </span>
             ) : null}
-            <span className="font-semibold text-neutral-100">
+            <span className="type-table-head text-neutral-100">
               {item.label}
             </span>
             {(item.showValue ?? showSelectedValue) && triggerValue ? (
@@ -402,7 +402,7 @@ export const Notch = ({
               <div
                 aria-label={item.ariaLabel}
                 className={cn(
-                  "flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium whitespace-nowrap text-neutral-300",
+                  "type-label-xs flex items-center gap-2 rounded-full px-3 py-2 whitespace-nowrap text-neutral-300",
                   itemClassName,
                 )}
                 data-testid={`notch-static-${item.id}`}
@@ -418,7 +418,7 @@ export const Notch = ({
                 data-testid={`notch-trigger-${item.id}`}
                 onClick={() => setOpenItemId(item.id)}
                 className={cn(
-                  "group flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium whitespace-nowrap text-neutral-300 transition-colors hover:bg-white/6 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-500",
+                  "type-label-xs group flex items-center gap-2 rounded-full px-3 py-2 whitespace-nowrap text-neutral-300 transition-colors hover:bg-white/6 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-500",
                   itemClassName,
                 )}
               >

@@ -33,30 +33,30 @@ export const OverviewSection = ({
       >
         <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
           <div className="rounded-2xl bg-white p-5 shadow-[0_1px_1px_rgba(24,24,27,0.026),0_4px_14px_rgba(24,24,27,0.03)]">
-            <p className="text-xs font-medium text-zinc-500">账号健康度</p>
+            <p className="type-label-xs text-zinc-500">账号健康度</p>
             <div className="mt-4 flex items-end gap-2">
-              <span className="text-6xl font-semibold leading-none text-zinc-950">{healthScore}</span>
-              <span className="pb-2 text-sm font-medium text-zinc-500">/100</span>
+              <span className="type-metric-value-xl text-zinc-950">{healthScore}</span>
+              <span className="type-control-sm pb-2 text-zinc-500">/100</span>
             </div>
             <div className="mt-5 h-2 rounded-full bg-zinc-100">
               <div className="h-full rounded-full bg-gradient-to-r from-zinc-950 via-zinc-700 to-zinc-400" style={{ width: `${healthScore}%` }} />
             </div>
-            <p className="mt-3 text-xs leading-5 text-zinc-500">综合播放、完播、互动、转粉和模块风险后得到。</p>
+            <p className="type-body-xs mt-3 text-zinc-500">综合播放、完播、互动、转粉和模块风险后得到。</p>
           </div>
 
           <div className="space-y-4">
             <CreatorSummaryTags creator={diagnosis.creator} severity={topInsight?.severity} />
             <div>
-              <h2 className="text-xl font-semibold text-zinc-950">{topInsight?.title ?? "保持稳定实验节奏"}</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">
+              <h2 className="type-page-title text-zinc-950">{topInsight?.title ?? "保持稳定实验节奏"}</h2>
+              <p className="type-body-sm-relaxed mt-2 max-w-3xl text-zinc-600">
                 {topInsight?.summary ?? "当前没有明显异常，可以继续把高表现内容结构沉淀成系列化模板。"}
               </p>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
               {diagnosis.creator.goals.slice(0, 3).map((goal) => (
                 <div key={goal} className="rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]">
-                  <p className="text-[11px] font-medium text-zinc-500">当前目标</p>
-                  <p className="mt-1 text-sm font-semibold text-zinc-900">{goalLabels[goal]}</p>
+                  <p className="type-meta-2xs text-zinc-500">当前目标</p>
+                  <p className="type-card-title-base mt-1 text-zinc-900">{goalLabels[goal]}</p>
                 </div>
               ))}
             </div>

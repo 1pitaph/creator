@@ -37,7 +37,7 @@ export const MetricPanel = ({
         />
       </div>
       <div className="mt-5">
-        <p className="text-4xl font-semibold tracking-normal text-zinc-950">{metric.value}</p>
+        <p className="type-metric-value-md text-zinc-950">{metric.value}</p>
         <ChartSlot className="mt-5" height={56} intent={metric.chartIntent} metrics={metrics} tone={metric.tone} compact />
       </div>
     </div>

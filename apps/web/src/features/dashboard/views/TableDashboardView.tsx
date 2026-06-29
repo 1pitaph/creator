@@ -129,7 +129,7 @@ export const TableDashboardView = ({
     <section ref={containerRef} className="overflow-hidden rounded-[18px] bg-white shadow-[0_1px_1px_rgba(24,24,27,0.025),0_8px_28px_rgba(24,24,27,0.04)]">
       <div className="overflow-x-auto">
         <table className="min-w-[860px] w-full border-collapse text-left">
-          <thead className="border-b border-zinc-100 bg-zinc-50/70 text-xs font-semibold text-zinc-500">
+          <thead className="type-table-head border-b border-zinc-100 bg-zinc-50/70 text-zinc-500">
             <tr>
               <HeaderButton label="名称" onClick={() => setSort("title")} />
               <HeaderButton label="类型" onClick={() => setSort("type")} />
@@ -139,7 +139,7 @@ export const TableDashboardView = ({
               <HeaderButton label="顺序" onClick={() => setSort("priority")} />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 text-sm">
+          <tbody className="type-body-sm-tight divide-y divide-zinc-100">
             {sortedCards.map((card) => {
               const preference = preferences.cards[card.id] ?? { visible: true, width: card.defaultSize, height: card.defaultSize };
               const layoutItem = getCardLayoutItem(card);
@@ -148,8 +148,8 @@ export const TableDashboardView = ({
               return (
                 <tr key={card.id} className="align-top">
                   <td className="px-4 py-4">
-                    <p className="font-semibold text-zinc-950">{card.title}</p>
-                    <p className="mt-1 max-w-xl text-xs leading-5 text-zinc-500">{card.description}</p>
+                    <p className="type-card-title-base text-zinc-950">{card.title}</p>
+                    <p className="type-body-xs mt-1 max-w-xl text-zinc-500">{card.description}</p>
                   </td>
                   <td className="px-4 py-4">
                     <DashboardCardKindTag kind={card.kind} />
@@ -157,7 +157,7 @@ export const TableDashboardView = ({
                   <td className="px-4 py-4">
                     <input
                       aria-label={`设置「${card.title}」宽度列数`}
-                      className="h-9 w-20 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-900"
+                      className="type-body-sm-tight h-9 w-20 rounded-md border border-zinc-200 bg-white px-2 text-zinc-900"
                       max={constraints.maxW}
                       min={constraints.minW}
                       step={1}
@@ -171,7 +171,7 @@ export const TableDashboardView = ({
                   <td className="px-4 py-4">
                     <input
                       aria-label={`设置「${card.title}」高度行数`}
-                      className="h-9 w-20 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-900"
+                      className="type-body-sm-tight h-9 w-20 rounded-md border border-zinc-200 bg-white px-2 text-zinc-900"
                       max={constraints.maxH}
                       min={constraints.minH}
                       step={1}
@@ -209,7 +209,7 @@ export const TableDashboardView = ({
                       />
                     </Button>
                   </td>
-                  <td className="px-4 py-4 text-xs font-medium text-zinc-500">{card.priority}</td>
+                  <td className="type-label-xs px-4 py-4 text-zinc-500">{card.priority}</td>
                 </tr>
               );
             })}
@@ -222,7 +222,7 @@ export const TableDashboardView = ({
 
 const HeaderButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <th className="px-4 py-3">
-    <button type="button" className="font-semibold text-zinc-500 transition hover:text-zinc-900" onClick={onClick}>
+    <button type="button" className="type-table-head text-zinc-500 transition hover:text-zinc-900" onClick={onClick}>
       {label}
     </button>
   </th>

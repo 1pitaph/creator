@@ -4,20 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: [
-          "Inter",
-          "ui-sans-serif",
-          "system-ui",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "PingFang SC",
-          "HarmonyOS Sans SC",
-          "Microsoft YaHei",
-          "Helvetica Neue",
-          "Segoe UI",
-          "Arial",
-          "sans-serif"
-        ]
+        sans: ["var(--font-sans)"]
       },
       boxShadow: {
         panel: "0 1px 2px rgba(24, 24, 27, 0.08), 0 10px 28px rgba(24, 24, 27, 0.05)"

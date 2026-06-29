@@ -374,7 +374,7 @@ export const AgentDrawer = ({
                   <Dialog.Title asChild>
                     <CardTitle>AI 聊天 Agent</CardTitle>
                   </Dialog.Title>
-                  <Dialog.Description className="mt-1 text-xs text-zinc-500">
+                  <Dialog.Description className="type-caption-xs mt-1 text-zinc-500">
                     按当前模块上下文回答。
                   </Dialog.Description>
                 </div>
@@ -436,10 +436,10 @@ export const AgentDrawer = ({
                     }}
                   </ThreadPrimitive.Messages>
                   {isChatting ? (
-                    <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
+                    <div className="type-caption-xs flex items-center justify-between gap-3 text-zinc-500">
                       <AgentStreamingStatus toolCalls={liveToolCalls} />
                       <ComposerPrimitive.Cancel
-                        className="phosphor-hover-root inline-flex h-8 items-center justify-center gap-2 rounded-md border border-transparent bg-transparent px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="phosphor-hover-root type-control-sm inline-flex h-8 items-center justify-center gap-2 rounded-md border border-transparent bg-transparent px-3 text-zinc-700 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="停止生成"
                       >
                         <PhosphorHoverIcon
@@ -458,14 +458,14 @@ export const AgentDrawer = ({
               <div className="border-t border-amber-100 bg-amber-50 px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-amber-950">
+                    <p className="type-card-title-base text-amber-950">
                       {approval.title}
                     </p>
-                    <p className="mt-1 text-xs leading-5 text-amber-800">
+                    <p className="type-body-xs mt-1 text-amber-800">
                       {approval.detail}
                     </p>
                     {approval.risk ? (
-                      <p className="mt-1 text-[11px] leading-5 text-amber-700">
+                      <p className="type-body-2xs mt-1 text-amber-700">
                         {approval.risk}
                       </p>
                     ) : null}
@@ -497,13 +497,13 @@ export const AgentDrawer = ({
             <ComposerPrimitive.Root className="border-t border-zinc-100 p-4">
               <div className="flex items-end gap-2">
                 <ComposerPrimitive.Input
-                  className="min-h-[74px] flex-1 resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm leading-6 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="type-body-sm min-h-[74px] flex-1 resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-300 disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="围绕当前模块继续追问..."
                   submitMode="enter"
                   rows={3}
                 />
                 <ComposerPrimitive.Send
-                  className="phosphor-hover-root inline-flex h-9 w-9 items-center justify-center gap-2 rounded-md border border-transparent bg-zinc-950 text-sm font-medium text-white transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="phosphor-hover-root type-control-sm inline-flex h-9 w-9 items-center justify-center gap-2 rounded-md border border-transparent bg-zinc-950 text-white transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="发送消息"
                 >
                   <PhosphorHoverIcon className="h-4 w-4" icon={PaperPlaneTilt} />
@@ -538,14 +538,14 @@ const AgentContextPanel = ({
     <div className="shrink-0 border-b border-zinc-100 bg-zinc-50 px-4 py-3">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-zinc-500">当前询问模块</p>
-          <p className="mt-1 text-sm font-semibold text-zinc-950">
+          <p className="type-table-head text-zinc-500">当前询问模块</p>
+          <p className="type-card-title-base mt-1 text-zinc-950">
             {focus.title}
           </p>
         </div>
         <button
           type="button"
-          className="phosphor-hover-root mt-5 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-zinc-600 transition hover:bg-white hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
+          className="phosphor-hover-root type-label-xs mt-5 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md px-2.5 text-zinc-600 transition hover:bg-white hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
           aria-controls={detailsId}
           aria-expanded={isExpanded}
           aria-label={toggleLabel}
@@ -635,7 +635,7 @@ const AgentContextDetails = ({
     <>
       {focus.summary ? (
         <AgentContextRevealItem index={nextRevealIndex()}>
-          <p className="text-xs leading-5 text-zinc-600">{focus.summary}</p>
+          <p className="type-body-xs text-zinc-600">{focus.summary}</p>
         </AgentContextRevealItem>
       ) : null}
       {focus.evidence && focus.evidence.length > 0 ? (
@@ -759,7 +759,7 @@ const FallbackAssistantMessage = ({
     <div className={cn("flex", isAssistant ? "justify-start" : "justify-end")}>
       <div
         className={cn(
-          "max-w-[92%] rounded-xl px-4 py-3 text-sm leading-6",
+          "type-body-sm max-w-[92%] rounded-xl px-4 py-3",
           isAssistant ? "bg-zinc-100 text-zinc-800" : "bg-zinc-950 text-white",
         )}
       >

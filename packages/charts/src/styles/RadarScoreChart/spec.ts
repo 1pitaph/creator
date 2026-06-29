@@ -2,6 +2,7 @@ import type { CreatorMetrics } from "@creator/data-contracts";
 import type { ISpec } from "@visactor/react-vchart";
 
 import { buildRadarData } from "../../adapters/metricSeries";
+import { chartTypography } from "../../theme/creatorChartTheme";
 import { baseChartSpec } from "../shared/spec";
 
 export const buildRadarScoreSpec = (
@@ -39,7 +40,9 @@ export const buildRadarScoreSpec = (
           visible: true,
           space: compact ? 6 : 10,
           style: {
-            fontSize: compact ? 11 : 12,
+            fontSize: compact
+              ? chartTypography.axis.fontSize
+              : chartTypography.legend.fontSize,
           },
         },
       },

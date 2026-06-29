@@ -65,12 +65,12 @@ export const TrendsActionsSection = ({
             className="rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]"
           >
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-zinc-950">
+              <p className="type-card-title-base text-zinc-950">
                 {action.label}
               </p>
               <ActionEffortTag effort={action.effort} />
             </div>
-            <p className="mt-1 text-xs leading-5 text-zinc-600">
+            <p className="type-body-xs mt-1 text-zinc-600">
               {action.detail}
             </p>
           </div>

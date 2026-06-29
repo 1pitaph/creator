@@ -25,11 +25,11 @@ export const TrendMetricSummaryRail = ({
     >
       {visibleMetrics.map((metric) => (
         <div key={metric.id} className="min-w-0">
-          <p className="truncate text-[11px] font-medium text-zinc-500">
+          <p className="type-meta-2xs truncate text-zinc-500">
             {metric.label}
           </p>
           <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
-            <p className="truncate text-lg font-semibold leading-none text-zinc-950">
+            <p className="type-metric-value-2xs truncate text-zinc-950">
               {metric.value}
             </p>
             <MetricTrendTag metric={metric} />

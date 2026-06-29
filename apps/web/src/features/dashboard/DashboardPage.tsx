@@ -248,7 +248,7 @@ const ModuleLoadModeSwitcher = ({
             type="button"
             aria-pressed={selected}
             title={moduleLoadModeDescriptions[value]}
-            className="phosphor-hover-root group/view relative z-10 inline-flex h-9 items-center rounded-full px-3 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
+            className="phosphor-hover-root type-control-sm group/view relative z-10 inline-flex h-9 items-center rounded-full px-3 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
             onClick={() => onModeChange(value)}
           >
             <span

@@ -28,6 +28,23 @@ export const chartEvidenceColors = {
   funnelStages: ["#e4e7eb", "#bfdbfe", "#ccfbf1", "#fde68a"],
 };
 
+export const chartTypography = {
+  axis: {
+    fontSize: 11,
+  },
+  legend: {
+    fontSize: 12,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: 600,
+  },
+  funnelLabel: {
+    fontSize: 12,
+    fontWeight: 650,
+  },
+} as const;
+
 export const creatorChartTheme = {
   colorScheme: {
     default: {
@@ -39,7 +56,7 @@ export const creatorChartTheme = {
       label: {
         style: {
           fill: "#71717a",
-          fontSize: 11,
+          fontSize: chartTypography.axis.fontSize,
         },
       },
       grid: {

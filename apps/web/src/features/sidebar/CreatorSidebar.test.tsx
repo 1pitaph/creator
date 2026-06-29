@@ -138,6 +138,7 @@ describe("CreatorSidebar", () => {
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
 
     expect(within(sidebar).getByTestId("sidebar-nav-scroll-viewport")).toHaveClass(
+      "sidebar-nav-scroll-viewport",
       "scroll-isolated",
     );
   });
@@ -266,7 +267,7 @@ describe("CreatorSidebar", () => {
     expect(notchShell).toHaveClass("bg-neutral-950/95");
     const sampleLabel = within(accountNotch).getByText("示例数据");
 
-    expect(sampleLabel).toHaveClass("font-semibold", "text-neutral-100");
+    expect(sampleLabel).toHaveClass("type-table-head", "text-neutral-100");
     expect(within(accountNotch).queryByText("示例")).not.toBeInTheDocument();
     expect(within(accountNotch).queryByText("数据")).not.toBeInTheDocument();
     expect(within(accountNotch).getByText("账号")).toBeInTheDocument();

@@ -207,7 +207,7 @@ const PaginatedInsightsBody = ({
 
   if (!currentInsight) {
     return (
-      <p className="rounded-xl bg-white p-4 text-sm text-zinc-500">
+      <p className="type-body-sm-tight rounded-xl bg-white p-4 text-zinc-500">
         暂无诊断结果。
       </p>
     );
@@ -251,7 +251,7 @@ const PaginatedInsightsBody = ({
           </Button>
 
           <span
-            className="text-[11px] font-medium leading-none text-zinc-500"
+            className="type-meta-2xs-tight text-zinc-500"
             role="status"
             aria-live="polite"
           >
@@ -298,12 +298,12 @@ const SummaryCardBody = ({
         />
         <div>
           <div className="flex items-end gap-2">
-            <span className="text-4xl font-semibold leading-none text-zinc-950">
+            <span className="type-metric-value-md-tight text-zinc-950">
               {healthScore}
             </span>
-            <span className="pb-1 text-xs font-medium text-zinc-500">/100</span>
+            <span className="type-label-xs pb-1 text-zinc-500">/100</span>
           </div>
-          <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-600">
+          <p className="type-body-xs mt-2 line-clamp-2 text-zinc-600">
             {topInsight?.title ?? "保持稳定实验节奏"}
           </p>
         </div>
@@ -326,12 +326,12 @@ const SummaryCardBody = ({
           size === "large" && "flex h-full min-h-[180px] flex-col",
         )}
       >
-        <p className="text-xs font-medium text-zinc-500">账号健康度</p>
+        <p className="type-label-xs text-zinc-500">账号健康度</p>
         <div className="mt-4 flex items-end gap-2">
-          <span className="text-5xl font-semibold leading-none text-zinc-950">
+          <span className="type-metric-value-lg text-zinc-950">
             {healthScore}
           </span>
-          <span className="pb-1.5 text-sm font-medium text-zinc-500">/100</span>
+          <span className="type-control-sm pb-1.5 text-zinc-500">/100</span>
         </div>
         <div className="mt-5 h-2 rounded-full bg-zinc-100">
           <div
@@ -352,12 +352,12 @@ const SummaryCardBody = ({
           severity={topInsight?.severity}
         />
         <div>
-          <h2 className="text-lg font-semibold text-zinc-950">
+          <h2 className="type-section-title text-zinc-950">
             {topInsight?.title ?? "保持稳定实验节奏"}
           </h2>
           <p
             className={cn(
-              "mt-2 text-sm leading-7 text-zinc-600",
+              "type-body-sm-relaxed mt-2 text-zinc-600",
               size === "large" && "line-clamp-4",
             )}
           >
@@ -376,8 +376,8 @@ const SummaryCardBody = ({
               key={goal}
               className="rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]"
             >
-              <p className="text-[11px] font-medium text-zinc-500">当前目标</p>
-              <p className="mt-1 text-sm font-semibold text-zinc-900">
+              <p className="type-meta-2xs text-zinc-500">当前目标</p>
+              <p className="type-card-title-base mt-1 text-zinc-900">
                 {goalLabels[goal]}
               </p>
             </div>
@@ -430,8 +430,8 @@ const MetricCardBody = ({
       >
         <p
           className={cn(
-            "font-semibold tracking-normal text-zinc-950",
-            size === "small" ? "text-4xl" : "text-5xl",
+            "text-zinc-950",
+            size === "small" ? "type-metric-value-md" : "type-metric-value-lg",
           )}
         >
           {metric.value}
@@ -513,12 +513,12 @@ const ModuleChartCardBody = ({
 const ActionPreviewCard = ({ action }: { action: DashboardActionCard }) => (
   <div className="rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024)]">
     <div className="flex items-center justify-between gap-3">
-      <p className="text-sm font-semibold text-zinc-950">{action.label}</p>
+      <p className="type-card-title-base text-zinc-950">{action.label}</p>
       <ActionEffortTag effort={action.effort} />
     </div>
-    <p className="mt-1 text-xs font-medium text-zinc-500">
+    <p className="type-label-xs mt-1 text-zinc-500">
       {action.insightTitle}
     </p>
-    <p className="mt-1 text-xs leading-5 text-zinc-600">{action.detail}</p>
+    <p className="type-body-xs mt-1 text-zinc-600">{action.detail}</p>
   </div>
 );

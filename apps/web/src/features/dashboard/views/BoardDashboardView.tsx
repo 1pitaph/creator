@@ -165,7 +165,7 @@ const DroppableBoardColumn = ({
 const BoardColumnHeader = ({ column, count }: { column: DashboardBoardColumn; count: number }) => (
   <div className="mb-3 flex items-center justify-between gap-3">
     <div className="flex items-center gap-2">
-      <h2 className="text-sm font-semibold text-zinc-950">{boardColumnLabels[column]}</h2>
+      <h2 className="type-card-title-base text-zinc-950">{boardColumnLabels[column]}</h2>
       <BoardColumnCountTag column={column} count={count} />
     </div>
   </div>
@@ -201,11 +201,11 @@ const BoardActionCardContent = ({ action, editing }: { action: DashboardActionCa
   <article className={cn("rounded-xl bg-white p-3 shadow-[0_1px_1px_rgba(24,24,27,0.024),0_8px_26px_rgba(24,24,27,0.035)]", editing && "cursor-grab active:cursor-grabbing")}>
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-zinc-950">{action.label}</p>
-        <p className="mt-1 text-xs font-medium text-zinc-500">{action.insightTitle}</p>
+        <p className="type-card-title-base text-zinc-950">{action.label}</p>
+        <p className="type-label-xs mt-1 text-zinc-500">{action.insightTitle}</p>
       </div>
       <ActionEffortTag effort={action.effort} />
     </div>
-    <p className="mt-2 text-xs leading-5 text-zinc-600">{action.detail}</p>
+    <p className="type-body-xs mt-2 text-zinc-600">{action.detail}</p>
   </article>
 );

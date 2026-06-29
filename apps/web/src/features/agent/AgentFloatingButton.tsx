@@ -37,14 +37,14 @@ export const AgentFloatingButton = ({
     >
       <div
         className={cn(
-          "pointer-events-none absolute right-[calc(100%+0.75rem)] top-1/2 z-30 hidden -translate-y-1/2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-xs shadow-[0_14px_40px_rgba(24,24,27,0.14)] transition duration-200 md:block",
+          "type-caption-xs pointer-events-none absolute right-[calc(100%+0.75rem)] top-1/2 z-30 hidden -translate-y-1/2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left shadow-[0_14px_40px_rgba(24,24,27,0.14)] transition duration-200 md:block",
           open
             ? "opacity-0"
             : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
         )}
         aria-hidden="true"
       >
-        <p className="font-semibold text-zinc-950">AI Agent</p>
+        <p className="type-table-head text-zinc-950">AI Agent</p>
         <p className="mt-0.5 whitespace-nowrap text-zinc-500">{statusText}</p>
       </div>
       <span

@@ -35,14 +35,14 @@ export const ChatBubble = memo(function ChatBubble({
     <div className={cn("flex", isAssistant ? "justify-start" : "justify-end")}>
       <div
         className={cn(
-          "max-w-[92%] rounded-xl px-4 py-3 text-sm leading-6",
+          "type-body-sm max-w-[92%] rounded-xl px-4 py-3",
           isAssistant ? "bg-zinc-100 text-zinc-800" : "bg-zinc-950 text-white",
         )}
       >
         {message.notice ? (
           <p
             className={cn(
-              "mb-2 rounded-lg border px-3 py-2 text-xs font-medium",
+              "type-label-xs mb-2 rounded-lg border px-3 py-2",
               noticeToneClass[message.notice.tone],
             )}
           >
@@ -96,10 +96,10 @@ const noticeToneClass: Record<
 };
 
 const AgentRunPanel = ({ run }: { run: AgentRun }) => (
-  <div className="mt-4 space-y-3 border-t border-zinc-200/80 pt-3 text-xs leading-5">
+  <div className="type-body-xs mt-4 space-y-3 border-t border-zinc-200/80 pt-3">
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="font-semibold text-zinc-700">数据事实</p>
+        <p className="type-table-head text-zinc-700">数据事实</p>
         <AgentRunModeTag mode={run.mode} />
       </div>
       <div className="space-y-1.5">
@@ -109,7 +109,7 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
             className="rounded-lg border border-zinc-200 bg-white/70 px-3 py-2"
           >
             <p className="text-zinc-700">{fact.statement}</p>
-            <p className="mt-1 text-[11px] text-zinc-500">
+            <p className="type-meta-2xs-regular mt-1 text-zinc-500">
               {confidenceLabel[fact.confidence]}
             </p>
           </div>
@@ -119,7 +119,7 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
 
     {run.assumptions.length > 0 ? (
       <div>
-        <p className="mb-2 font-semibold text-zinc-700">AI 推测</p>
+        <p className="type-table-head mb-2 text-zinc-700">AI 推测</p>
         <div className="space-y-1.5">
           {run.assumptions.slice(0, 2).map((assumption) => (
             <div
@@ -128,7 +128,7 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
             >
               <p>{assumption.statement}</p>
               {assumption.risk ? (
-                <p className="mt-1 text-[11px] text-amber-700">
+                <p className="type-meta-2xs-regular mt-1 text-amber-700">
                   {assumption.risk}
                 </p>
               ) : null}
@@ -140,7 +140,7 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
 
     {run.actions.length > 0 ? (
       <div>
-        <p className="mb-2 font-semibold text-zinc-700">行动建议</p>
+        <p className="type-table-head mb-2 text-zinc-700">行动建议</p>
         <div className="space-y-1.5">
           {run.actions.slice(0, 3).map((action) => (
             <div
@@ -148,12 +148,12 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
               className="rounded-lg border border-sky-100 bg-sky-50/70 px-3 py-2"
             >
               <div className="flex flex-wrap items-center gap-1.5">
-                <p className="font-semibold text-sky-950">{action.label}</p>
+                <p className="type-table-head text-sky-950">{action.label}</p>
                 <ActionTimeframeTag timeframe={action.timeframe} />
               </div>
               <p className="mt-1 text-sky-900">{action.detail}</p>
               {action.metricToWatch ? (
-                <p className="mt-1 text-[11px] text-sky-700">
+                <p className="type-meta-2xs-regular mt-1 text-sky-700">
                   观察指标：{action.metricToWatch}
                 </p>
               ) : null}
@@ -164,15 +164,15 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
     ) : null}
 
     <div>
-      <p className="mb-2 font-semibold text-zinc-700">工具调用</p>
+      <p className="type-table-head mb-2 text-zinc-700">工具调用</p>
       <ToolCallTagList toolCalls={run.toolCalls} />
     </div>
   </div>
 );
 
 const LiveToolCallPanel = ({ toolCalls }: { toolCalls: AgentToolCall[] }) => (
-  <div className="mt-3 border-t border-zinc-200/80 pt-3 text-xs leading-5">
-    <p className="mb-2 font-semibold text-zinc-700">工具调用</p>
+  <div className="type-body-xs mt-3 border-t border-zinc-200/80 pt-3">
+    <p className="type-table-head mb-2 text-zinc-700">工具调用</p>
     <ToolCallTagList toolCalls={toolCalls} />
   </div>
 );

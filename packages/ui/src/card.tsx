@@ -10,8 +10,26 @@ export const CardHeader = ({ className, ...props }: HTMLAttributes<HTMLDivElemen
   <div className={cn("border-b border-zinc-100 p-4", className)} {...props} />
 );
 
-export const CardTitle = ({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) => (
-  <h2 className={cn("text-sm font-semibold text-zinc-950", className)} {...props} />
+export type CardTitleSize = "sm" | "md";
+
+const cardTitleSizeClass: Record<CardTitleSize, string> = {
+  sm: "type-card-title-sm",
+  md: "type-card-title-md"
+};
+
+export const CardTitle = ({
+  className,
+  size,
+  ...props
+}: HTMLAttributes<HTMLHeadingElement> & { size?: CardTitleSize }) => (
+  <h2
+    className={cn(
+      size ? cardTitleSizeClass[size] : "type-card-title-base",
+      "text-zinc-950",
+      className
+    )}
+    {...props}
+  />
 );
 
 export const CardContent = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => <div className={cn("p-4", className)} {...props} />;

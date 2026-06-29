@@ -6,7 +6,10 @@ import {
   formatCompactAxisValue,
   metricMeta,
 } from "../../adapters/metricSeries";
-import { chartEvidenceColors } from "../../theme/creatorChartTheme";
+import {
+  chartEvidenceColors,
+  chartTypography,
+} from "../../theme/creatorChartTheme";
 import { baseChartSpec, defaultTooltip } from "../shared/spec";
 
 const readAxisValue = (text: string | string[]) => {
@@ -49,7 +52,7 @@ export const buildDualAxisTrendSpec = (
               : `${Math.round(value)}`;
           },
           style: {
-            fontSize: 11,
+            fontSize: chartTypography.axis.fontSize,
             fill: chartEvidenceColors.axisText,
           },
         }
@@ -140,7 +143,7 @@ export const buildDualAxisTrendSpec = (
           ? {
               space: 4,
               style: {
-                fontSize: 11,
+                fontSize: chartTypography.axis.fontSize,
                 fill: chartEvidenceColors.axisText,
               },
             }
@@ -156,8 +159,8 @@ export const buildDualAxisTrendSpec = (
           text: keys[0] ? metricMeta[keys[0]].label : "",
           style: {
             fill: chartEvidenceColors.axisText,
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: chartTypography.label.fontSize,
+            fontWeight: chartTypography.label.fontWeight,
           },
         },
         nice: true,
@@ -175,8 +178,8 @@ export const buildDualAxisTrendSpec = (
           text: keys[1] ? metricMeta[keys[1]].label : "",
           style: {
             fill: chartEvidenceColors.axisText,
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: chartTypography.label.fontSize,
+            fontWeight: chartTypography.label.fontWeight,
           },
         },
         nice: true,
@@ -203,7 +206,7 @@ export const buildDualAxisTrendSpec = (
             label: {
               space: 4,
               style: {
-                fontSize: 12,
+                fontSize: chartTypography.legend.fontSize,
                 fill: chartEvidenceColors.axisText,
               },
             },

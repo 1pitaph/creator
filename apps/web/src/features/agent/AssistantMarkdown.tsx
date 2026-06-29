@@ -8,17 +8,17 @@ const markdownPlugins = [remarkGfm];
 
 const markdownComponents: Components = {
   h1: ({ children }) => (
-    <h1 className="mb-3 text-lg font-semibold leading-7 text-zinc-950 first:mt-0">
+    <h1 className="type-markdown-h1 mb-3 text-zinc-950 first:mt-0">
       {children}
     </h1>
   ),
   h2: ({ children }) => (
-    <h2 className="mb-2 mt-5 text-base font-semibold leading-6 text-zinc-900 first:mt-0">
+    <h2 className="type-markdown-h2 mb-2 mt-5 text-zinc-900 first:mt-0">
       {children}
     </h2>
   ),
   h3: ({ children }) => (
-    <h3 className="mb-2 mt-4 text-sm font-semibold leading-6 text-zinc-900 first:mt-0">
+    <h3 className="type-markdown-h3 mb-2 mt-4 text-zinc-900 first:mt-0">
       {children}
     </h3>
   ),
@@ -39,7 +39,7 @@ const markdownComponents: Components = {
   ),
   li: ({ children }) => <li className="pl-1">{children}</li>,
   strong: ({ children }) => (
-    <strong className="font-semibold text-zinc-950">{children}</strong>
+    <strong className="type-strong text-zinc-950">{children}</strong>
   ),
   blockquote: ({ children }) => (
     <blockquote className="my-3 border-l-2 border-zinc-300 pl-3 text-zinc-600">
@@ -48,7 +48,7 @@ const markdownComponents: Components = {
   ),
   a: ({ children, href }) => (
     <a
-      className="font-medium text-sky-700 underline decoration-sky-300 underline-offset-2"
+      className="type-link text-sky-700 underline decoration-sky-300 underline-offset-2"
       href={href}
       rel="noreferrer"
       target="_blank"
@@ -64,7 +64,7 @@ const markdownComponents: Components = {
         className={cn(
           isBlockCode
             ? "text-zinc-50"
-            : "rounded bg-white/80 px-1 py-0.5 text-[0.92em] text-zinc-900",
+            : "type-code-inline rounded bg-white/80 px-1 py-0.5 text-zinc-900",
           className,
         )}
       >
@@ -73,20 +73,20 @@ const markdownComponents: Components = {
     );
   },
   pre: ({ children }) => (
-    <pre className="my-3 overflow-x-auto rounded-lg bg-zinc-900 px-3 py-2 text-xs leading-5 text-zinc-50">
+    <pre className="type-body-xs my-3 overflow-x-auto rounded-lg bg-zinc-900 px-3 py-2 text-zinc-50">
       {children}
     </pre>
   ),
   table: ({ children }) => (
     <div className="my-3 overflow-x-auto">
-      <table className="min-w-full border-collapse text-left text-xs">
+      <table className="type-caption-xs min-w-full border-collapse text-left">
         {children}
       </table>
     </div>
   ),
   th: ({ children, align }) => (
     <th
-      className="border border-zinc-200 bg-white/70 px-2 py-1 font-semibold text-zinc-700"
+      className="type-table-head border border-zinc-200 bg-white/70 px-2 py-1 text-zinc-700"
       style={tableTextAlignStyle(align)}
     >
       {children}
