@@ -18,6 +18,21 @@ describe("AgentFloatingButton", () => {
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(screen.getByText("随时唤起数据助手")).toBeInTheDocument();
     expect(screen.getByTestId("agent-floating-icon")).toBeInTheDocument();
+    expect(screen.queryByTestId("agent-floating-status-dot")).toBeNull();
+  });
+
+  it("shows an unread message status dot", () => {
+    render(
+      <AgentFloatingButton hasUnreadMessage open={false} onOpen={vi.fn()} />,
+    );
+
+    expect(screen.getByText("有新消息")).toBeInTheDocument();
+    expect(screen.getByTestId("agent-floating-status-dot")).toHaveClass(
+      "bg-emerald-400",
+    );
+    expect(
+      screen.getByRole("button", { name: "打开 AI Agent，有新消息" }),
+    ).toBeInTheDocument();
   });
 
   it("shows pending approval status", () => {
@@ -26,6 +41,25 @@ describe("AgentFloatingButton", () => {
     );
 
     expect(screen.getByText("有操作等待确认")).toBeInTheDocument();
+  });
+
+  it("prioritizes pending approval status over unread messages", () => {
+    render(
+      <AgentFloatingButton
+        hasPendingApproval
+        hasUnreadMessage
+        open={false}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "打开 AI Agent，有操作等待确认" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("agent-floating-status-dot")).toHaveClass(
+      "bg-amber-400",
+      "text-zinc-950",
+    );
   });
 
   it("renders a circular dashed anchor ring behind the magnetic button", () => {

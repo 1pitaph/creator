@@ -8,11 +8,13 @@ import { AgentMarkIcon } from "./AgentMarkIcon";
 
 export const AgentFloatingButton = ({
   hasPendingApproval = false,
+  hasUnreadMessage = false,
   isChatting = false,
   open,
   onOpen,
 }: {
   hasPendingApproval?: boolean;
+  hasUnreadMessage?: boolean;
   isChatting?: boolean;
   open: boolean;
   onOpen: () => void;
@@ -21,7 +23,10 @@ export const AgentFloatingButton = ({
     ? "有操作等待确认"
     : isChatting
       ? "正在分析模块"
-      : "随时唤起数据助手";
+      : hasUnreadMessage
+        ? "有新消息"
+        : "随时唤起数据助手";
+  const showStatusDot = hasPendingApproval || hasUnreadMessage;
 
   return (
     <div
@@ -78,17 +83,20 @@ export const AgentFloatingButton = ({
               data-testid="agent-floating-icon"
             />
           )}
-          <span
-            className={cn(
-              "absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-zinc-950 bg-emerald-400",
-              hasPendingApproval && "h-5 w-5 bg-amber-400 text-zinc-950",
-            )}
-            aria-hidden="true"
-          >
-            {hasPendingApproval ? (
-              <WarningCircle className="h-3.5 w-3.5" weight="fill" />
-            ) : null}
-          </span>
+          {showStatusDot ? (
+            <span
+              className={cn(
+                "absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-zinc-950 bg-emerald-400",
+                hasPendingApproval && "h-5 w-5 bg-amber-400 text-zinc-950",
+              )}
+              data-testid="agent-floating-status-dot"
+              aria-hidden="true"
+            >
+              {hasPendingApproval ? (
+                <WarningCircle className="h-3.5 w-3.5" weight="fill" />
+              ) : null}
+            </span>
+          ) : null}
         </button>
       </MagneticButton>
     </div>

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { DiagnosisResponse } from "@creator/data-contracts";
 
-import type { AgentCommand } from "../../types";
+import type { AgentCommand, UiMessage } from "../../types";
 import { AgentDrawer } from "./AgentDrawer";
 import { AgentFloatingButton } from "./AgentFloatingButton";
 import { useAgentChat } from "./useAgentChat";
@@ -28,6 +28,13 @@ export const AgentDrawerContainer = ({
     creatorId,
     diagnosis,
   });
+  const latestAssistantMessageToken = useMemo(
+    () => createLatestAssistantMessageToken(chat.messages),
+    [chat.messages],
+  );
+  const [hasUnreadMessage, setHasUnreadMessage] = useState(false);
+  const hasInitializedUnreadTrackingRef = useRef(false);
+  const lastSeenAssistantMessageTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!command || processedCommandIdRef.current === command.id) {
@@ -43,6 +50,27 @@ export const AgentDrawerContainer = ({
 
     chat.askTarget(command.target);
   }, [chat, command]);
+
+  useEffect(() => {
+    if (!hasInitializedUnreadTrackingRef.current) {
+      hasInitializedUnreadTrackingRef.current = true;
+      lastSeenAssistantMessageTokenRef.current = latestAssistantMessageToken;
+      return;
+    }
+
+    if (chat.open) {
+      lastSeenAssistantMessageTokenRef.current = latestAssistantMessageToken;
+      setHasUnreadMessage(false);
+      return;
+    }
+
+    if (
+      latestAssistantMessageToken &&
+      latestAssistantMessageToken !== lastSeenAssistantMessageTokenRef.current
+    ) {
+      setHasUnreadMessage(true);
+    }
+  }, [chat.open, latestAssistantMessageToken]);
 
   return (
     <>
@@ -68,10 +96,29 @@ export const AgentDrawerContainer = ({
       />
       <AgentFloatingButton
         hasPendingApproval={Boolean(chat.currentApproval)}
+        hasUnreadMessage={hasUnreadMessage}
         isChatting={chat.isChatting}
         open={chat.open}
         onOpen={chat.openAgent}
       />
     </>
   );
+};
+
+const createLatestAssistantMessageToken = (messages: UiMessage[]) => {
+  const latestAssistantMessage = messages
+    .slice()
+    .reverse()
+    .find((message) => message.role === "assistant");
+
+  if (!latestAssistantMessage) {
+    return null;
+  }
+
+  return [
+    latestAssistantMessage.id,
+    latestAssistantMessage.content,
+    latestAssistantMessage.approval?.id ?? "",
+    latestAssistantMessage.agentRun?.id ?? "",
+  ].join("\u001f");
 };
