@@ -43,6 +43,12 @@ const renderSidebar = ({
     />,
   );
 
+const expectPhosphorHoverIcon = (root: HTMLElement) => {
+  expect(root).toHaveClass("phosphor-hover-root");
+  expect(root.querySelector(".phosphor-hover-icon__regular")).toBeInTheDocument();
+  expect(root.querySelector(".phosphor-hover-icon__duotone")).toBeInTheDocument();
+};
+
 describe("CreatorSidebar", () => {
   it("opens and closes the mobile sidebar", () => {
     renderSidebar();
@@ -140,14 +146,13 @@ describe("CreatorSidebar", () => {
     renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    const homeButton = within(sidebar).getByRole("button", { name: "首页" });
 
     expect(
       within(sidebar).getByRole("button", { name: "高清发布" }),
     ).toBeInTheDocument();
-    expect(within(sidebar).getByRole("button", { name: "首页" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    expect(homeButton).toHaveAttribute("aria-current", "page");
+    expectPhosphorHoverIcon(homeButton);
     expect(within(sidebar).queryByText("诊断总览")).not.toBeInTheDocument();
     expect(within(sidebar).queryByText("行动队列")).not.toBeInTheDocument();
 

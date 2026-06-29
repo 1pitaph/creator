@@ -1,4 +1,5 @@
-export const phosphorIconWeight = "duotone" as const;
+export const phosphorIconWeight = "regular" as const;
+export const phosphorIconHoverWeight = "duotone" as const;
 
 export const lifecycleLabels = {
   new: "新手期",

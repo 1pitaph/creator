@@ -265,6 +265,30 @@ textarea {
   overscroll-behavior: contain;
 }
 
+.phosphor-hover-icon__regular,
+.phosphor-hover-icon__duotone {
+  transition: opacity 150ms ease;
+}
+
+.phosphor-hover-icon__duotone {
+  opacity: 0;
+}
+
+.phosphor-hover-root:hover .phosphor-hover-icon__regular {
+  opacity: 0;
+}
+
+.phosphor-hover-root:hover .phosphor-hover-icon__duotone {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phosphor-hover-icon__regular,
+  .phosphor-hover-icon__duotone {
+    transition: none;
+  }
+}
+
 .dashboard-visual-grid-shell .react-grid-item.react-draggable-dragging,
 .dashboard-visual-grid-shell .react-grid-item.resizing,
 .dashboard-visual-grid-shell .react-grid-placeholder.placeholder-resizing {

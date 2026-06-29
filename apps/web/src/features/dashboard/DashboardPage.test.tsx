@@ -229,6 +229,12 @@ const renderDashboard = ({
   };
 };
 
+const expectPhosphorHoverIcon = (root: HTMLElement) => {
+  expect(root).toHaveClass("phosphor-hover-root");
+  expect(root.querySelector(".phosphor-hover-icon__regular")).toBeInTheDocument();
+  expect(root.querySelector(".phosphor-hover-icon__duotone")).toBeInTheDocument();
+};
+
 type StoredDashboardLayoutItem = {
   h: number;
   i: string;
@@ -389,9 +395,11 @@ describe("DashboardPage", () => {
 
   it("renders module mode switcher and panel-controlled views", () => {
     const { rerenderPanel } = renderDashboard();
+    const resetButton = screen.getByRole("button", { name: "重置" });
 
     expect(screen.getByTestId("aurora-background")).toBeInTheDocument();
     expect(screen.getByTestId("dashboard-mode-indicator")).toBeInTheDocument();
+    expectPhosphorHoverIcon(resetButton);
     expect(screen.getByRole("button", { name: "标准" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "完整" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "动态" })).toBeInTheDocument();

@@ -7,6 +7,7 @@ import { Lightning } from "@phosphor-icons/react/Lightning";
 import { Play } from "@phosphor-icons/react/Play";
 import type { ReactNode } from "react";
 
+import { PhosphorHoverIcon } from "../../components/ui/PhosphorHoverIcon";
 import type { DashboardPanel } from "../../types";
 
 type SidebarNavChild = {
@@ -38,16 +39,13 @@ type SidebarNavGroup = {
 export type SidebarNavItem = SidebarNavLeaf | SidebarNavGroup;
 
 const sidebarIconClassName = "h-6 w-6 shrink-0";
-const sidebarIconWeight = "regular" as const;
 
 export const sidebarNavItems: SidebarNavItem[] = [
   {
     kind: "leaf",
     id: "home",
     label: "首页",
-    icon: (
-      <House className={sidebarIconClassName} weight={sidebarIconWeight} />
-    ),
+    icon: <PhosphorHoverIcon className={sidebarIconClassName} icon={House} />,
     panel: "overview",
     primary: true,
   },
@@ -55,7 +53,7 @@ export const sidebarNavItems: SidebarNavItem[] = [
     kind: "leaf",
     id: "activity",
     label: "活动管理",
-    icon: <Flag className={sidebarIconClassName} weight={sidebarIconWeight} />,
+    icon: <PhosphorHoverIcon className={sidebarIconClassName} icon={Flag} />,
     panel: "board",
     separated: true,
   },
@@ -63,7 +61,7 @@ export const sidebarNavItems: SidebarNavItem[] = [
     kind: "group",
     id: "content",
     label: "内容管理",
-    icon: <Play className={sidebarIconClassName} weight={sidebarIconWeight} />,
+    icon: <PhosphorHoverIcon className={sidebarIconClassName} icon={Play} />,
     children: [
       { id: "works", label: "作品管理" },
       { id: "collections", label: "合集管理" },
@@ -76,10 +74,7 @@ export const sidebarNavItems: SidebarNavItem[] = [
     id: "interaction",
     label: "互动管理",
     icon: (
-      <ChatsCircle
-        className={sidebarIconClassName}
-        weight={sidebarIconWeight}
-      />
+      <PhosphorHoverIcon className={sidebarIconClassName} icon={ChatsCircle} />
     ),
     children: [
       { id: "follows", label: "关注管理" },
@@ -94,10 +89,7 @@ export const sidebarNavItems: SidebarNavItem[] = [
     id: "data",
     label: "数据中心",
     icon: (
-      <ChartLineUp
-        className={sidebarIconClassName}
-        weight={sidebarIconWeight}
-      />
+      <PhosphorHoverIcon className={sidebarIconClassName} icon={ChartLineUp} />
     ),
     children: [
       { id: "account-overview", label: "账号总览", panel: "table" },
@@ -112,7 +104,7 @@ export const sidebarNavItems: SidebarNavItem[] = [
     id: "monetization",
     label: "变现中心",
     icon: (
-      <Diamond className={sidebarIconClassName} weight={sidebarIconWeight} />
+      <PhosphorHoverIcon className={sidebarIconClassName} icon={Diamond} />
     ),
     children: [
       { id: "monetization-market", label: "变现广场" },
@@ -126,7 +118,7 @@ export const sidebarNavItems: SidebarNavItem[] = [
     id: "creation",
     label: "创作中心",
     icon: (
-      <Lightning className={sidebarIconClassName} weight={sidebarIconWeight} />
+      <PhosphorHoverIcon className={sidebarIconClassName} icon={Lightning} />
     ),
     children: [
       { id: "creative-inspiration", label: "创作灵感" },

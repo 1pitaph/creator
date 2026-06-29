@@ -5,7 +5,7 @@ import { useContainerWidth } from "react-grid-layout";
 import type { DashboardPreferencesV1 } from "@creator/data-contracts";
 import { Button } from "@creator/ui";
 
-import { phosphorIconWeight } from "../../../constants";
+import { PhosphorHoverIcon } from "../../../components/ui/PhosphorHoverIcon";
 import { DashboardCardKindTag, dashboardCardKindLabels } from "../components/DashboardTags";
 import {
   createDashboardGridItem,
@@ -187,6 +187,7 @@ export const TableDashboardView = ({
                       type="button"
                       size="icon"
                       variant="ghost"
+                      className="phosphor-hover-root"
                       aria-label={preference.visible ? `隐藏 ${card.title}` : `显示 ${card.title}`}
                       onClick={() => {
                         updatePreferences((current) => ({
@@ -202,7 +203,10 @@ export const TableDashboardView = ({
                         }));
                       }}
                     >
-                      {preference.visible ? <Eye className="h-4 w-4" weight={phosphorIconWeight} /> : <EyeSlash className="h-4 w-4" weight={phosphorIconWeight} />}
+                      <PhosphorHoverIcon
+                        className="h-4 w-4"
+                        icon={preference.visible ? Eye : EyeSlash}
+                      />
                     </Button>
                   </td>
                   <td className="px-4 py-4 text-xs font-medium text-zinc-500">{card.priority}</td>

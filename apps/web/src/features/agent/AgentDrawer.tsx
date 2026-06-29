@@ -39,6 +39,7 @@ import type {
 } from "@creator/data-contracts";
 import { Button, CardHeader, CardTitle, cn } from "@creator/ui";
 
+import { PhosphorHoverIcon } from "../../components/ui/PhosphorHoverIcon";
 import { phosphorIconWeight } from "../../constants";
 import type { AskTarget, UiMessage } from "../../types";
 import { AgentMarkIcon } from "./AgentMarkIcon";
@@ -381,10 +382,10 @@ export const AgentDrawer = ({
               <Dialog.Close asChild>
                 <button
                   type="button"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
+                  className="phosphor-hover-root flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
                   aria-label="关闭 AI Agent"
                 >
-                  <X className="h-4 w-4" weight={phosphorIconWeight} />
+                  <PhosphorHoverIcon className="h-4 w-4" icon={X} />
                 </button>
               </Dialog.Close>
             </CardHeader>
@@ -438,12 +439,12 @@ export const AgentDrawer = ({
                     <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
                       <AgentStreamingStatus toolCalls={liveToolCalls} />
                       <ComposerPrimitive.Cancel
-                        className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-transparent bg-transparent px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="phosphor-hover-root inline-flex h-8 items-center justify-center gap-2 rounded-md border border-transparent bg-transparent px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="停止生成"
                       >
-                        <StopCircle
+                        <PhosphorHoverIcon
                           className="h-3.5 w-3.5"
-                          weight={phosphorIconWeight}
+                          icon={StopCircle}
                         />
                         停止
                       </ComposerPrimitive.Cancel>
@@ -502,13 +503,10 @@ export const AgentDrawer = ({
                   rows={3}
                 />
                 <ComposerPrimitive.Send
-                  className="inline-flex h-9 w-9 items-center justify-center gap-2 rounded-md border border-transparent bg-zinc-950 text-sm font-medium text-white transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="phosphor-hover-root inline-flex h-9 w-9 items-center justify-center gap-2 rounded-md border border-transparent bg-zinc-950 text-sm font-medium text-white transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="发送消息"
                 >
-                  <PaperPlaneTilt
-                    className="h-4 w-4"
-                    weight={phosphorIconWeight}
-                  />
+                  <PhosphorHoverIcon className="h-4 w-4" icon={PaperPlaneTilt} />
                 </ComposerPrimitive.Send>
               </div>
             </ComposerPrimitive.Root>
@@ -547,7 +545,7 @@ const AgentContextPanel = ({
         </div>
         <button
           type="button"
-          className="mt-5 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-zinc-600 transition hover:bg-white hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
+          className="phosphor-hover-root mt-5 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-zinc-600 transition hover:bg-white hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
           aria-controls={detailsId}
           aria-expanded={isExpanded}
           aria-label={toggleLabel}
@@ -555,7 +553,7 @@ const AgentContextPanel = ({
           onClick={onToggleExpanded}
         >
           <span>{isExpanded ? "收起" : "展开"}</span>
-          <ToggleIcon className="h-3.5 w-3.5" weight={phosphorIconWeight} />
+          <PhosphorHoverIcon className="h-3.5 w-3.5" icon={ToggleIcon} />
         </button>
       </div>
 
@@ -656,10 +654,11 @@ const AgentContextDetails = ({
               type="button"
               size="sm"
               variant="ghost"
+              className="phosphor-hover-root"
               disabled={isChatting}
               onClick={() => onAskPreset(question)}
             >
-              <ChatText className="h-3.5 w-3.5" weight={phosphorIconWeight} />
+              <PhosphorHoverIcon className="h-3.5 w-3.5" icon={ChatText} />
               {question}
             </Button>
           ))}
@@ -722,10 +721,11 @@ const PresetQuestionList = ({
         type="button"
         size="sm"
         variant="ghost"
+        className="phosphor-hover-root"
         disabled={isChatting}
         onClick={() => onAskPreset(question)}
       >
-        <ChatText className="h-3.5 w-3.5" weight={phosphorIconWeight} />
+        <PhosphorHoverIcon className="h-3.5 w-3.5" icon={ChatText} />
         {question}
       </Button>
     ))}

@@ -10,6 +10,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import type { DiagnosisResponse } from "@creator/data-contracts";
 import { cn } from "@creator/ui";
 
+import { PhosphorHoverIcon } from "../../components/ui/PhosphorHoverIcon";
 import type { DashboardPanel } from "../../types";
 import { CreatorAccountNotchSelect } from "./CreatorAccountNotchSelect";
 import { sidebarNavItems } from "./navItems";
@@ -24,8 +25,6 @@ const creatorAvatarColors = [
   "#e5e7eb",
   "#38bdf8",
 ];
-
-const sidebarIconWeight = "regular" as const;
 
 const navItemIdByPanel = {
   board: "activity",
@@ -59,13 +58,13 @@ export const CreatorSidebar = ({
         <SidebarBrand className="px-0" />
         <button
           type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-neutral-700 transition hover:bg-neutral-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+          className="phosphor-hover-root flex h-10 w-10 items-center justify-center rounded-lg text-neutral-700 transition hover:bg-neutral-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
           aria-label="打开侧边栏"
           aria-expanded={isMobileOpen}
           data-testid="mobile-sidebar-trigger"
           onClick={() => setIsMobileOpen(true)}
         >
-          <List className="h-5 w-5" weight={sidebarIconWeight} />
+          <PhosphorHoverIcon className="h-5 w-5" icon={List} />
         </button>
       </div>
 
@@ -79,18 +78,18 @@ export const CreatorSidebar = ({
       >
         <button
           type="button"
-          className="pointer-events-none absolute -right-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-700 opacity-0 shadow-sm transition hover:bg-neutral-100 group-hover/sidebar-shell:pointer-events-auto group-hover/sidebar-shell:opacity-100 group-focus-within/sidebar-shell:pointer-events-auto group-focus-within/sidebar-shell:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+          className="phosphor-hover-root pointer-events-none absolute -right-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-700 opacity-0 shadow-sm transition hover:bg-neutral-100 group-hover/sidebar-shell:pointer-events-auto group-hover/sidebar-shell:opacity-100 group-focus-within/sidebar-shell:pointer-events-auto group-focus-within/sidebar-shell:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
           aria-expanded={!isDesktopCollapsed}
           aria-label={isDesktopCollapsed ? "展开侧边栏" : "收起侧边栏"}
           title={isDesktopCollapsed ? "展开侧边栏" : "收起侧边栏"}
           onClick={() => setIsDesktopCollapsed((collapsed) => !collapsed)}
         >
-          <CaretLeft
+          <PhosphorHoverIcon
             className={cn(
               "h-4 w-4 transition-transform duration-300",
               isDesktopCollapsed && "rotate-180",
             )}
-            weight={sidebarIconWeight}
+            icon={CaretLeft}
           />
         </button>
         <SidebarContent
@@ -144,13 +143,13 @@ export const CreatorSidebar = ({
             <SidebarBrand className="px-0" />
             <button
               type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-700 transition hover:bg-neutral-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+              className="phosphor-hover-root flex h-9 w-9 items-center justify-center rounded-lg text-neutral-700 transition hover:bg-neutral-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
               aria-label="关闭侧边栏"
               onClick={closeMobileSidebar}
             >
-              <X
+              <PhosphorHoverIcon
                 className="pointer-events-none h-4 w-4"
-                weight={sidebarIconWeight}
+                icon={X}
               />
             </button>
           </div>
@@ -307,7 +306,7 @@ const SidebarPublishButton = ({
   <button
     type="button"
     className={cn(
-      "group/publish flex h-10 items-center justify-center rounded-lg bg-[#fe2c55] text-white shadow-[0_12px_24px_rgba(254,44,85,0.18)] transition hover:bg-[#f12850] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fe2c55]",
+      "phosphor-hover-root group/publish flex h-10 items-center justify-center rounded-lg bg-[#fe2c55] text-white shadow-[0_12px_24px_rgba(254,44,85,0.18)] transition hover:bg-[#f12850] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fe2c55]",
       collapsed ? "w-full px-0" : "ml-2 mr-3 w-[calc(100%-20px)] gap-2 px-3",
       className,
     )}
@@ -316,16 +315,16 @@ const SidebarPublishButton = ({
     data-testid="sidebar-publish-button"
     onClick={onClick}
   >
-    <PlusSquare className="h-5 w-5 shrink-0" weight={sidebarIconWeight} />
+    <PhosphorHoverIcon className="h-5 w-5 shrink-0" icon={PlusSquare} />
     <span className={cn("text-sm font-semibold", collapsed && "sr-only")}>
       高清发布
     </span>
-    <CaretDown
+    <PhosphorHoverIcon
       className={cn(
         "ml-auto h-4 w-4 shrink-0 transition group-hover/publish:translate-y-0.5",
         collapsed && "hidden",
       )}
-      weight={sidebarIconWeight}
+      icon={CaretDown}
     />
   </button>
 );
@@ -501,7 +500,7 @@ const SidebarLinkItem = ({
       type="button"
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group/sidebar relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
+        "phosphor-hover-root group/sidebar relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
         collapsed ? "w-full px-0 text-center" : "mx-2 w-[calc(100%-16px)] px-2 text-left",
         separated && "mt-3 border-t border-neutral-200 pt-3",
       )}
@@ -583,7 +582,7 @@ const SidebarGroupItem = ({
         aria-expanded={open}
         aria-controls={`sidebar-group-${itemId}`}
         className={cn(
-          "group/sidebar relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
+          "phosphor-hover-root group/sidebar relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400",
           collapsed ? "w-full px-0 text-center" : "mx-2 w-[calc(100%-16px)] px-2 text-left",
         )}
         title={collapsed ? label : undefined}
@@ -629,13 +628,13 @@ const SidebarGroupItem = ({
           >
             {label}
           </span>
-          <CaretDown
+          <PhosphorHoverIcon
             className={cn(
               "ml-auto h-4 w-4 shrink-0 text-neutral-500 transition-transform duration-200",
               open && "rotate-180",
               collapsed && "hidden",
             )}
-            weight={sidebarIconWeight}
+            icon={CaretDown}
           />
         </span>
       </button>

@@ -2,7 +2,7 @@ import { Sparkle } from "@phosphor-icons/react/Sparkle";
 
 import { cn } from "@creator/ui";
 
-import { phosphorIconWeight } from "../../constants";
+import { PhosphorHoverIcon } from "../ui/PhosphorHoverIcon";
 
 const AceternityLogo = () => (
   <svg
@@ -47,10 +47,10 @@ export const HoverBorderGradientButton = ({ ariaLabel, onClick }: { ariaLabel: s
 export const MiniAskButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button
     type="button"
-    className="absolute right-3 top-3 z-10 flex h-8 w-8 translate-y-1 items-center justify-center rounded-lg border border-violet-100 bg-white text-violet-600 opacity-0 shadow-sm transition group-hover/row:translate-y-0 group-hover/row:opacity-100 group-focus-within/row:translate-y-0 group-focus-within/row:opacity-100 hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-violet-300"
+    className="phosphor-hover-root absolute right-3 top-3 z-10 flex h-8 w-8 translate-y-1 items-center justify-center rounded-lg border border-violet-100 bg-white text-violet-600 opacity-0 shadow-sm transition group-hover/row:translate-y-0 group-hover/row:opacity-100 group-focus-within/row:translate-y-0 group-focus-within/row:opacity-100 hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-violet-300"
     aria-label={`询问 AI Agent：${label}`}
     onClick={onClick}
   >
-    <Sparkle className="h-3.5 w-3.5" weight={phosphorIconWeight} />
+    <PhosphorHoverIcon className="h-3.5 w-3.5" icon={Sparkle} />
   </button>
 );

@@ -18,7 +18,8 @@ import type { DiagnosisResponse, ModuleLoadMode } from "@creator/data-contracts"
 import { Button, cn } from "@creator/ui";
 
 import { AuroraBackground } from "../../components/effects/AuroraBackground";
-import { moduleLoadModeDescriptions, moduleLoadModeLabels, phosphorIconWeight } from "../../constants";
+import { PhosphorHoverIcon } from "../../components/ui/PhosphorHoverIcon";
+import { moduleLoadModeDescriptions, moduleLoadModeLabels } from "../../constants";
 import type { AskTarget, DashboardPanel, DashboardViewModel } from "../../types";
 import {
   buildDashboardActionCards,
@@ -97,32 +98,29 @@ export const DashboardPage = memo(function DashboardPage({
             <div className="flex items-center gap-2">
               <Button
                 type="button"
-                className="!rounded-full"
+                className="phosphor-hover-root !rounded-full"
                 variant="secondary"
                 onClick={resetPreferences}
               >
-                <ArrowCounterClockwise
+                <PhosphorHoverIcon
                   className="h-4 w-4"
-                  weight={phosphorIconWeight}
+                  icon={ArrowCounterClockwise}
                 />
                 重置
               </Button>
               {panel === "board" ? (
                 <Button
                   type="button"
-                  className="!rounded-full"
+                  className="phosphor-hover-root !rounded-full"
                   variant={editing ? "primary" : "secondary"}
                   onClick={() => setEditing((value) => !value)}
                 >
                   {editing ? (
-                    <FloppyDisk
-                      className="h-4 w-4"
-                      weight={phosphorIconWeight}
-                    />
+                    <PhosphorHoverIcon className="h-4 w-4" icon={FloppyDisk} />
                   ) : (
-                    <PencilSimpleLine
+                    <PhosphorHoverIcon
                       className="h-4 w-4"
-                      weight={phosphorIconWeight}
+                      icon={PencilSimpleLine}
                     />
                   )}
                   {editing ? "完成" : "编辑"}
@@ -250,7 +248,7 @@ const ModuleLoadModeSwitcher = ({
             type="button"
             aria-pressed={selected}
             title={moduleLoadModeDescriptions[value]}
-            className="group/view relative z-10 inline-flex h-9 items-center rounded-full px-3 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
+            className="phosphor-hover-root group/view relative z-10 inline-flex h-9 items-center rounded-full px-3 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
             onClick={() => onModeChange(value)}
           >
             <span
@@ -261,7 +259,7 @@ const ModuleLoadModeSwitcher = ({
                   : "text-zinc-600 group-hover/view:text-zinc-950",
               )}
             >
-              <Icon className="h-4 w-4" weight={phosphorIconWeight} />
+              <PhosphorHoverIcon className="h-4 w-4" icon={Icon} />
               {moduleLoadModeLabels[value]}
             </span>
           </button>

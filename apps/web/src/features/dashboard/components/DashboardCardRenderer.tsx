@@ -12,6 +12,7 @@ import { CaretLeft } from "@phosphor-icons/react/CaretLeft";
 import { CaretRight } from "@phosphor-icons/react/CaretRight";
 import { TrendUp } from "@phosphor-icons/react/TrendUp";
 
+import { PhosphorHoverIcon } from "../../../components/ui/PhosphorHoverIcon";
 import { goalLabels, phosphorIconWeight } from "../../../constants";
 import type { AskTarget, DashboardViewModel } from "../../../types";
 import {
@@ -241,12 +242,12 @@ const PaginatedInsightsBody = ({
             type="button"
             variant="ghost"
             size="icon"
-            className="!h-8 !w-8 rounded-full text-zinc-500"
+            className="phosphor-hover-root !h-8 !w-8 rounded-full text-zinc-500"
             aria-label="上一条 AI 诊断优先级"
             disabled={!canGoPrevious}
             onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
           >
-            <CaretLeft className="h-4 w-4" weight={phosphorIconWeight} />
+            <PhosphorHoverIcon className="h-4 w-4" icon={CaretLeft} />
           </Button>
 
           <span
@@ -261,14 +262,14 @@ const PaginatedInsightsBody = ({
             type="button"
             variant="ghost"
             size="icon"
-            className="!h-8 !w-8 rounded-full text-zinc-500"
+            className="phosphor-hover-root !h-8 !w-8 rounded-full text-zinc-500"
             aria-label="下一条 AI 诊断优先级"
             disabled={!canGoNext}
             onClick={() =>
               setPageIndex((current) => Math.min(maxPageIndex, current + 1))
             }
           >
-            <CaretRight className="h-4 w-4" weight={phosphorIconWeight} />
+            <PhosphorHoverIcon className="h-4 w-4" icon={CaretRight} />
           </Button>
         </nav>
       ) : null}
