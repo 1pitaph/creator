@@ -2,6 +2,7 @@ import type {
   AgentApprovalRequest,
   AgentMessage,
   AgentRun,
+  AgentToolCall,
   AiModuleMetadata,
   ChartIntent,
   CreatorMetrics,
@@ -15,6 +16,7 @@ export type UiMessage = AgentMessage & {
   mode?: "mock" | "llm" | "local";
   usedModules?: string[];
   agentRun?: AgentRun;
+  toolCalls?: AgentToolCall[];
   approval?: AgentApprovalRequest;
   threadId?: string;
   notice?: {

@@ -105,6 +105,81 @@ describe("useAgentChat", () => {
     expect(result.current.messages.at(-1)?.agentRun?.id).toBe(agentRun.id);
   });
 
+  it("merges live data-kernel tool call updates without duplicate labels", async () => {
+    const diagnosis = localDiagnosis(defaultCreatorId);
+    const fetchImpl = vi.fn().mockResolvedValue(
+      createStreamResponse([
+        {
+          type: "start",
+          messageMetadata: {
+            threadId: "thread-tools",
+            mode: "mock",
+          },
+        },
+        {
+          type: "data-agent-tool-call",
+          id: "kernel-1",
+          data: {
+            id: "kernel-1",
+            name: "profile_dataset",
+            status: "running",
+            inputSummary: "调用 Python 数据内核工具 profile_dataset。",
+            evidenceIds: [],
+          },
+        },
+        {
+          type: "data-agent-tool-call",
+          id: "kernel-1",
+          data: {
+            id: "kernel-1",
+            name: "profile_dataset",
+            status: "success",
+            inputSummary: "调用 Python 数据内核工具 profile_dataset。",
+            outputSummary: "数据概况完成。",
+            evidenceIds: ["ev-kernel-1-1"],
+          },
+        },
+        { type: "text-start", id: "text-1" },
+        { type: "text-delta", id: "text-1", delta: "工具完成，开始分析。" },
+        { type: "text-end", id: "text-1" },
+        {
+          type: "finish",
+          finishReason: "stop",
+          messageMetadata: {
+            threadId: "thread-tools",
+            mode: "mock",
+          },
+        },
+      ] as UIMessageChunk[]),
+    );
+
+    const { result } = renderHook(() =>
+      useAgentChat({
+        activeModuleIds: diagnosis.modules.map((module) => module.id),
+        creatorId: defaultCreatorId,
+        diagnosis,
+        fetchImpl,
+        idFactory: createIdFactory(),
+      }),
+    );
+
+    act(() => {
+      result.current.askPreset("分析数据");
+    });
+
+    await waitFor(() =>
+      expect(result.current.messages.at(-1)?.toolCalls).toEqual([
+        expect.objectContaining({
+          id: "kernel-1",
+          name: "profile_dataset",
+          status: "success",
+          outputSummary: "数据概况完成。",
+        }),
+      ]),
+    );
+    expect(result.current.messages.at(-1)?.toolCalls).toHaveLength(1);
+  });
+
   it("uses the local fallback reply when chat transport fails", async () => {
     const diagnosis = localDiagnosis(defaultCreatorId);
     const fetchImpl = vi.fn().mockRejectedValue(new Error("offline"));

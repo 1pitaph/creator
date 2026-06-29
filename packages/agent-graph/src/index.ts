@@ -4,9 +4,13 @@ import {
   streamGatewayText,
   type AiGatewayConfig,
 } from "@creator/ai-gateway";
-import { createStructuredAgentRun } from "@creator/data-agent";
+import {
+  createKernelToolCall,
+  createStructuredAgentRun,
+} from "@creator/data-agent";
 import {
   AgentResumeRequestSchema,
+  AgentStreamEventSchema,
   type AgentApprovalRequest,
   type AgentChatMetadata,
   type AgentCheckpoint,
@@ -18,10 +22,13 @@ import {
   type AgentRun,
   type AgentStreamEvent,
   type AgentThreadStatus,
+  type AgentToolCall,
+  type DataKernelLimits,
   type AiModuleMetadata,
   type ChatRequest,
   type ChatResponse,
   type DataKernelResponse,
+  type DataKernelToolName,
   type DiagnosisResponse,
   type Insight,
 } from "@creator/data-contracts";
@@ -32,6 +39,7 @@ import {
   START,
   Annotation,
   StateGraph,
+  getWriter,
   type BaseCheckpointSaver,
 } from "@langchain/langgraph";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
@@ -63,6 +71,13 @@ type AgentGraphResult = {
   usedModules: string[];
 };
 
+type KernelToolSpec = {
+  input?: Record<string, unknown>;
+  limits?: Partial<DataKernelLimits>;
+  requestId: string;
+  tool: DataKernelToolName;
+};
+
 export type InvokeAgentGraphInput = {
   request: ChatRequest;
   diagnosis: DiagnosisResponse;
@@ -82,6 +97,7 @@ type AgentGraphState = {
   activeContext?: ActiveContext;
   intent?: UserIntent;
   kernelResponses: DataKernelResponse[];
+  kernelToolCalls: AgentToolCall[];
   priorityInsight?: Insight;
   facts: AgentFact[];
   assumptions: AgentRun["assumptions"];
@@ -102,6 +118,10 @@ const State = Annotation.Root({
   activeContext: Annotation<ActiveContext | undefined>(),
   intent: Annotation<UserIntent | undefined>(),
   kernelResponses: Annotation<DataKernelResponse[]>({
+    reducer: (_left, right) => right,
+    default: () => [],
+  }),
+  kernelToolCalls: Annotation<AgentToolCall[]>({
     reducer: (_left, right) => right,
     default: () => [],
   }),
@@ -164,6 +184,14 @@ const includesAny = (text: string, keywords: string[]) =>
   );
 
 const createThreadId = () => `thread-${randomUUID()}`;
+
+const emitCustomStreamEvent = (streamEvent: AgentStreamEvent) => {
+  try {
+    getWriter()?.(streamEvent);
+  } catch {
+    // Non-streaming graph invocations do not expose a custom writer.
+  }
+};
 
 const createCheckpointMetadata = (
   threadId: string,
@@ -307,6 +335,7 @@ const createInitialState = (
     threadId,
     messages: [],
     kernelResponses: [],
+    kernelToolCalls: [],
     facts: [],
     assumptions: [],
     actions: [],
@@ -332,18 +361,16 @@ const inferUserIntent = async (state: AgentGraphState) => ({
 
 const buildEvidence = async (state: AgentGraphState) => {
   if (!process.env.DATA_KERNEL_URL) {
-    return { kernelResponses: [] };
+    return { kernelResponses: [], kernelToolCalls: [] };
   }
 
   const client = createDataKernelClient();
-  const calls: Array<Promise<DataKernelResponse>> = [
-    client.runTool({
-      diagnosis: state.diagnosis,
+  const calls: KernelToolSpec[] = [
+    {
       tool: "profile_dataset",
       requestId: `${state.threadId}-profile`,
-    }),
-    client.runTool({
-      diagnosis: state.diagnosis,
+    },
+    {
       tool: "create_chart_data",
       input: {
         metricKeys: [
@@ -354,26 +381,21 @@ const buildEvidence = async (state: AgentGraphState) => {
         ],
       },
       requestId: `${state.threadId}-chart`,
-    }),
+    },
   ];
 
   if (state.intent?.kind === "diagnostic") {
-    calls.push(
-      client.runTool({
-        diagnosis: state.diagnosis,
+    calls.push({
         tool: "explain_metric_drop",
         input: {
           metricKey: state.intent.metricKey ?? "views",
         },
         requestId: `${state.threadId}-metric-drop`,
-      }),
-    );
+    });
   }
 
   if (state.intent?.kind === "sql") {
-    calls.push(
-      client.runTool({
-        diagnosis: state.diagnosis,
+    calls.push({
         tool: "run_sql",
         input: {
           sql: "select date, views, completionRate, interactionRate, followerConversionRate from history order by views desc",
@@ -382,12 +404,58 @@ const buildEvidence = async (state: AgentGraphState) => {
         limits: {
           maxRows: 20,
         },
-      }),
-    );
+    });
   }
 
-  const kernelResponses = await Promise.all(calls);
-  return { kernelResponses };
+  const results = await Promise.all(
+    calls.map(async (call, index) => {
+      const id = `kernel-${index + 1}`;
+      const startedAt = new Date().toISOString();
+      const runningToolCall: AgentToolCall = {
+        id,
+        name: call.tool,
+        status: "running",
+        inputSummary: `调用 Python 数据内核工具 ${call.tool}。`,
+        evidenceIds: [],
+        startedAt,
+      };
+
+      emitCustomStreamEvent({ type: "tool-call", toolCall: runningToolCall });
+
+      const response = await client.runTool({
+        diagnosis: state.diagnosis,
+        ...call,
+      });
+      const toolCall = createKernelToolCall(response, index, {
+        id,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+      });
+
+      emitCustomStreamEvent({
+        type: "tool-result",
+        toolResult: {
+          toolCallId: toolCall.id,
+          name: toolCall.name,
+          status: toolCall.status,
+          output: response,
+          outputSummary: toolCall.outputSummary,
+          evidenceIds: toolCall.evidenceIds,
+          error: toolCall.error,
+        },
+      });
+
+      return {
+        response,
+        toolCall,
+      };
+    }),
+  );
+
+  return {
+    kernelResponses: results.map((result) => result.response),
+    kernelToolCalls: results.map((result) => result.toolCall),
+  };
 };
 
 const rankPriorityInsight = async (state: AgentGraphState) => ({
@@ -400,6 +468,7 @@ const synthesizeFactsAssumptions = async (state: AgentGraphState) => {
     messages: state.messages,
     activeModules: state.request.activeModules,
     kernelResponses: state.kernelResponses,
+    kernelToolCalls: state.kernelToolCalls,
   });
 
   return {
@@ -414,6 +483,7 @@ const synthesizeActions = async (state: AgentGraphState) => {
     messages: state.messages,
     activeModules: state.request.activeModules,
     kernelResponses: state.kernelResponses,
+    kernelToolCalls: state.kernelToolCalls,
   });
 
   return {
@@ -456,6 +526,7 @@ const finalizeAgentRun = async (state: AgentGraphState) => {
     activeModules: state.request.activeModules,
     llmAnswer: state.llmAnswer,
     kernelResponses: state.kernelResponses,
+    kernelToolCalls: state.kernelToolCalls,
   });
   const approval = createApprovalRequest(state, agentRun);
   const finalRun = approval
@@ -614,6 +685,7 @@ const recreateFinalRun = (state: AgentGraphState, llmAnswer: string | null) => {
     activeModules: state.request.activeModules,
     llmAnswer,
     kernelResponses: state.kernelResponses,
+    kernelToolCalls: state.kernelToolCalls,
   });
   const approval = createApprovalRequest(state, agentRun);
   const finalRun = approval
@@ -672,11 +744,17 @@ export async function* streamAgentGraphEvents(
     configurable: {
       thread_id: threadId,
     },
-    streamMode: "updates",
+    streamMode: ["updates", "custom"],
   });
 
   for await (const update of stream) {
-    void update;
+    if (Array.isArray(update) && update[0] === "custom") {
+      const parsed = AgentStreamEventSchema.safeParse(update[1]);
+
+      if (parsed.success) {
+        yield event(parsed.data);
+      }
+    }
     // Drain LangGraph updates for execution/checkpointing, but keep framework
     // node names out of the stable AgentRun/stream business protocol.
   }
@@ -711,10 +789,6 @@ export async function* streamAgentGraphEvents(
 
   if (llmStream && approvalNotice && streamedAnswer) {
     yield event({ type: "text-delta", delta: approvalNotice });
-  }
-
-  for (const toolCall of final.agentRun.toolCalls) {
-    yield event({ type: "tool-call", toolCall });
   }
 
   await graph.updateState(

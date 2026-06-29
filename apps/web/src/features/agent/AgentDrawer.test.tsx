@@ -192,9 +192,42 @@ describe("AgentDrawer", () => {
 
     renderAgentDrawer({ isChatting: true, onStopGeneration });
 
+    expect(screen.getByText("Agent 正在准备分析")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "停止生成" }));
 
     expect(onStopGeneration).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the current live data-kernel tool while streaming", () => {
+    renderAgentDrawer({
+      isChatting: true,
+      messages: [
+        {
+          id: "assistant-live-tools",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            {
+              id: "kernel-1",
+              name: "profile_dataset",
+              status: "success",
+              inputSummary: "读取数据概况",
+              evidenceIds: [],
+            },
+            {
+              id: "kernel-2",
+              name: "create_chart_data",
+              status: "running",
+              inputSummary: "生成图表数据",
+              evidenceIds: [],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(screen.getByText("正在调用 create_chart_data")).toBeInTheDocument();
+    expect(screen.getByText("已完成 1/2")).toBeInTheDocument();
   });
 
   it("binds the drawer content to the bezier animation hook", () => {

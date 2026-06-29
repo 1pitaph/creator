@@ -7,6 +7,7 @@ import type {
   AgentRun,
   AgentRunPatch,
   AgentStreamEvent,
+  AgentToolCall,
   DiagnosisResponse,
 } from "@creator/data-contracts";
 import { DefaultChatTransport, type UIMessage } from "ai";
@@ -80,16 +81,49 @@ const textFromParts = (message: CreatorUIMessage) =>
     .map((part) => part.text)
     .join("");
 
+const dataKernelToolNames = new Set([
+  "profile_dataset",
+  "create_chart_data",
+  "explain_metric_drop",
+  "run_sql",
+]);
+
+const isDataKernelToolCall = (toolCall: AgentToolCall) =>
+  dataKernelToolNames.has(toolCall.name);
+
+const getDataParts = <Name extends keyof CreatorChatData>(
+  message: CreatorUIMessage,
+  name: Name,
+): CreatorChatData[Name][] => {
+  const type = `data-${name}`;
+
+  return message.parts.flatMap((part) =>
+    part.type === type && "data" in part
+      ? [part.data as CreatorChatData[Name]]
+      : [],
+  );
+};
+
 const getDataPart = <Name extends keyof CreatorChatData>(
   message: CreatorUIMessage,
   name: Name,
 ): CreatorChatData[Name] | undefined => {
-  const type = `data-${name}`;
-  const part = message.parts.find((item) => item.type === type);
+  const parts = getDataParts(message, name);
 
-  return part && "data" in part
-    ? (part.data as CreatorChatData[Name])
-    : undefined;
+  return parts.at(-1);
+};
+
+const mergeToolCalls = (toolCalls: AgentToolCall[]) => {
+  const byId = new Map<string, AgentToolCall>();
+
+  for (const toolCall of toolCalls) {
+    byId.set(toolCall.id, {
+      ...byId.get(toolCall.id),
+      ...toolCall,
+    });
+  }
+
+  return Array.from(byId.values());
 };
 
 const mapSdkMessage = (message: CreatorUIMessage): UiMessage => {
@@ -97,6 +131,10 @@ const mapSdkMessage = (message: CreatorUIMessage): UiMessage => {
   const patch = getDataPart(message, "agent-run-patch");
   const approval = getDataPart(message, "agent-approval");
   const thread = getDataPart(message, "agent-thread");
+  const toolCalls = mergeToolCalls([
+    ...getDataParts(message, "agent-tool-call").filter(isDataKernelToolCall),
+    ...(patch?.toolCalls ?? []).filter(isDataKernelToolCall),
+  ]);
 
   return {
     id: message.id,
@@ -108,6 +146,7 @@ const mapSdkMessage = (message: CreatorUIMessage): UiMessage => {
       agentRun?.usedModules ??
       patch?.usedModules,
     agentRun,
+    toolCalls,
     approval,
     threadId: message.metadata?.threadId ?? thread?.threadId,
   };

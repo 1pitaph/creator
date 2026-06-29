@@ -15,6 +15,7 @@ import {
   type DashboardPreferencesV1,
   type AgentRunPatch,
   type AgentStreamEvent,
+  type AgentToolCall,
 } from "@creator/data-contracts";
 import { getMockCreator, mockCreators } from "@creator/mock-data";
 import {
@@ -155,7 +156,7 @@ export const buildApiApp = async ({ env }: BuildApiAppOptions = {}) => {
     } as UIMessageChunk);
   };
 
-  const writeToolEvent = (
+  const writeToolCallEvent = (
     writer: { write: (part: UIMessageChunk) => void },
     event: Extract<AgentStreamEvent, { type: "tool-call" }>,
   ) => {
@@ -169,22 +170,40 @@ export const buildApiApp = async ({ env }: BuildApiAppOptions = {}) => {
       },
       title: event.toolCall.name,
     });
+  };
 
-    if (event.toolCall.status === "error") {
+  const createToolCallFromResult = (
+    result: Extract<AgentStreamEvent, { type: "tool-result" }>["toolResult"],
+  ): AgentToolCall => ({
+    id: result.toolCallId,
+    name: result.name,
+    status: result.status,
+    inputSummary: `调用 Python 数据内核工具 ${result.name}。`,
+    outputSummary: result.outputSummary,
+    evidenceIds: result.evidenceIds,
+    error: result.error,
+    finishedAt: new Date().toISOString(),
+  });
+
+  const writeToolResultEvent = (
+    writer: { write: (part: UIMessageChunk) => void },
+    event: Extract<AgentStreamEvent, { type: "tool-result" }>,
+  ) => {
+    if (event.toolResult.status === "error") {
       writer.write({
         type: "tool-output-error",
-        toolCallId: event.toolCall.id,
-        errorText: event.toolCall.error ?? "Tool execution failed.",
+        toolCallId: event.toolResult.toolCallId,
+        errorText: event.toolResult.error ?? "Tool execution failed.",
       });
       return;
     }
 
     writer.write({
       type: "tool-output-available",
-      toolCallId: event.toolCall.id,
+      toolCallId: event.toolResult.toolCallId,
       output: {
-        status: event.toolCall.status,
-        outputSummary: event.toolCall.outputSummary,
+        status: event.toolResult.status,
+        outputSummary: event.toolResult.outputSummary,
       },
     });
   };
@@ -230,7 +249,7 @@ export const buildApiApp = async ({ env }: BuildApiAppOptions = {}) => {
               writeDataChunk(writer, "agent-thread", event, event.threadId);
               break;
             case "tool-call":
-              writeToolEvent(writer, event);
+              writeToolCallEvent(writer, event);
               writeDataChunk(
                 writer,
                 "agent-tool-call",
@@ -238,6 +257,17 @@ export const buildApiApp = async ({ env }: BuildApiAppOptions = {}) => {
                 event.toolCall.id,
               );
               break;
+            case "tool-result": {
+              writeToolResultEvent(writer, event);
+              const toolCall = createToolCallFromResult(event.toolResult);
+              writeDataChunk(
+                writer,
+                "agent-tool-call",
+                toolCall,
+                toolCall.id,
+              );
+              break;
+            }
             case "agent-run-patch":
               writeDataChunk(
                 writer,

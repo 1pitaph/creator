@@ -151,55 +151,141 @@ describe("creator API", () => {
   });
 
   it("streams AI SDK UI message chunks with text, tool status, AgentRun patch, and final AgentRun", async () => {
-    const response = await app.inject({
-      method: "POST",
-      url: "/api/chat/stream",
-      payload: {
-        creatorId: "short-drama-strategy",
-        threadId: "thread-stream",
-        activeModules: ["viral-review"],
-        messages: [{ role: "user", content: "下一条视频拍什么？" }],
-      },
-    });
+    let callIndex = 0;
+    const kernel = createServer((request, response) => {
+      callIndex += 1;
+      const tool = request.url?.split("/").at(-1) ?? "profile_dataset";
 
-    expect(response.statusCode).toBe(200);
-    expect(response.headers["content-type"]).toContain("text/event-stream");
-    const chunks = parseSseChunks(response.payload);
-    const types = chunks.map((chunk) => chunk.type);
-
-    expect(types).toEqual(
-      expect.arrayContaining([
-        "start",
-        "tool-input-available",
-        "tool-output-available",
-        "data-agent-run-patch",
-        "text-delta",
-        "data-agent-run",
-        "message-metadata",
-        "finish",
-      ]),
-    );
-    expect(types.indexOf("text-start")).toBeLessThan(
-      types.indexOf("text-delta"),
-    );
-    expect(types.indexOf("data-agent-run")).toBeLessThan(
-      types.indexOf("finish"),
-    );
-    expect(
-      chunks
-        .filter((chunk) => chunk.type === "text-delta")
-        .map((chunk) => chunk.delta)
-        .join(""),
-    ).toContain("本次调用模块");
-    expect(
-      chunks.find((chunk) => chunk.type === "data-agent-thread")?.data,
-    ).toMatchObject({
-      checkpoint: {
-        checkpointProvider: "memory",
-        status: "running",
-        threadId: "thread-stream",
-      },
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(
+        JSON.stringify({
+          ok: true,
+          requestId: `kernel-${callIndex}`,
+          tool,
+          result: { rows: [] },
+          evidence: [
+            {
+              sourceTable: "history",
+              rowCount: 7,
+              columns: ["date", "views"],
+              excerpt: `kernel evidence ${callIndex}`,
+            },
+          ],
+          artifacts: [
+            {
+              id: `artifact-${callIndex}`,
+              kind: "table",
+              title: `Kernel artifact ${callIndex}`,
+              data: {},
+            },
+          ],
+        }),
+      );
     });
+    await new Promise<void>((resolve) =>
+      kernel.listen(0, "127.0.0.1", resolve),
+    );
+    const address = kernel.address();
+
+    try {
+      if (!address || typeof address === "string") {
+        throw new Error("Test kernel did not expose a port.");
+      }
+
+      vi.stubEnv("DATA_KERNEL_URL", `http://127.0.0.1:${address.port}`);
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/chat/stream",
+        payload: {
+          creatorId: "short-drama-strategy",
+          threadId: "thread-stream",
+          activeModules: ["viral-review"],
+          messages: [{ role: "user", content: "下一条视频拍什么？" }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers["content-type"]).toContain("text/event-stream");
+      const chunks = parseSseChunks(response.payload);
+      const types = chunks.map((chunk) => chunk.type);
+
+      expect(types).toEqual(
+        expect.arrayContaining([
+          "start",
+          "tool-input-available",
+          "tool-output-available",
+          "data-agent-tool-call",
+          "data-agent-run-patch",
+          "text-delta",
+          "data-agent-run",
+          "message-metadata",
+          "finish",
+        ]),
+      );
+      expect(types.indexOf("text-start")).toBeLessThan(
+        types.indexOf("text-delta"),
+      );
+      expect(types.indexOf("data-agent-run")).toBeLessThan(
+        types.indexOf("finish"),
+      );
+
+      const toolInputIndex = chunks.findIndex(
+        (chunk) => chunk.type === "tool-input-available",
+      );
+      const firstTextIndex = chunks.findIndex(
+        (chunk) => chunk.type === "text-delta",
+      );
+      const firstToolInput = chunks[toolInputIndex] as
+        | { toolCallId?: string }
+        | undefined;
+      const runningDataIndex = chunks.findIndex(
+        (chunk) =>
+          chunk.type === "data-agent-tool-call" &&
+          (chunk.data as { id?: string; status?: string } | undefined)?.id ===
+            firstToolInput?.toolCallId &&
+          (chunk.data as { status?: string } | undefined)?.status ===
+            "running",
+      );
+      const outputIndex = chunks.findIndex(
+        (chunk) =>
+          chunk.type === "tool-output-available" &&
+          chunk.toolCallId === firstToolInput?.toolCallId,
+      );
+      const successDataIndex = chunks.findIndex(
+        (chunk) =>
+          chunk.type === "data-agent-tool-call" &&
+          (chunk.data as { id?: string; status?: string } | undefined)?.id ===
+            firstToolInput?.toolCallId &&
+          (chunk.data as { status?: string } | undefined)?.status ===
+            "success",
+      );
+
+      expect(toolInputIndex).toBeGreaterThan(-1);
+      expect(runningDataIndex).toBeGreaterThan(-1);
+      expect(outputIndex).toBeGreaterThan(-1);
+      expect(successDataIndex).toBeGreaterThan(-1);
+      expect(toolInputIndex).toBeLessThan(firstTextIndex);
+      expect(runningDataIndex).toBeLessThan(firstTextIndex);
+      expect(outputIndex).toBeLessThan(firstTextIndex);
+      expect(
+        chunks
+          .filter((chunk) => chunk.type === "text-delta")
+          .map((chunk) => chunk.delta)
+          .join(""),
+      ).toContain("本次调用模块");
+      expect(
+        chunks.find((chunk) => chunk.type === "data-agent-thread")?.data,
+      ).toMatchObject({
+        checkpoint: {
+          checkpointProvider: "memory",
+          status: "running",
+          threadId: "thread-stream",
+        },
+      });
+    } finally {
+      await new Promise<void>((resolve) => kernel.close(() => resolve()));
+    }
   });
 
   it("streams approval requests for side-effect actions", async () => {
@@ -275,7 +361,9 @@ describe("creator API", () => {
         chunks.find(
           (chunk) =>
             chunk.type === "data-agent-tool-call" &&
-            (chunk.data as { name?: string }).name === "profile_dataset",
+            (chunk.data as { name?: string; status?: string }).name ===
+              "profile_dataset" &&
+            (chunk.data as { status?: string }).status === "error",
         )?.data,
       ).toMatchObject({
         status: "error",

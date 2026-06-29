@@ -95,6 +95,73 @@ describe("ChatBubble", () => {
     );
   });
 
+  it("shows compact live tool calls before the final AgentRun arrives", () => {
+    render(
+      <ChatBubble
+        message={{
+          id: "message-live-tools",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            {
+              id: "kernel-1",
+              name: "profile_dataset",
+              status: "running",
+              inputSummary: "读取数据概况",
+              evidenceIds: [],
+            },
+            {
+              id: "kernel-2",
+              name: "create_chart_data",
+              status: "success",
+              inputSummary: "生成图表数据",
+              outputSummary: "图表数据完成。",
+              evidenceIds: [],
+            },
+          ],
+        }}
+        moduleById={new Map()}
+      />,
+    );
+
+    expect(screen.getByText("工具调用")).toBeInTheDocument();
+    expect(screen.getByText("profile_dataset · 运行中")).toBeInTheDocument();
+    expect(screen.getByText("create_chart_data · 完成")).toBeInTheDocument();
+  });
+
+  it("prefers the final AgentRun audit panel over live tool calls", () => {
+    const diagnosis = localDiagnosis(defaultCreatorId);
+    const agentRun = createStructuredAgentRun({
+      diagnosis,
+      messages: [{ role: "user", content: "为什么完播率不好？" }],
+      activeModules: ["content-diagnosis"],
+    });
+
+    render(
+      <ChatBubble
+        message={{
+          id: "message-final-tools",
+          role: "assistant",
+          content: "这里是诊断结果。",
+          toolCalls: [
+            {
+              id: "kernel-live",
+              name: "profile_dataset",
+              status: "running",
+              inputSummary: "读取数据概况",
+              evidenceIds: [],
+            },
+          ],
+          agentRun,
+        }}
+        moduleById={new Map()}
+      />,
+    );
+
+    expect(screen.queryByText("profile_dataset · 运行中")).toBeNull();
+    expect(screen.getByText("load_creator_context · 完成")).toBeInTheDocument();
+  });
+
   it("shows degraded mode notices above assistant content", () => {
     render(
       <ChatBubble

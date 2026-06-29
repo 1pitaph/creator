@@ -34,6 +34,7 @@ import {
 
 import type {
   AgentApprovalRequest,
+  AgentToolCall,
   AiModuleMetadata,
 } from "@creator/data-contracts";
 import { Button, CardHeader, CardTitle, cn } from "@creator/ui";
@@ -210,6 +211,20 @@ export const AgentDrawer = ({
   const focusKey = focus ? createFocusKey(focus) : null;
   const messagesById = useMemo(
     () => new Map(messages.map((message) => [message.id, message])),
+    [messages],
+  );
+  const liveToolCalls = useMemo(
+    () =>
+      messages
+        .slice()
+        .reverse()
+        .find(
+          (message) =>
+            message.role === "assistant" &&
+            !message.agentRun &&
+            message.toolCalls &&
+            message.toolCalls.length > 0,
+        )?.toolCalls ?? [],
     [messages],
   );
   const convertMessage = useCallback(
@@ -421,13 +436,7 @@ export const AgentDrawer = ({
                   </ThreadPrimitive.Messages>
                   {isChatting ? (
                     <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
-                      <div className="flex items-center gap-2">
-                        <CircleNotch
-                          className="h-3.5 w-3.5 animate-spin"
-                          weight={phosphorIconWeight}
-                        />
-                        Agent 正在调用分析模块
-                      </div>
+                      <AgentStreamingStatus toolCalls={liveToolCalls} />
                       <ComposerPrimitive.Cancel
                         className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-transparent bg-transparent px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="停止生成"
@@ -767,3 +776,32 @@ const FallbackAssistantMessage = ({
 };
 
 const AssistantTextPart = () => <MessagePartPrimitive.Text />;
+
+const AgentStreamingStatus = ({
+  toolCalls,
+}: {
+  toolCalls: AgentToolCall[];
+}) => {
+  const runningTool = toolCalls.find((tool) => tool.status === "running");
+  const completedCount = toolCalls.filter((tool) =>
+    ["error", "skipped", "success"].includes(tool.status),
+  ).length;
+  const totalCount = toolCalls.length;
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <CircleNotch
+        className="h-3.5 w-3.5 shrink-0 animate-spin"
+        weight={phosphorIconWeight}
+      />
+      <span className="min-w-0 truncate">
+        {runningTool ? `正在调用 ${runningTool.name}` : "Agent 正在准备分析"}
+      </span>
+      {totalCount > 0 ? (
+        <span className="shrink-0 text-zinc-400">
+          已完成 {completedCount}/{totalCount}
+        </span>
+      ) : null}
+    </div>
+  );
+};

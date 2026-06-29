@@ -18,6 +18,7 @@ export type DataAgentInput = {
   activeModules?: string[];
   llmAnswer?: string | null;
   kernelResponses?: DataKernelResponse[];
+  kernelToolCalls?: AgentToolCall[];
   now?: Date;
 };
 
@@ -67,8 +68,12 @@ const createToolCall = (
   finishedAt: new Date().toISOString()
 });
 
-const createKernelToolCall = (response: DataKernelResponse, index: number): AgentToolCall => ({
-  id: `kernel-${index + 1}`,
+export const createKernelToolCall = (
+  response: DataKernelResponse,
+  index: number,
+  overrides: Partial<Pick<AgentToolCall, "finishedAt" | "id" | "startedAt">> = {}
+): AgentToolCall => ({
+  id: overrides.id ?? `kernel-${index + 1}`,
   name: response.tool,
   status: response.ok ? "success" : "error",
   inputSummary: `调用 Python 数据内核工具 ${response.tool}。`,
@@ -76,7 +81,9 @@ const createKernelToolCall = (response: DataKernelResponse, index: number): Agen
     ? response.artifacts[0]?.title ?? response.evidence[0]?.excerpt ?? "数据内核返回成功。"
     : response.error?.message ?? "数据内核调用失败。",
   evidenceIds: response.evidence.map((item, evidenceIndex) => `ev-kernel-${index + 1}-${evidenceIndex + 1}`),
-  error: response.error?.message
+  error: response.error?.message,
+  startedAt: overrides.startedAt,
+  finishedAt: overrides.finishedAt
 });
 
 const createKernelEvidence = (responses: DataKernelResponse[]): AgentEvidenceRef[] =>
@@ -311,6 +318,7 @@ export const createStructuredAgentRun = ({
   activeModules = [],
   llmAnswer,
   kernelResponses = [],
+  kernelToolCalls,
   now = new Date()
 }: DataAgentInput): AgentRun => {
   const context = filterActiveContext(diagnosis, activeModules);
@@ -359,7 +367,10 @@ export const createStructuredAgentRun = ({
       outputSummary: llmAnswer ? "已使用外部 LLM 生成最终回答。" : "未配置或未使用 LLM，采用确定性 fallback 回答。",
       evidenceIds
     },
-    ...kernelResponses.map(createKernelToolCall)
+    ...(kernelToolCalls ??
+      kernelResponses.map((response, index) =>
+        createKernelToolCall(response, index)
+      ))
   ];
 
   return {

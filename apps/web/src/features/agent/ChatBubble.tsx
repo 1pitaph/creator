@@ -1,6 +1,10 @@
 import { lazy, memo, Suspense } from "react";
 
-import type { AgentRun, AiModuleMetadata } from "@creator/data-contracts";
+import type {
+  AgentRun,
+  AgentToolCall,
+  AiModuleMetadata,
+} from "@creator/data-contracts";
 import { cn } from "@creator/ui";
 
 import type { UiMessage } from "../../types";
@@ -21,6 +25,8 @@ export const ChatBubble = memo(function ChatBubble({
   moduleById: Map<string, AiModuleMetadata>;
 }) {
   const isAssistant = message.role === "assistant";
+  const liveToolCalls =
+    isAssistant && !message.agentRun ? (message.toolCalls ?? []) : [];
   const usedModuleNames = message.usedModules
     ?.map((moduleId) => moduleById.get(moduleId)?.name ?? moduleId)
     .filter(Boolean);
@@ -58,6 +64,9 @@ export const ChatBubble = memo(function ChatBubble({
         )}
         {isAssistant && message.agentRun ? (
           <AgentRunPanel run={message.agentRun} />
+        ) : null}
+        {liveToolCalls.length > 0 ? (
+          <LiveToolCallPanel toolCalls={liveToolCalls} />
         ) : null}
         {isAssistant && usedModuleNames && usedModuleNames.length > 0 ? (
           <MessageContextTags
@@ -158,5 +167,12 @@ const AgentRunPanel = ({ run }: { run: AgentRun }) => (
       <p className="mb-2 font-semibold text-zinc-700">工具调用</p>
       <ToolCallTagList toolCalls={run.toolCalls} />
     </div>
+  </div>
+);
+
+const LiveToolCallPanel = ({ toolCalls }: { toolCalls: AgentToolCall[] }) => (
+  <div className="mt-3 border-t border-zinc-200/80 pt-3 text-xs leading-5">
+    <p className="mb-2 font-semibold text-zinc-700">工具调用</p>
+    <ToolCallTagList toolCalls={toolCalls} />
   </div>
 );

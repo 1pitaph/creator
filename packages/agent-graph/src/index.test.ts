@@ -21,6 +21,37 @@ const diagnosis = () => {
   });
 };
 
+const createKernelPayload = (tool: string, index = 1) => ({
+  ok: true,
+  requestId: `kernel-${index}`,
+  tool,
+  result: { rows: [] },
+  evidence: [
+    {
+      sourceTable: "history",
+      rowCount: 7,
+      columns: ["date", "views"],
+      excerpt: `kernel evidence ${index}`,
+    },
+  ],
+  artifacts: [
+    {
+      id: `artifact-${index}`,
+      kind: "table",
+      title: `Kernel artifact ${index}`,
+      data: {},
+    },
+  ],
+});
+
+const withTimeout = async <T,>(promise: Promise<T>, ms = 5_000) =>
+  Promise.race([
+    promise,
+    new Promise<never>((_resolve, reject) =>
+      setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms),
+    ),
+  ]);
+
 beforeEach(() => {
   resetAgentGraphRuntimeForTests();
   vi.stubEnv("AGENT_CHECKPOINT_URL", "");
@@ -290,7 +321,6 @@ describe("agent graph", () => {
     expect(events.map((event) => event.type)).toEqual(
       expect.arrayContaining([
         "thread",
-        "tool-call",
         "agent-run-patch",
         "text-delta",
         "agent-run",
@@ -303,18 +333,103 @@ describe("agent graph", () => {
         .map((event) => event.delta)
         .join(""),
     ).toContain("本次调用模块");
-    const streamedToolNames = events
-      .filter((event) => event.type === "tool-call")
-      .map((event) => event.toolCall.name);
-    expect(streamedToolNames).toContain("rank_priority_insight");
-    expect(streamedToolNames).not.toEqual(
-      expect.arrayContaining([
-        "hydrate_request",
-        "select_active_context",
-        "build_evidence",
-        "finalize_agent_run",
-      ]),
+    const serializedEvents = JSON.stringify(events);
+    expect(serializedEvents).not.toContain("hydrate_request");
+    expect(serializedEvents).not.toContain("select_active_context");
+    expect(serializedEvents).not.toContain("build_evidence");
+    expect(serializedEvents).not.toContain("finalize_agent_run");
+  });
+
+  it("streams data-kernel running and result events before the first text delta", async () => {
+    let releaseProfile: (() => void) | undefined;
+    const profileCanFinish = new Promise<void>((resolve) => {
+      releaseProfile = resolve;
+    });
+    let callIndex = 0;
+    const server = createServer(async (request, response) => {
+      const tool = request.url?.split("/").at(-1) ?? "profile_dataset";
+      callIndex += 1;
+
+      if (tool === "profile_dataset") {
+        await profileCanFinish;
+      }
+
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify(createKernelPayload(tool, callIndex)));
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
     );
+    const address = server.address();
+
+    try {
+      if (!address || typeof address === "string") {
+        throw new Error("Test server did not expose a port.");
+      }
+
+      vi.stubEnv("DATA_KERNEL_URL", `http://127.0.0.1:${address.port}`);
+
+      const iterator = streamAgentGraphEvents({
+        diagnosis: diagnosis(),
+        request: {
+          creatorId: "short-drama-strategy",
+          threadId: "thread-kernel-lifecycle",
+          activeModules: ["content-diagnosis"],
+          messages: [{ role: "user", content: "下一条视频拍什么？" }],
+        },
+      })[Symbol.asyncIterator]();
+
+      const first = await withTimeout(iterator.next());
+      const second = await withTimeout(iterator.next());
+
+      expect(first.value?.type).toBe("thread");
+      expect(second.value).toMatchObject({
+        type: "tool-call",
+        toolCall: {
+          id: "kernel-1",
+          name: "profile_dataset",
+          status: "running",
+        },
+      });
+
+      releaseProfile?.();
+
+      const events = [];
+      for await (const streamEvent of iterator) {
+        events.push(streamEvent);
+      }
+
+      const allEvents = [first.value, second.value, ...events].filter(Boolean);
+      const firstTextIndex = allEvents.findIndex(
+        (streamEvent) => streamEvent.type === "text-delta",
+      );
+      const firstToolIndex = allEvents.findIndex(
+        (streamEvent) => streamEvent.type === "tool-call",
+      );
+      const firstResultIndex = allEvents.findIndex(
+        (streamEvent) =>
+          streamEvent.type === "tool-result" &&
+          streamEvent.toolResult.toolCallId === "kernel-1",
+      );
+
+      expect(firstToolIndex).toBeGreaterThan(-1);
+      expect(firstResultIndex).toBeGreaterThan(-1);
+      expect(firstTextIndex).toBeGreaterThan(-1);
+      expect(firstToolIndex).toBeLessThan(firstTextIndex);
+      expect(firstResultIndex).toBeLessThan(firstTextIndex);
+      expect(
+        allEvents.find(
+          (streamEvent) =>
+            streamEvent.type === "agent-run" &&
+            streamEvent.agentRun.toolCalls.some(
+              (tool) => tool.id === "kernel-1" && tool.status === "success",
+            ),
+        ),
+      ).toBeTruthy();
+    } finally {
+      releaseProfile?.();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 
   it("streams data-kernel tool errors as business tool-call events", async () => {
@@ -365,6 +480,19 @@ describe("agent graph", () => {
       ).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
+            name: "profile_dataset",
+            status: "running",
+          }),
+        ]),
+      );
+      expect(
+        events
+          .filter((event) => event.type === "tool-result")
+          .map((event) => event.toolResult),
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            toolCallId: "kernel-1",
             name: "profile_dataset",
             status: "error",
             error: "Kernel unavailable.",
