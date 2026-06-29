@@ -83,7 +83,7 @@ describe("dashboard customization", () => {
     expect(preferences.visual.layouts.lg.map((item) => item.i)).toEqual(cards.map((card) => card.id));
     expect(preferences.visual.layouts.lg.slice(0, 2)).toMatchObject([
       { i: "summary", x: 0, y: 0, w: 8, h: 7, minW: 3, minH: 6, maxW: 12, maxH: 16 },
-      { i: "insights", x: 8, y: 0, w: 4, h: 8, minW: 3, minH: 6, maxW: 12, maxH: 16 }
+      { i: "insights", x: 8, y: 0, w: 4, h: 7, minW: 3, minH: 6, maxW: 12, maxH: 16 }
     ]);
     expect(
       getDashboardCardContentSizeForGridItem(
@@ -102,7 +102,7 @@ describe("dashboard customization", () => {
     });
     expect(preferences.visual.layouts.sm.find((item) => item.i === "insights")).toMatchObject({
       w: 4,
-      h: 7,
+      h: 8,
       minW: 3,
       minH: 6,
       maxW: 4,

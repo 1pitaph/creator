@@ -119,12 +119,14 @@ export const DashboardCardKindTag = ({ kind }: { kind: DashboardCardKind }) => (
 );
 
 export const InsightModuleTag = ({
+  className,
   label,
   severity
 }: {
+  className?: string;
   label: string;
   severity: Insight["severity"];
-}) => <Badge tone={severityTone[severity]}>{label}</Badge>;
+}) => <Badge className={className} tone={severityTone[severity]}>{label}</Badge>;
 
 export const MetricToneTag = ({
   label,

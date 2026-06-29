@@ -37,23 +37,27 @@ export const DashboardCardRenderer = ({
   showDragHandle?: boolean;
   size: DashboardCardDefinition["defaultSize"];
   viewModel: DashboardViewModel;
-}) => (
-  <DashboardModuleCard
-    title={card.title}
-    description={card.description}
-    askTarget={card.askTarget}
-    onAsk={onAsk}
-    fill={fill}
-    showDragHandle={showDragHandle}
-    dragHandleLabel={`拖动卡片：${card.title}`}
-    onDragHandlePointerDown={onDragHandlePointerDown}
-    className={fill ? "h-full" : undefined}
-    contentClassName={fill ? "overflow-hidden" : undefined}
-    size={size}
-  >
-    <CardBody actions={actions} card={card} diagnosis={diagnosis} fill={fill} onAsk={onAsk} size={size} viewModel={viewModel} />
-  </DashboardModuleCard>
-);
+}) => {
+  const isCompactInsightsCard = fill && card.kind === "insights";
+
+  return (
+    <DashboardModuleCard
+      title={card.title}
+      description={card.description}
+      askTarget={card.askTarget}
+      onAsk={onAsk}
+      fill={fill}
+      showDragHandle={showDragHandle}
+      dragHandleLabel={`拖动卡片：${card.title}`}
+      onDragHandlePointerDown={onDragHandlePointerDown}
+      className={fill ? "h-full" : undefined}
+      contentClassName={cn(fill && "overflow-hidden", isCompactInsightsCard && "!py-3")}
+      size={size}
+    >
+      <CardBody actions={actions} card={card} diagnosis={diagnosis} fill={fill} onAsk={onAsk} size={size} viewModel={viewModel} />
+    </DashboardModuleCard>
+  );
+};
 
 const CardBody = ({
   actions,
@@ -126,17 +130,18 @@ const PaginatedInsightsBody = ({
   const canGoNext = visiblePageIndex < maxPageIndex;
 
   return (
-    <div className={cn("flex min-h-0 flex-col overflow-hidden", fill ? "h-full" : "min-h-[340px]")}>
+    <div className={cn("flex min-h-0 flex-col overflow-hidden", fill ? "h-full" : "min-h-[300px]")}>
       <div className="min-h-0 flex-1 overflow-hidden">
         <InsightRow compact={fill} insight={currentInsight} module={moduleById.get(currentInsight.moduleId)} onAsk={onAsk} />
       </div>
 
       {pageCount > 1 ? (
-        <nav className="mt-3 flex h-11 shrink-0 items-center justify-between border-t border-zinc-100/80 pt-3" aria-label="AI 诊断优先级分页" data-no-drag="true">
+        <nav className="mt-2 flex h-9 shrink-0 items-center justify-between border-t border-zinc-100/80 pt-2" aria-label="AI 诊断优先级分页" data-no-drag="true">
           <Button
             type="button"
             variant="ghost"
             size="icon"
+            className="!h-8 !w-8 rounded-full text-zinc-500"
             aria-label="上一条 AI 诊断优先级"
             disabled={!canGoPrevious}
             onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
@@ -144,7 +149,7 @@ const PaginatedInsightsBody = ({
             <CaretLeft className="h-4 w-4" weight={phosphorIconWeight} />
           </Button>
 
-          <span className="text-xs font-medium text-zinc-500" role="status" aria-live="polite">
+          <span className="text-[11px] font-medium leading-none text-zinc-500" role="status" aria-live="polite">
             第 {visiblePageIndex + 1} / {pageCount} 条
           </span>
 
@@ -152,6 +157,7 @@ const PaginatedInsightsBody = ({
             type="button"
             variant="ghost"
             size="icon"
+            className="!h-8 !w-8 rounded-full text-zinc-500"
             aria-label="下一条 AI 诊断优先级"
             disabled={!canGoNext}
             onClick={() => setPageIndex((current) => Math.min(maxPageIndex, current + 1))}

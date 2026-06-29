@@ -158,6 +158,8 @@ const compactSummaryHeightGrid: Record<DashboardBreakpoint, number> = {
   xs: heightGrid.large.xs
 };
 
+const matchedSummaryHeightKinds = new Set<DashboardCardKind>(["summary", "insights"]);
+
 export const chartHeightBySize: Record<DashboardCardSize, number> = {
   small: 56,
   medium: 140,
@@ -423,14 +425,15 @@ const getGridPreset = (
   cols = dashboardColumnCounts[breakpoint]
 ) => {
   const columnCount = normalizeDashboardColumnCount(cols, dashboardColumnCounts[breakpoint]);
-  const compactSummaryHeight =
-    card.kind === "summary" && dimensions.width === "large" && dimensions.height === "large"
+  const matchesSummaryHeight =
+    matchedSummaryHeightKinds.has(card.kind) &&
+    (card.kind === "summary" ? dimensions.width === "large" && dimensions.height === "large" : dimensions.height === "medium")
       ? compactSummaryHeightGrid[breakpoint]
       : undefined;
 
   return {
     w: Math.min(widthGrid[dimensions.width][breakpoint], columnCount),
-    h: compactSummaryHeight ?? heightGrid[dimensions.height][breakpoint]
+    h: matchesSummaryHeight ?? heightGrid[dimensions.height][breakpoint]
   };
 };
 
