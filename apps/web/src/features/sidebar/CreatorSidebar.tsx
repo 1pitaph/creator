@@ -734,7 +734,7 @@ const SidebarLinkItem = ({
       <span
         className={cn(
           "pointer-events-none absolute inset-x-0 z-10 rounded-lg bg-neutral-200 transition-opacity duration-150 ease-out",
-          separated ? "top-3 bottom-0" : "inset-y-0",
+          separated ? "top-3.5 bottom-0.5" : "inset-y-0.5",
           active || isIntent
             ? "opacity-100"
             : "opacity-0 group-focus/sidebar:opacity-100 group-hover/sidebar:opacity-100",
@@ -815,7 +815,7 @@ const SidebarGroupItem = ({
       >
         <span
           className={cn(
-            "pointer-events-none absolute inset-0 z-10 rounded-lg bg-neutral-200 transition-opacity duration-150 ease-out",
+            "pointer-events-none absolute inset-x-0 inset-y-0.5 z-10 rounded-lg bg-neutral-200 transition-opacity duration-150 ease-out",
             active || isIntent
               ? "opacity-100"
               : "opacity-0 group-focus/sidebar:opacity-100 group-hover/sidebar:opacity-100",
