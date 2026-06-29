@@ -169,7 +169,8 @@ export const AgentDrawer = ({
 
             <ThreadPrimitive.Root className="min-h-0 flex-1">
               <ThreadPrimitive.Viewport
-                className="h-full overflow-y-auto p-4"
+                className="hover-scrollbar scroll-isolated h-full overflow-y-auto p-4"
+                data-testid="agent-thread-viewport"
                 autoScroll
               >
                 <div className="space-y-4">
@@ -318,20 +319,9 @@ const AgentContextPanel = ({
             <EvidenceTagList className="mt-2" evidence={focus.evidence} />
           ) : null}
         </div>
-      </div>
-
-      {!isCollapsed ? (
-        <PresetQuestionList
-          className="mt-3 border-t border-zinc-200/70 pt-3"
-          isChatting={isChatting}
-          onAskPreset={onAskPreset}
-        />
-      ) : null}
-
-      <div className="mt-3 flex justify-end">
         <button
           type="button"
-          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-zinc-600 transition hover:bg-white hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
+          className="mt-5 inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-zinc-600 transition hover:bg-white hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
           aria-expanded={!isCollapsed}
           aria-label={toggleLabel}
           title={toggleLabel}
@@ -341,6 +331,14 @@ const AgentContextPanel = ({
           <ToggleIcon className="h-3.5 w-3.5" weight={phosphorIconWeight} />
         </button>
       </div>
+
+      {!isCollapsed ? (
+        <PresetQuestionList
+          className="mt-3 border-t border-zinc-200/70 pt-3"
+          isChatting={isChatting}
+          onAskPreset={onAskPreset}
+        />
+      ) : null}
     </div>
   );
 };

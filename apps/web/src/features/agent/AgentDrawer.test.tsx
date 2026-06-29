@@ -176,6 +176,16 @@ describe("AgentDrawer", () => {
     expect(drawer).toHaveAttribute("data-state", "open");
   });
 
+  it("uses hover-revealed scrollbar styling for the message viewport", () => {
+    renderAgentDrawer();
+
+    expect(screen.getByTestId("agent-thread-viewport")).toHaveClass(
+      "hover-scrollbar",
+      "scroll-isolated",
+      "overflow-y-auto",
+    );
+  });
+
   it("closes through Radix dialog escape handling", async () => {
     const onClose = vi.fn();
 
