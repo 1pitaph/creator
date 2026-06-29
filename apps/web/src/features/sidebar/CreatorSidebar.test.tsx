@@ -119,20 +119,126 @@ describe("CreatorSidebar", () => {
       "-right-4",
     );
     expect(
-      within(sidebar).getByRole("button", { name: "诊断总览" }),
+      within(sidebar).getByRole("button", { name: "首页" }),
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole("button", { name: "内容管理" }),
     ).toBeInTheDocument();
   });
 
-  it("routes board and table entries through sidebar navigation", () => {
+  it("isolates sidebar navigation scrolling from the main page", () => {
+    renderSidebar();
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+
+    expect(within(sidebar).getByTestId("sidebar-nav-scroll-viewport")).toHaveClass(
+      "scroll-isolated",
+    );
+  });
+
+  it("renders the Douyin-style sidebar modules and publish CTA", () => {
+    renderSidebar();
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+
+    expect(
+      within(sidebar).getByRole("button", { name: "高清发布" }),
+    ).toBeInTheDocument();
+    expect(within(sidebar).getByRole("button", { name: "首页" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(within(sidebar).queryByText("诊断总览")).not.toBeInTheDocument();
+    expect(within(sidebar).queryByText("行动队列")).not.toBeInTheDocument();
+
+    for (const label of [
+      "活动管理",
+      "内容管理",
+      "互动管理",
+      "数据中心",
+      "变现中心",
+      "创作中心",
+    ]) {
+      expect(within(sidebar).getByRole("button", { name: label })).toBeInTheDocument();
+    }
+  });
+
+  it("routes activity and account overview entries through sidebar navigation", () => {
     const handleSelectPanel = vi.fn();
     renderSidebar({ onSelectPanel: handleSelectPanel });
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
-    fireEvent.click(within(sidebar).getByRole("button", { name: "行动队列" }));
-    fireEvent.click(within(sidebar).getByRole("button", { name: "面板配置" }));
+    fireEvent.click(within(sidebar).getByRole("button", { name: "活动管理" }));
+    fireEvent.click(within(sidebar).getByRole("button", { name: "数据中心" }));
+    fireEvent.click(within(sidebar).getByRole("button", { name: "账号总览" }));
 
     expect(handleSelectPanel).toHaveBeenCalledWith("board");
     expect(handleSelectPanel).toHaveBeenCalledWith("table");
+  });
+
+  it("expands sidebar groups and renders official child items", () => {
+    renderSidebar();
+
+    const sidebar = screen.getByTestId("creator-sidebar-desktop");
+    expect(
+      within(sidebar).getByRole("button", { name: "变现中心" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      within(sidebar).getByRole("button", { name: "内容管理" }),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    for (const group of ["内容管理", "互动管理", "数据中心", "创作中心"]) {
+      fireEvent.click(within(sidebar).getByRole("button", { name: group }));
+      expect(
+        within(sidebar).getByRole("button", { name: group }),
+      ).toHaveAttribute("aria-expanded", "true");
+    }
+
+    for (const child of [
+      "作品管理",
+      "合集管理",
+      "共创中心",
+      "原创保护中心",
+      "关注管理",
+      "粉丝管理",
+      "评论管理",
+      "弹幕管理",
+      "私信管理",
+      "账号总览",
+      "作品分析",
+      "粉丝分析",
+      "重点关心",
+      "变现广场",
+      "我的任务",
+      "我的收入",
+      "创作灵感",
+      "学习中心",
+      "抖音指数",
+    ]) {
+      expect(within(sidebar).getByRole("button", { name: child })).toBeInTheDocument();
+    }
+
+    fireEvent.click(within(sidebar).getByRole("button", { name: "内容管理" }));
+    expect(
+      within(sidebar).getByRole("button", { name: "内容管理" }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps mobile sidebar open for group toggles and closes on navigation", () => {
+    const handleSelectPanel = vi.fn();
+    renderSidebar({ onSelectPanel: handleSelectPanel });
+
+    const mobileTrigger = screen.getByTestId("mobile-sidebar-trigger");
+    fireEvent.click(mobileTrigger);
+    expect(mobileTrigger).toHaveAttribute("aria-expanded", "true");
+
+    const mobileSidebar = screen.getByTestId("creator-sidebar-mobile");
+    fireEvent.click(within(mobileSidebar).getByRole("button", { name: "内容管理" }));
+    expect(mobileTrigger).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(within(mobileSidebar).getByRole("button", { name: "作品管理" }));
+    expect(handleSelectPanel).not.toHaveBeenCalled();
+    expect(mobileTrigger).toHaveAttribute("aria-expanded", "false");
   });
 
   it("renders the creator account notch above the footer", () => {

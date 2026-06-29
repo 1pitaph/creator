@@ -10,7 +10,12 @@ export default {
           "system-ui",
           "-apple-system",
           "BlinkMacSystemFont",
+          "PingFang SC",
+          "HarmonyOS Sans SC",
+          "Microsoft YaHei",
+          "Helvetica Neue",
           "Segoe UI",
+          "Arial",
           "sans-serif"
         ]
       },
