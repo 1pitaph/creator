@@ -9,6 +9,13 @@ const diagnosis = localDiagnosis(defaultCreatorId);
 const moduleById = new Map(
   diagnosis.modules.map((module) => [module.id, module]),
 );
+const focusTarget = {
+  title: "AI 诊断优先级",
+  prompt: "诊断增长瓶颈",
+  moduleId: "fan-operation",
+  summary: "建议把结尾关注理由、主页合集和评论回访做成一套承接链路。",
+  evidence: ["7 日转粉率 0.4%", "新增粉丝 5,180"],
+};
 
 describe("AgentDrawer", () => {
   it("renders used module badges and disables empty submit", () => {
@@ -51,6 +58,79 @@ describe("AgentDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: /下一条视频拍什么/ }));
 
     expect(onAskPreset).toHaveBeenCalledWith("下一条视频拍什么？");
+  });
+
+  it("collapses focused module context by default", () => {
+    renderAgentDrawer({ focus: focusTarget });
+
+    expect(screen.getByText("当前询问模块")).toBeInTheDocument();
+    expect(screen.getByText("AI 诊断优先级")).toBeInTheDocument();
+    expect(screen.queryByText(focusTarget.summary)).not.toBeInTheDocument();
+    expect(screen.queryByText("7 日转粉率 0.4%")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /下一条视频拍什么/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "展开当前询问模块" }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("toggles focused module details and preset questions", () => {
+    const onAskPreset = vi.fn();
+
+    renderAgentDrawer({ focus: focusTarget, onAskPreset });
+
+    fireEvent.click(screen.getByRole("button", { name: "展开当前询问模块" }));
+
+    expect(screen.getByText(focusTarget.summary)).toBeInTheDocument();
+    expect(screen.getByText("7 日转粉率 0.4%")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /下一条视频拍什么/ }));
+
+    expect(onAskPreset).toHaveBeenCalledWith("下一条视频拍什么？");
+    expect(
+      screen.getByRole("button", { name: "收起当前询问模块" }),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "收起当前询问模块" }));
+
+    expect(screen.queryByText(focusTarget.summary)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /下一条视频拍什么/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("resets focused module context to collapsed when focus changes", () => {
+    const nextFocus = {
+      ...focusTarget,
+      title: "下一条视频拍什么",
+      moduleId: "content-diagnosis",
+      summary: "从高完播视频的开头钩子里提炼下一条选题。",
+    };
+    const view = renderAgentDrawer({ focus: focusTarget });
+
+    fireEvent.click(screen.getByRole("button", { name: "展开当前询问模块" }));
+
+    expect(screen.getByText(focusTarget.summary)).toBeInTheDocument();
+
+    view.rerender(<AgentDrawer {...agentDrawerProps({ focus: nextFocus })} />);
+
+    expect(screen.getByText("下一条视频拍什么")).toBeInTheDocument();
+    expect(screen.queryByText(nextFocus.summary)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "展开当前询问模块" }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps preset questions visible when no module is focused", () => {
+    renderAgentDrawer();
+
+    expect(
+      screen.getByRole("button", { name: /下一条视频拍什么/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "展开当前询问模块" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders approval controls", () => {
@@ -110,20 +190,20 @@ describe("AgentDrawer", () => {
 type AgentDrawerOverrides = Partial<Parameters<typeof AgentDrawer>[0]>;
 
 const renderAgentDrawer = (overrides: AgentDrawerOverrides = {}) =>
-  render(
-    <AgentDrawer
-      open
-      onClose={vi.fn()}
-      messages={[]}
-      isChatting={false}
-      onSendMessage={vi.fn()}
-      onAskPreset={vi.fn()}
-      onStopGeneration={vi.fn()}
-      onApproveApproval={vi.fn()}
-      onDenyApproval={vi.fn()}
-      isResumingApproval={false}
-      moduleById={moduleById}
-      focus={null}
-      {...overrides}
-    />,
-  );
+  render(<AgentDrawer {...agentDrawerProps(overrides)} />);
+
+const agentDrawerProps = (overrides: AgentDrawerOverrides = {}) => ({
+  open: true,
+  onClose: vi.fn(),
+  messages: [],
+  isChatting: false,
+  onSendMessage: vi.fn(),
+  onAskPreset: vi.fn(),
+  onStopGeneration: vi.fn(),
+  onApproveApproval: vi.fn(),
+  onDenyApproval: vi.fn(),
+  isResumingApproval: false,
+  moduleById,
+  focus: null,
+  ...overrides,
+});

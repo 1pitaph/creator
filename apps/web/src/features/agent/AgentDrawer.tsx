@@ -8,6 +8,8 @@ import {
   type AppendMessage,
   type ThreadMessageLike,
 } from "@assistant-ui/react";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { CaretUp } from "@phosphor-icons/react/CaretUp";
 import { ChatText } from "@phosphor-icons/react/ChatText";
 import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
 import { PaperPlaneTilt } from "@phosphor-icons/react/PaperPlaneTilt";
@@ -15,7 +17,7 @@ import { Sparkle } from "@phosphor-icons/react/Sparkle";
 import { StopCircle } from "@phosphor-icons/react/StopCircle";
 import { X } from "@phosphor-icons/react/X";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   AgentApprovalRequest,
@@ -45,6 +47,7 @@ export const AgentDrawer = ({
   moduleById,
   focus,
 }: AgentDrawerProps) => {
+  const [isContextCollapsed, setIsContextCollapsed] = useState(true);
   const messagesById = useMemo(
     () => new Map(messages.map((message) => [message.id, message])),
     [messages],
@@ -102,6 +105,10 @@ export const AgentDrawer = ({
     }
   };
 
+  useEffect(() => {
+    setIsContextCollapsed(true);
+  }, [focus?.moduleId, focus?.title]);
+
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange} modal={false}>
       <Dialog.Portal>
@@ -144,57 +151,21 @@ export const AgentDrawer = ({
             </CardHeader>
 
             {focus ? (
-              <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-violet-600 shadow-sm">
-                    <Sparkle
-                      className="h-3.5 w-3.5"
-                      weight={phosphorIconWeight}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-zinc-500">
-                      当前询问模块
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-zinc-950">
-                      {focus.title}
-                    </p>
-                    {focus.summary ? (
-                      <p className="mt-1 text-xs leading-5 text-zinc-600">
-                        {focus.summary}
-                      </p>
-                    ) : null}
-                    {focus.evidence && focus.evidence.length > 0 ? (
-                      <EvidenceTagList
-                        className="mt-2"
-                        evidence={focus.evidence}
-                      />
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="border-b border-zinc-100 px-4 py-3">
-              <div className="flex flex-wrap gap-2">
-                {presetQuestions.map((question) => (
-                  <Button
-                    key={question}
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={isChatting}
-                    onClick={() => onAskPreset(question)}
-                  >
-                    <ChatText
-                      className="h-3.5 w-3.5"
-                      weight={phosphorIconWeight}
-                    />
-                    {question}
-                  </Button>
-                ))}
-              </div>
-            </div>
+              <AgentContextPanel
+                focus={focus}
+                isChatting={isChatting}
+                isCollapsed={isContextCollapsed}
+                onAskPreset={onAskPreset}
+                onToggleCollapsed={() =>
+                  setIsContextCollapsed((collapsed) => !collapsed)
+                }
+              />
+            ) : (
+              <PresetQuestionSection
+                isChatting={isChatting}
+                onAskPreset={onAskPreset}
+              />
+            )}
 
             <ThreadPrimitive.Root className="min-h-0 flex-1">
               <ThreadPrimitive.Viewport
@@ -310,6 +281,107 @@ export const AgentDrawer = ({
     </Dialog.Root>
   );
 };
+
+const AgentContextPanel = ({
+  focus,
+  isChatting,
+  isCollapsed,
+  onAskPreset,
+  onToggleCollapsed,
+}: {
+  focus: AskTarget;
+  isChatting: boolean;
+  isCollapsed: boolean;
+  onAskPreset: (question: string) => void;
+  onToggleCollapsed: () => void;
+}) => {
+  const toggleLabel = isCollapsed ? "展开当前询问模块" : "收起当前询问模块";
+  const ToggleIcon = isCollapsed ? CaretDown : CaretUp;
+
+  return (
+    <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-violet-600 shadow-sm">
+          <Sparkle className="h-3.5 w-3.5" weight={phosphorIconWeight} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-zinc-500">当前询问模块</p>
+          <p className="mt-1 text-sm font-semibold text-zinc-950">
+            {focus.title}
+          </p>
+          {!isCollapsed && focus.summary ? (
+            <p className="mt-1 text-xs leading-5 text-zinc-600">
+              {focus.summary}
+            </p>
+          ) : null}
+          {!isCollapsed && focus.evidence && focus.evidence.length > 0 ? (
+            <EvidenceTagList className="mt-2" evidence={focus.evidence} />
+          ) : null}
+        </div>
+      </div>
+
+      {!isCollapsed ? (
+        <PresetQuestionList
+          className="mt-3 border-t border-zinc-200/70 pt-3"
+          isChatting={isChatting}
+          onAskPreset={onAskPreset}
+        />
+      ) : null}
+
+      <div className="mt-3 flex justify-end">
+        <button
+          type="button"
+          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-zinc-600 transition hover:bg-white hover:text-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"
+          aria-expanded={!isCollapsed}
+          aria-label={toggleLabel}
+          title={toggleLabel}
+          onClick={onToggleCollapsed}
+        >
+          <span>{isCollapsed ? "展开" : "收起"}</span>
+          <ToggleIcon className="h-3.5 w-3.5" weight={phosphorIconWeight} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const PresetQuestionSection = ({
+  isChatting,
+  onAskPreset,
+}: {
+  isChatting: boolean;
+  onAskPreset: (question: string) => void;
+}) => (
+  <div className="border-b border-zinc-100 px-4 py-3">
+    <PresetQuestionList isChatting={isChatting} onAskPreset={onAskPreset} />
+  </div>
+);
+
+const PresetQuestionList = ({
+  className,
+  isChatting,
+  onAskPreset,
+}: {
+  className?: string;
+  isChatting: boolean;
+  onAskPreset: (question: string) => void;
+}) => (
+  <div className={cn("flex flex-wrap gap-2", className)}>
+    {presetQuestions.map((question) => (
+      <Button
+        key={question}
+        type="button"
+        size="sm"
+        variant="ghost"
+        disabled={isChatting}
+        onClick={() => onAskPreset(question)}
+      >
+        <ChatText className="h-3.5 w-3.5" weight={phosphorIconWeight} />
+        {question}
+      </Button>
+    ))}
+  </div>
+);
 
 type AgentDrawerProps = {
   open: boolean;
