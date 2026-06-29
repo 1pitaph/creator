@@ -392,13 +392,14 @@ const SidebarContent = ({
         />
       </div>
 
-      <div className={cn("mt-4", collapsed && "mt-3")}>
-        <CreatorAccountNotchSelect
-          collapsed={collapsed}
-          selectedCreatorId={selectedCreatorId}
-          onSelectCreator={onSelectCreator}
-        />
-      </div>
+      {!collapsed ? (
+        <div className="mt-4">
+          <CreatorAccountNotchSelect
+            selectedCreatorId={selectedCreatorId}
+            onSelectCreator={onSelectCreator}
+          />
+        </div>
+      ) : null}
 
       <SidebarFooter
         collapsed={collapsed}

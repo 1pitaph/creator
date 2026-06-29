@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { DashboardModuleCard } from "./DashboardModuleCard";
@@ -99,6 +100,26 @@ describe("DashboardModuleCard", () => {
     fireEvent.click(screen.getByLabelText("询问 AI Agent：AI 诊断摘要"));
 
     expect(onAsk).toHaveBeenCalledWith(target);
+  });
+
+  it("releases pointer focus from the drag handle after activation", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <DashboardModuleCard title="AI 诊断摘要" description="摘要" askTarget={target} onAsk={vi.fn()} showDragHandle>
+        <p>内容</p>
+      </DashboardModuleCard>
+    );
+
+    const handle = screen.getByLabelText("拖动卡片：AI 诊断摘要");
+
+    await user.click(handle);
+
+    await waitFor(() => expect(handle).not.toHaveFocus());
+
+    handle.focus();
+
+    expect(handle).toHaveFocus();
   });
 
   it("keeps small card spacing compact and hides descriptions", () => {

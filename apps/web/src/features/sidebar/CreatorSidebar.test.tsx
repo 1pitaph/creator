@@ -588,7 +588,7 @@ describe("CreatorSidebar", () => {
     expect(mobileTrigger).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("keeps a compact creator switcher accessible when collapsed", async () => {
+  it("hides the creator account notch when collapsed", () => {
     renderSidebar();
 
     const sidebar = screen.getByTestId("creator-sidebar-desktop");
@@ -596,12 +596,14 @@ describe("CreatorSidebar", () => {
       within(sidebar).getByRole("button", { name: "收起侧边栏" }),
     );
 
-    const compactTrigger = within(sidebar).getByRole("button", {
-      name: `切换创作者账号：${creatorOptions[0]!.name}`,
-    });
-    fireEvent.click(compactTrigger);
-
-    expect(await screen.findByRole("listbox", { name: "账号" })).toBeInTheDocument();
+    expect(
+      within(sidebar).queryByTestId("creator-account-notch"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(sidebar).queryByRole("button", {
+        name: `切换创作者账号：${creatorOptions[0]!.name}`,
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("closes the creator notch on Escape and outside click", async () => {
