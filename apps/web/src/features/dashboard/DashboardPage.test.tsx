@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardPreferencesV1, ModuleLoadMode } from "@creator/data-contracts";
@@ -14,13 +15,16 @@ const containerWidthMock = vi.hoisted(() => ({
   mounted: true,
   width: 1200,
 }));
+const dashboardStyles = readFileSync("src/styles.css", "utf8");
 
 vi.mock("react-grid-layout", async () => {
   const React = await import("react");
 
   return {
     ResponsiveGridLayout: ({
+      breakpoint,
       children,
+      compactor,
       containerPadding,
       cols,
       dragConfig,
@@ -32,6 +36,8 @@ vi.mock("react-grid-layout", async () => {
       width,
     }: {
       children: ReactNode;
+      breakpoint?: string;
+      compactor?: { type: string | null };
       containerPadding?: readonly [number, number];
       cols?: Record<string, number>;
       dragConfig?: {
@@ -62,6 +68,8 @@ vi.mock("react-grid-layout", async () => {
     }) => (
       <div
         data-testid="visual-grid"
+        data-grid-breakpoint={breakpoint ?? ""}
+        data-grid-compactor={compactor ? String(compactor.type) : ""}
         data-drag-enabled={String(dragConfig?.enabled)}
         data-drag-handle={dragConfig?.handle ?? ""}
         data-drag-cancel={dragConfig?.cancel ?? ""}
@@ -103,7 +111,7 @@ vi.mock("react-grid-layout", async () => {
           onClick={() =>
             onDragStop?.(
               [
-                { i: "summary", x: 4, y: 0, w: 8, h: 7 },
+                { i: "summary", x: 4, y: 3, w: 8, h: 7 },
                 { i: "insights", x: 0, y: 0, w: 4, h: 8 }
               ],
               null,
@@ -212,6 +220,28 @@ const readStoredPreferences = () => {
 
 const readStoredLayoutItem = (cardId: string, breakpoint = "lg") =>
   readStoredPreferences()?.visual.layouts[breakpoint]?.find((item) => item.i === cardId);
+
+const matchesSelectorAndParentsTo = (element: Element, selector: string, baseNode: Element) => {
+  let node: Element | null = element;
+
+  while (node) {
+    if (node.matches(selector)) {
+      return true;
+    }
+
+    if (node === baseNode) {
+      return false;
+    }
+
+    node = node.parentElement;
+  }
+
+  return false;
+};
+
+const canStartGridDrag = (target: Element, baseNode: Element, handleSelector: string, cancelSelector: string) =>
+  matchesSelectorAndParentsTo(target, handleSelector, baseNode) &&
+  !matchesSelectorAndParentsTo(target, cancelSelector, baseNode);
 
 const getFirstModuleChartCard = (diagnosis: ReturnType<typeof localDiagnosis>) => {
   const module = diagnosis.modules.find((item) => item.chart);
@@ -602,7 +632,7 @@ describe("DashboardPage", () => {
       expect(readStoredLayoutItem("summary")).toMatchObject({
         i: "summary",
         x: 4,
-        y: 0,
+        y: 3,
         w: 8,
         h: 7
       });
@@ -618,7 +648,14 @@ describe("DashboardPage", () => {
     const bottomResizeHandle = screen.getByTestId("visual-resize-handle-summary-s");
     const askButton = screen.getByLabelText("询问 AI Agent：AI 诊断摘要");
     const resizeHandles = grid.dataset.resizeHandles?.split(",").filter(Boolean) ?? [];
+    const cardElement = handle.closest("[data-dashboard-card-id]");
+    const dragHandleSelector = grid.dataset.dragHandle ?? "";
+    const dragCancelSelector = grid.dataset.dragCancel ?? "";
 
+    expect(cardElement).not.toBeNull();
+
+    expect(grid).toHaveAttribute("data-grid-breakpoint", "lg");
+    expect(grid).toHaveAttribute("data-grid-compactor", "null");
     expect(grid).toHaveAttribute("data-drag-enabled", "true");
     expect(grid).toHaveAttribute("data-resize-enabled", "false");
     expect(resizeHandles).toEqual([]);
@@ -626,30 +663,48 @@ describe("DashboardPage", () => {
       "data-drag-handle",
       ".dashboard-card-drag-handle",
     );
-    expect(handle.matches(grid.dataset.dragHandle ?? "")).toBe(true);
-    expect(handle.matches(grid.dataset.dragCancel ?? "")).toBe(false);
+    expect(handle.matches(dragHandleSelector)).toBe(true);
+    expect(handle.matches(dragCancelSelector)).toBe(false);
+    expect(canStartGridDrag(handle, cardElement!, dragHandleSelector, dragCancelSelector)).toBe(true);
     expect(rightResizeHandle).toHaveClass(
       "react-resizable-handle",
       "dashboard-card-resize-handle",
       "dashboard-card-resize-edge--e",
     );
-    expect(rightResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
-    expect(rightResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
+    expect(rightResizeHandle.matches(dragHandleSelector)).toBe(false);
+    expect(rightResizeHandle.matches(dragCancelSelector)).toBe(true);
+    expect(canStartGridDrag(rightResizeHandle, cardElement!, dragHandleSelector, dragCancelSelector)).toBe(false);
     expect(bottomResizeHandle).toHaveClass(
       "react-resizable-handle",
       "dashboard-card-resize-handle",
       "dashboard-card-resize-edge--s",
     );
-    expect(bottomResizeHandle.matches(grid.dataset.dragHandle ?? "")).toBe(false);
-    expect(bottomResizeHandle.matches(grid.dataset.dragCancel ?? "")).toBe(true);
-    expect(askButton.matches(grid.dataset.dragHandle ?? "")).toBe(false);
-    expect(askButton.matches(grid.dataset.dragCancel ?? "")).toBe(true);
+    expect(bottomResizeHandle.matches(dragHandleSelector)).toBe(false);
+    expect(bottomResizeHandle.matches(dragCancelSelector)).toBe(true);
+    expect(canStartGridDrag(bottomResizeHandle, cardElement!, dragHandleSelector, dragCancelSelector)).toBe(false);
+    expect(askButton.matches(dragHandleSelector)).toBe(false);
+    expect(askButton.matches(dragCancelSelector)).toBe(true);
+    expect(canStartGridDrag(askButton, cardElement!, dragHandleSelector, dragCancelSelector)).toBe(false);
 
     fireEvent.click(askButton);
 
     expect(onAskAgent).toHaveBeenCalledWith(
       expect.objectContaining({ title: "AI 诊断摘要" }),
     );
+  });
+
+  it("keeps resize hitboxes inside Visual cards and centers slim rails on card edges", () => {
+    expect(dashboardStyles).toContain(".dashboard-visual-grid-shell .react-grid-item:hover");
+    expect(dashboardStyles).toContain("z-index: 35;");
+    expect(dashboardStyles).toContain("z-index: 45;");
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e \{[\s\S]*?right: 0;/);
+    expect(dashboardStyles).not.toMatch(/dashboard-card-resize-edge--e \{[\s\S]*?right: -10px;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e::before \{[\s\S]*?right: -1px;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--e::before \{[\s\S]*?width: 2px;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--s \{[\s\S]*?bottom: 0;/);
+    expect(dashboardStyles).not.toMatch(/dashboard-card-resize-edge--s \{[\s\S]*?bottom: -10px;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--s::before \{[\s\S]*?bottom: -1px;/);
+    expect(dashboardStyles).toMatch(/dashboard-card-resize-edge--s::before \{[\s\S]*?height: 2px;/);
   });
 
   it("starts Visual cards from presets while leaving grid dimensions resizable", async () => {

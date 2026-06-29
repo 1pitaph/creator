@@ -168,10 +168,20 @@ textarea {
   transition-property: transform, width, height;
 }
 
+.dashboard-visual-grid-shell .react-grid-item:hover,
+.dashboard-visual-grid-shell .react-grid-item:focus-within {
+  z-index: 35;
+}
+
 .dashboard-visual-grid-shell .react-grid-item.react-draggable-dragging,
 .dashboard-visual-grid-shell .react-grid-item.resizing,
 .dashboard-visual-grid-shell .react-grid-placeholder.placeholder-resizing {
   transition: none;
+}
+
+.dashboard-visual-grid-shell .react-grid-item.react-draggable-dragging,
+.dashboard-visual-grid-shell .react-grid-item.resizing {
+  z-index: 45;
 }
 
 .dashboard-visual-grid-shell .react-grid-placeholder {
@@ -225,7 +235,7 @@ textarea {
 
 .dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge--e {
   top: 10px;
-  right: -10px;
+  right: 0;
   bottom: 10px;
   width: 20px;
   cursor: ew-resize;
@@ -234,25 +244,25 @@ textarea {
 .dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge--e::before {
   top: 10px;
   bottom: 10px;
-  left: 8px;
-  width: 3px;
+  right: -1px;
+  width: 2px;
   -webkit-mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
   mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
 }
 
 .dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge--s {
   right: 10px;
-  bottom: -10px;
+  bottom: 0;
   left: 10px;
   height: 20px;
   cursor: ns-resize;
 }
 
 .dashboard-visual-grid-shell .react-grid-item > .dashboard-card-resize-handle.dashboard-card-resize-edge--s::before {
-  top: 8px;
+  bottom: -1px;
   right: 10px;
   left: 10px;
-  height: 3px;
+  height: 2px;
   -webkit-mask-image: linear-gradient(to right, transparent, black 18%, black 82%, transparent);
   mask-image: linear-gradient(to right, transparent, black 18%, black 82%, transparent);
 }

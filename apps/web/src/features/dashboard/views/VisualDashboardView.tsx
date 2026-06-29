@@ -8,6 +8,7 @@ import {
   type Layout,
   type ResponsiveLayouts
 } from "react-grid-layout";
+import { noCompactor } from "react-grid-layout/core";
 
 import type { DashboardBreakpoint, DashboardGridItem, DashboardPreferencesV1, DiagnosisResponse } from "@creator/data-contracts";
 
@@ -435,8 +436,10 @@ export const VisualDashboardView = ({
       {gridReady ? (
         <ResponsiveGridLayout<DashboardBreakpoint>
           width={measuredWidth}
+          breakpoint={breakpoint}
           breakpoints={dashboardBreakpointWidths}
           cols={responsiveColumnCounts}
+          compactor={noCompactor}
           layouts={layouts}
           rowHeight={visualGridRowHeight}
           margin={visualGridMargin}
